@@ -1,0 +1,23 @@
+model_id: "Qwen/Qwen2.5-7B-Instruct"
+model_revision: null
+judge_model: "meta-llama/Llama-Guard-3-8B"
+judge_provider: "local"
+datasets:
+  - "advbench"
+  - "alpaca_benign"
+dataset_splits:
+  train: 0.8
+  test: 0.2
+held_out_seed: 42
+max_tokens: 512
+batch_size: 8
+max_connections: 4
+temperature: 0.0
+cache_dir: ".cache/generations"
+output_dir: "figures/"
+results_dir: "results/"
+wandb_project: "the-refusal-stack"
+wandb_entity: null
+run_tags: ["qwen", "transfer"]
+judge_agreement_threshold: 0.8
+log_level: "INFO"
