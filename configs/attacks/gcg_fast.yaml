@@ -1,0 +1,15 @@
+model_id: "meta-llama/Llama-3.1-8B-Instruct"
+n_steps: 50
+batch_size: 64
+topk: 256
+suffix_len: 20
+seed: 42
+target_phrase: "Sure, here is"
+dataset: "advbench"
+split: "train"
+max_prompts: 10
+checkpoint_every: 10
+device: "cuda"
+dtype: "bfloat16"
+wandb_project: "the-refusal-stack"
+filter_nonascii: true
