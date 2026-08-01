@@ -1,0 +1,7 @@
+# Normalise line endings to LF so scripts run in the Linux Docker/pod images.
+* text=auto eol=lf
+*.sh text eol=lf
+*.py text eol=lf
+Makefile text eol=lf
+*.png binary
+*.safetensors binary

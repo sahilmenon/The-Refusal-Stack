@@ -1,0 +1,20 @@
+# GPU pod image (RunPod A40). Mirrors Dockerfile.cpu but on a CUDA base with the
+# cu121 torch build. Phase-specific GPU deps (unsloth, bitsandbytes, sae-lens)
+# are layered on per phase.
+FROM pytorch/pytorch:2.3.1-cuda12.1-cudnn8-runtime
+
+ENV PYTHONUNBUFFERED=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PYTHONDONTWRITEBYTECODE=1
+
+RUN apt-get update && apt-get install -y --no-install-recommends git curl rsync \
+    && rm -rf /var/lib/apt/lists/* \
+    && pip install --no-cache-dir uv
+
+WORKDIR /app
+COPY . .
+
+# torch 2.3.1+cu121 ships in the base image; install the rest of the pinned deps.
+RUN uv pip install --system -e ".[dev,judge]"
+
+CMD ["bash"]

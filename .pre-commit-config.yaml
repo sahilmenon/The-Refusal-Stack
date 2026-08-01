@@ -1,0 +1,24 @@
+repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.5.5
+    hooks:
+      - id: ruff
+        args: [--fix]
+  - repo: https://github.com/psf/black
+    rev: 24.8.0
+    hooks:
+      - id: black
+  - repo: local
+    hooks:
+      # Block any AI-attribution text from reaching the commit history.
+      - id: no-ai-attribution
+        name: block AI-attribution in commit messages
+        entry: scripts/hooks/commit-msg-guard.sh
+        language: script
+        stages: [commit-msg]
+      # Block committing .env / .secrets or key-like strings.
+      - id: secret-scan
+        name: block secrets and .env
+        entry: scripts/hooks/secret-scan.sh
+        language: script
+        stages: [pre-commit]

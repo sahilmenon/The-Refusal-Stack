@@ -1,0 +1,38 @@
+# Local planning notes and assistant tooling — keep out of the repo
+plan.md
+.claude/
+CLAUDE.md
+.cursor/
+.aider*
+.playwright-mcp/
+
+# Secrets
+.env
+.env.*
+!.env.example
+.secrets/
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+build/
+dist/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.ipynb_checkpoints/
+
+# Experiment tracking and ML artifacts
+wandb/
+outputs/
+checkpoints/
+.cache/
+artifacts/*.safetensors
+data/finetune/
+
+# OS
+.DS_Store
+Thumbs.db
