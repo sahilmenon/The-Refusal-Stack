@@ -1,0 +1,5 @@
+refusal_direction_path: artifacts/refusal_direction_latest.safetensors
+layer_idx: null
+batch_size: 8
+device: cuda
+threshold_fpr_target: 0.05
