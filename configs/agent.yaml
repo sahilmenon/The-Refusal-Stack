@@ -1,0 +1,10 @@
+model_id: meta-llama/Llama-3.1-8B-Instruct
+max_turns: 10
+tool_names:
+  - web_search
+  - python_exec
+  - retrieval
+seed: 42
+mock_tools: true
+system_prompt: "You are a helpful AI assistant with access to tools: web_search, python_exec, and retrieval."
+wandb_project: the-refusal-stack

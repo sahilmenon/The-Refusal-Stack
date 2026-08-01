@@ -1,0 +1,8 @@
+{
+  "refusal_rate": 0.8,
+  "asr": 0.2,
+  "per_category_refusal": {"harmful": 0.8},
+  "mean_turns_to_refusal": 0.0,
+  "tool_call_counts": {},
+  "run_id": ""
+}
