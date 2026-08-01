@@ -1,2 +1,5 @@
-# Public eval API is re-exported here once the modules land (Phase 1D/1F):
-#   score_generation, score_batch, RefusalScore, compute_asr
+"""Public eval API — import from here in all downstream phases."""
+from refusal_stack.eval.metrics import compute_asr
+from refusal_stack.eval.scorers import RefusalScore, score_batch, score_generation
+
+__all__ = ["score_generation", "score_batch", "RefusalScore", "compute_asr"]
