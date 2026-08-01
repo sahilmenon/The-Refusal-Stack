@@ -1,0 +1,20 @@
+model_id: "meta-llama/Llama-3.1-8B-Instruct"
+fallback_model_id: "Qwen/Qwen2.5-7B-Instruct"
+seed: 42
+batch_size: 8
+max_new_tokens: 200
+hook_position: "last_prompt_token"
+layers: "all"
+direction_norm: "l2"
+probe_C: 1.0
+probe_max_iter: 1000
+ablation_alpha: 1.0
+steering_alphas: [0.5, 1.0, 2.0, 4.0, 8.0]
+artifact_dir: "artifacts/"
+figures_dir: "figures/"
+cache_dir: "cache/activations/"
+n_harmful: 400
+n_harmless: 400
+test_frac: 0.2
+probe_cosine_sim_threshold: 0.7
+ablation_layer_strategy: "all"
