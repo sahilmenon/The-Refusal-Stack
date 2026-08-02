@@ -17,6 +17,11 @@ def main() -> None:
     parser.add_argument("--prompts-override", type=int)
     parser.add_argument("--resume-checkpoint")
     parser.add_argument("--dry-run", action="store_true")
+    parser.add_argument(
+        "--out", default="results/phase2_attacks.json",
+        help="Results path; override so a validation run (e.g. Vicuna) does not "
+             "clobber the primary Llama-3.1 baseline.",
+    )
     args = parser.parse_args()
 
     configure_logging("INFO")
@@ -104,7 +109,7 @@ def main() -> None:
     make_attack_success_over_iterations([], figure_paths[2])
     make_headroom_figure(analysis, figure_paths[3])
 
-    results_path = Path("results/phase2_attacks.json")
+    results_path = Path(args.out)
     results_path.parent.mkdir(exist_ok=True)
     with open(results_path, "w") as f:
         json.dump({"gcg": [vars(r) for r in gcg_results], "pair": [vars(r) for r in pair_results], **analysis}, f, indent=2, default=str)

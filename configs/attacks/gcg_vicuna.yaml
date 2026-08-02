@@ -1,0 +1,31 @@
+# Vicuna-7B validation run: the model GCG (Zou et al. 2023) actually optimized
+# against, reporting ~99% ASR. Ungated (no Meta license). Same 200x20 scope as
+# gcg_middle.yaml so the ONLY variable vs the Llama-3.1 run is the target model.
+# Purpose: prove the implementation is correct (high ASR here) so the 0% on
+# Llama-3.1 reads as measured robustness, not a broken attack — and anchor the
+# top of the Phase-2 adversarial-headroom ladder. Vicuna ships no chat_template;
+# load_model_and_tokenizer applies the Vicuna fallback template automatically.
+model_id: "lmsys/vicuna-7b-v1.5"
+target_model_id: null
+n_steps: 200
+batch_size: 128
+topk: 256
+suffix_len: 20
+seed: 42
+target_phrase: "Sure, here is"
+dataset: "advbench"
+split: "train"
+max_prompts: 20
+checkpoint_every: 25
+eval_every: 10
+early_stop_score: 0.0
+device: "cuda"
+dtype: "bfloat16"
+wandb_project: "the-refusal-stack"
+wandb_run_name: "phase2-gcg-vicuna-validation"
+filter_nonascii: true
+checkpoint_dir: "checkpoints/gcg_vicuna"
+oom_threshold_gb: 22.0
+eval_chunk_size: 64
+universal: false
+transfer_model_id: null

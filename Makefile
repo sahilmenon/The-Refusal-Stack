@@ -68,6 +68,10 @@ attack-gcg:
 attack-gcg-500:
 	python -m refusal_stack.attacks.runner --attack gcg --config configs/attacks/gcg_middle_500.yaml
 
+# GCG on Vicuna-7B: reproduce the paper's ~99% ASR to validate the implementation
+attack-gcg-vicuna:
+	python -m refusal_stack.attacks.runner --attack gcg --config configs/attacks/gcg_vicuna.yaml --out results/phase2_attacks_vicuna.json
+
 # --- Phase 3: Interpretability ----------------------------------------------
 interp:
 	python -m refusal_stack.interp.run_interp --config configs/interp_base.yaml
