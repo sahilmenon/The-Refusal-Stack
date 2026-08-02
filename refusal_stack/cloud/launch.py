@@ -29,6 +29,10 @@ def main() -> None:
     parser.add_argument("--gpu", default="RTX4090", help="Cost key: RTX4090 | A40 | A100")
     parser.add_argument("--projected-seconds", type=float, default=1800.0)
     parser.add_argument("--volume", default=None, help="Optional network-volume id")
+    parser.add_argument("--exec-timeout", type=float, default=2700.0, help="Hard cap (s) on the make target")
+    parser.add_argument("--disk", type=int, default=50, help="Container disk (GB)")
+    parser.add_argument("--poll-interval", type=float, default=None,
+                        help="If set, run detached and stream log progress every N seconds")
     parser.add_argument("--yes", action="store_true", help="Consent to spend and actually launch")
     args = parser.parse_args()
 
@@ -67,6 +71,8 @@ def main() -> None:
     summary = run_phase(
         args.phase, args.make_target, gpu=args.gpu,
         projected_seconds=args.projected_seconds, volume=args.volume,
+        exec_timeout_s=args.exec_timeout, container_disk_gb=args.disk,
+        poll_interval_s=args.poll_interval,
     )
     log.info("Phase complete: %s", json.dumps(summary, default=str))
 

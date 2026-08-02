@@ -17,6 +17,7 @@ class GCGConfig(BaseModel):
     split: str = "train"
     max_prompts: int = 100
     checkpoint_every: int = 50
+    eval_every: int = 10  # generate+score to check success every N steps (not every step)
     early_stop_score: float = 0.0
     device: str = "cuda"
     dtype: str = "bfloat16"

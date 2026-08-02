@@ -60,6 +60,10 @@ eval-qwen:
 attack:
 	python -m refusal_stack.attacks.runner --attack both --config configs/attacks/gcg_base.yaml
 
+# GCG only, Middle-tier scope (fits a 24GB card; PAIR needs an A100 for 3 models)
+attack-gcg:
+	python -m refusal_stack.attacks.runner --attack gcg --config configs/attacks/gcg_middle.yaml
+
 # --- Phase 3: Interpretability ----------------------------------------------
 interp:
 	python -m refusal_stack.interp.run_interp --config configs/interp_base.yaml

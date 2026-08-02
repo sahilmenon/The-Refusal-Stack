@@ -73,6 +73,17 @@ class GCGAttack(BaseAttack):
                 logger.warning("NaN gradient at step %d; skipping", step)
                 continue
 
+            # Log the loss periodically so a long run is observable via the log.
+            if step % 25 == 0:
+                logger.info("    step %d/%d loss=%.4f", step, self.config.n_steps, final_loss)
+
+            # Generating + scoring every step is wasteful; only check success
+            # every eval_every steps (and on the final step). Early stop still
+            # needs two consecutive successful checks.
+            is_last = step == self.config.n_steps - 1
+            if step % self.config.eval_every != 0 and not is_last:
+                continue
+
             # Score through the SAME chat template the attack optimizes against
             # (build_full_input applies it); scoring the raw string would grade a
             # different prompt format than the one the suffix was tuned on.

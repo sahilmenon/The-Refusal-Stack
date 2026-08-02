@@ -289,6 +289,46 @@ class RunPodClient:
         self._run(["pod", "delete", pod_id], check=False)
 
 
+_POD_LOG = "/workspace/run.log"
+_POD_EXIT = "/workspace/run.exit"
+
+
+def _run_detached_polled(client, pod_id, make_target, exec_timeout_s, poll_interval_s) -> None:
+    """Launch the make target detached on the pod and poll its log until done.
+
+    Streams the log tail to our stdout so a long job is observable, and detects
+    completion via an exit-code marker file. Raises PodError on non-zero exit or
+    if the polling deadline is exceeded (the caller's finally still tears down).
+    """
+    launch = (
+        f"rm -f {_POD_LOG} {_POD_EXIT}; "
+        f"nohup bash -lc 'export WANDB_MODE=offline PYTHONUNBUFFERED=1; cd {REPO_DIR}; "
+        f"timeout {int(exec_timeout_s)} make {make_target}; echo $? > {_POD_EXIT}' "
+        f"> {_POD_LOG} 2>&1 < /dev/null & echo launched"
+    )
+    client.exec(pod_id, launch, timeout=120)
+    logger.info("Job launched detached; polling every %ds...", int(poll_interval_s))
+
+    deadline = time.monotonic() + exec_timeout_s + 300
+    while time.monotonic() < deadline:
+        time.sleep(poll_interval_s)
+        out = client.exec(
+            pod_id, f"tail -3 {_POD_LOG} 2>/dev/null; echo '<<<EXIT>>>'; cat {_POD_EXIT} 2>/dev/null",
+            timeout=120,
+        )
+        tail, _, code = out.partition("<<<EXIT>>>")
+        for line in tail.strip().splitlines()[-3:]:
+            logger.info("[pod] %s", line.strip())
+        code = code.strip()
+        if code:
+            if code != "0":
+                errlog = client.exec(pod_id, f"tail -30 {_POD_LOG} 2>/dev/null", timeout=120)
+                raise PodError(f"remote make failed (exit {code}):\n{_scrub_secrets(errlog)[-2000:]}")
+            logger.info("Job finished (exit 0)")
+            return
+    raise PodError(f"polling deadline exceeded ({exec_timeout_s + 300:.0f}s)")
+
+
 def run_phase(
     phase: str,
     make_target: str,
@@ -301,8 +341,14 @@ def run_phase(
     extras: str = ".",
     container_disk_gb: int = 50,
     exec_timeout_s: float = 2700.0,
+    poll_interval_s: float | None = None,
 ) -> dict:
-    """Run one phase on an ephemeral pod, guaranteeing teardown and cost accounting."""
+    """Run one phase on an ephemeral pod, guaranteeing teardown and cost accounting.
+
+    If ``poll_interval_s`` is set, the make target runs detached on the pod and
+    its log is polled at that cadence (live progress for long jobs like GCG);
+    otherwise it runs as a single blocking ssh command.
+    """
     client = client or RunPodClient()
     tracker = tracker or CostTracker()
 
@@ -319,16 +365,19 @@ def run_phase(
         host, port = client.wait_for_ssh(pod_id)
         client.bootstrap(pod_id, host, port, extras=extras)
         logger.info("Running: make %s (hard cap %ds)", make_target, int(exec_timeout_s))
-        # Remote `timeout` bounds the run; client-side timeout guards an ssh hang.
-        # Either way the finally block tears the pod down — no runaway billing.
         # HF auth is via the token file written in bootstrap; run W&B offline so
         # missing WANDB creds can't crash the run before results are written.
-        client.exec(
-            pod_id,
-            f"timeout {int(exec_timeout_s)} bash -lc "
-            f"'export WANDB_MODE=offline; cd {REPO_DIR} && make {make_target}'",
-            timeout=exec_timeout_s + 180,
-        )
+        if poll_interval_s:
+            _run_detached_polled(client, pod_id, make_target, exec_timeout_s, poll_interval_s)
+        else:
+            # Remote `timeout` bounds the run; client-side timeout guards an ssh
+            # hang. Either way the finally block tears the pod down.
+            client.exec(
+                pod_id,
+                f"timeout {int(exec_timeout_s)} bash -lc "
+                f"'export WANDB_MODE=offline; cd {REPO_DIR} && make {make_target}'",
+                timeout=exec_timeout_s + 180,
+            )
         client.sync_results(pod_id)
     except Exception as exc:  # noqa: BLE001 — teardown must still run
         status = f"error: {exc}"

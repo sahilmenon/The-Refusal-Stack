@@ -61,6 +61,15 @@ EXPECTATIONS: dict[int, dict[str, tuple[float, float, str]]] = {
 
 def _flatten(phase: int, raw: dict) -> dict:
     """Map a phase's result JSON onto the flat metric names in EXPECTATIONS."""
+    if phase == 2:
+        # gcg_asr / pair_asr live at the top level (spread from run_analysis).
+        # Drop the metric for an attack that wasn't run so it SKIPs, not FAILs.
+        out = dict(raw)
+        if not raw.get("gcg"):
+            out.pop("gcg_asr", None)
+        if not raw.get("pair"):
+            out.pop("pair_asr", None)
+        return out
     if phase == 4:
         # phase4_detect.json is keyed by test label: {malicious: {...}, benign_control: {...}}
         out = {}

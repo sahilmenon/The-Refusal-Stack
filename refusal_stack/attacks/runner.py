@@ -62,10 +62,15 @@ def main() -> None:
         logger.info("Running GCG on %d prompts", len(dataset))
         from refusal_stack.attacks.gcg import GCGAttack
         attacker = GCGAttack(gcg_config)
-        for item in dataset:
+        n = len(dataset)
+        n_success = 0
+        for i, item in enumerate(dataset, 1):
+            logger.info("GCG prompt %d/%d: %s", i, n, item["prompt"][:60])
             r = attacker.run(item["prompt"], item.get("target", "Sure"))
             gcg_results.append(r)
-            logger.info("GCG result: success=%s", r.success)
+            n_success += int(r.success)
+            logger.info("GCG prompt %d/%d done: success=%s | running ASR=%.3f (%d/%d)",
+                        i, n, r.success, n_success / i, n_success, i)
     elif args.dry_run:
         from refusal_stack.attacks.base import AttackResult
         gcg_results = [AttackResult("test", "suffix", "target", False, 1.0, 1, 1, "gcg", "test")]
