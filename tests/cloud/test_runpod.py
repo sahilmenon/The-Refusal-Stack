@@ -20,10 +20,10 @@ class FakeClient:
         self.calls.append("wait")
         return ("1.2.3.4", 22222)
 
-    def bootstrap(self, pod_id, host, port):
+    def bootstrap(self, pod_id, host, port, extras="."):
         self.calls.append("bootstrap")
 
-    def exec(self, pod_id, command):
+    def exec(self, pod_id, command, timeout=None):
         self.calls.append("exec")
         if self.fail_on_exec:
             raise RuntimeError("boom")

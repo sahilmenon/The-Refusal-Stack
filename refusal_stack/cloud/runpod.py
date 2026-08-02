@@ -203,24 +203,28 @@ class RunPodClient:
         )
         return out.stdout
 
-    def bootstrap(self, pod_id: str, host: str, port: int) -> None:
-        """Upload the committed repo and install it on the pod."""
+    def bootstrap(self, pod_id: str, host: str, port: int, extras: str = ".") -> None:
+        """Upload the committed repo and install it on the pod.
+
+        ``extras`` defaults to core deps (``.``) which covers phases 1-3; pass a
+        group like ``.[finetune]`` for phases that need the heavy GPU stack.
+        """
         archive = _make_repo_archive()
         try:
             subprocess.run(
                 ["scp", "-o", "StrictHostKeyChecking=accept-new", "-P", str(port),
                  archive, f"{SSH_USER}@{host}:/workspace/repo.tar.gz"],
-                check=True, capture_output=True, text=True,
+                check=True, capture_output=True, text=True, timeout=300,
             )
         finally:
             os.unlink(archive)
-        self._ssh(host, port, f"mkdir -p {REPO_DIR} && tar xzf /workspace/repo.tar.gz -C {REPO_DIR}")
+        self._ssh(host, port, f"mkdir -p {REPO_DIR} && tar xzf /workspace/repo.tar.gz -C {REPO_DIR}", timeout=120)
         logger.info("Installing deps on pod %s (this is the slow step)...", pod_id)
-        self._ssh(host, port, f"cd {REPO_DIR} && pip install -e '{INSTALL_EXTRAS}'")
+        self._ssh(host, port, f"cd {REPO_DIR} && pip install -e '{extras}'", timeout=1800)
 
-    def exec(self, pod_id: str, command: str) -> str:
+    def exec(self, pod_id: str, command: str, timeout: float | None = None) -> str:
         host, port = self.ssh_target(pod_id)
-        return self._ssh(host, port, command)
+        return self._ssh(host, port, command, timeout=timeout)
 
     def sync_results(self, pod_id: str, remote: str = REPO_DIR, local: str = ".") -> None:
         host, port = self.ssh_target(pod_id)
@@ -244,6 +248,9 @@ def run_phase(
     client: RunPodClient | None = None,
     tracker: CostTracker | None = None,
     require_licenses: bool = True,
+    extras: str = ".",
+    container_disk_gb: int = 50,
+    exec_timeout_s: float = 2700.0,
 ) -> dict:
     """Run one phase on an ephemeral pod, guaranteeing teardown and cost accounting."""
     client = client or RunPodClient()
@@ -254,15 +261,21 @@ def run_phase(
     if not tracker.check_before_launch(gpu, projected_seconds):
         raise PodError("Projected spend would cross the hard cap — halting. Confirm before continuing.")
 
-    pod_id = client.create_pod(gpu, volume=volume, env=_pod_env())
+    pod_id = client.create_pod(gpu, volume=volume, env=_pod_env(), container_disk_gb=container_disk_gb)
     started = time.monotonic()
     logger.info("Pod %s created (%s) — waiting for SSH...", pod_id, gpu)
     status = "ok"
     try:
         host, port = client.wait_for_ssh(pod_id)
-        client.bootstrap(pod_id, host, port)
-        logger.info("Running: make %s", make_target)
-        client.exec(pod_id, f"cd {REPO_DIR} && make {make_target}")
+        client.bootstrap(pod_id, host, port, extras=extras)
+        logger.info("Running: make %s (hard cap %ds)", make_target, int(exec_timeout_s))
+        # Remote `timeout` bounds the run; client-side timeout guards an ssh hang.
+        # Either way the finally block tears the pod down — no runaway billing.
+        client.exec(
+            pod_id,
+            f"timeout {int(exec_timeout_s)} bash -lc 'cd {REPO_DIR} && make {make_target}'",
+            timeout=exec_timeout_s + 180,
+        )
         client.sync_results(pod_id)
     except Exception as exc:  # noqa: BLE001 — teardown must still run
         status = f"error: {exc}"

@@ -1,5 +1,5 @@
 .PHONY: help docker-cpu docker-gpu lint format test test-smoke \
-	data eval eval-qwen attack interp \
+	data eval eval-regex eval-qwen attack interp \
 	finetune-data-malicious finetune-data-benign \
 	finetune-malicious finetune-benign \
 	merge-malicious merge-benign finetune \
@@ -48,6 +48,10 @@ data:
 # --- Phase 1: Eval harness --------------------------------------------------
 eval:
 	python -m refusal_stack.eval.cli --config configs/eval_base.yaml --log-level INFO
+
+# Regex-only baseline (no Llama-Guard judge) — fits a single 24GB GPU.
+eval-regex:
+	python -m refusal_stack.eval.cli --config configs/eval_base.yaml --no-judge --log-level INFO
 
 eval-qwen:
 	python -m refusal_stack.eval.cli --config configs/eval_qwen.yaml --log-level INFO
