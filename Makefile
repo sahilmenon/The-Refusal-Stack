@@ -134,6 +134,10 @@ report-pdf:
 preflight check-licenses:
 	python -m refusal_stack.cloud.preflight
 
+# --- Post-phase sanity: results within expectation? (make check-expectations PHASE=1)
+check-expectations:
+	python -m refusal_stack.expectations --phase $(PHASE)
+
 # --- Cloud pod launch (dry-run by default; append YES=--yes to spend) -------
 # e.g.  make pod-eval          # dry run: checks licenses + budget, no spend
 #       make pod-eval YES=--yes  # consents and launches a paid pod

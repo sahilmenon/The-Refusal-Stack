@@ -70,6 +70,16 @@ def main() -> None:
     )
     log.info("Phase complete: %s", json.dumps(summary, default=str))
 
+    # Post-phase sanity gate: are the synced headline metrics within expectation?
+    from refusal_stack.expectations import PHASE_NUM, check_expectations, format_report
+
+    pnum = PHASE_NUM.get(args.phase)
+    if pnum and summary.get("status") == "ok":
+        report = check_expectations(pnum)
+        log.info("\n%s", format_report(report))
+        if not report["ok"]:
+            log.error("Phase %d results are OUTSIDE expectation — review before the next stage.", pnum)
+
 
 if __name__ == "__main__":
     main()

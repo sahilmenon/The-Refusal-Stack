@@ -19,13 +19,22 @@ One reproducible pipeline that follows refusal end to end on
 4. **Break & detect** — strip refusal with a LoRA fine-tune, then detect the tampering from the refusal-direction activations.
 5. **Agentic** — wrap the model in a tool-use agent and re-run the eval and attacks under multi-turn framing.
 
+## Status
+
+- **Phase 1 (Eval): complete on real hardware.** Baseline refusal 94.2% on Llama-3.1-8B (RunPod A5000, ~$0.06), verified within expectation.
+- **Phases 2–5:** implemented and CPU-tested (89+ unit tests); pending GPU runs.
+- **Infra:** autonomous RunPod pipeline (`refusal_stack/cloud/`) provisions ephemeral pods — create → bootstrap → run → sync → terminate — under a US$32 hard cap, with community→secure fallback and a post-phase expectations check. Setup: [docs/ONBOARDING.md](docs/ONBOARDING.md).
+
 ## Results
 
 Filled in as each phase lands.
 
+Model: `meta-llama/Llama-3.1-8B-Instruct`. Each row is verified against
+plausibility ranges (`refusal-stack` expectations check) as it lands.
+
 | Phase | Metric | Result |
 |---|---|---|
-| Eval | refusal rate / false-refusal rate | _TBD_ |
+| Eval | refusal rate (harmful) / false-refusal (benign) | **94.2%** / **0.0%** — baseline ASR 5.8% (n=104 AdvBench + 500 Alpaca, regex scorer) ✓ |
 | Attack | GCG vs PAIR ASR, headroom | _TBD_ |
 | Locate | refusal rate after ablation | _TBD_ |
 | Detect | tamper AUROC | _TBD_ |
