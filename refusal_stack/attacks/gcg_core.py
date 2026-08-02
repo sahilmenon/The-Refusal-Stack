@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 import logging
 
 import torch
@@ -72,7 +73,9 @@ def sample_candidates(
     rng: torch.Generator,
 ) -> torch.Tensor:
     control_len, topk = top_k_ids.shape
-    result = torch.zeros(batch_size, control_len, dtype=torch.long)
+    # Allocate on the candidate device (CUDA on GPU) — assigning CUDA ids into a
+    # CPU tensor below raises a device-mismatch on a real run.
+    result = torch.zeros(batch_size, control_len, dtype=torch.long, device=top_k_ids.device)
     for i in range(control_len):
         indices = torch.multinomial(
             torch.ones(topk, device=top_k_ids.device),

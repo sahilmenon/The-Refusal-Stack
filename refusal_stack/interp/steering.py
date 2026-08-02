@@ -1,5 +1,7 @@
 from __future__ import annotations
+
 import logging
+
 import numpy as np
 import torch
 
@@ -19,7 +21,9 @@ class SteeringHookManager:
         self._handles = []
 
     def register(self, model, direction: np.ndarray, layer_indices: list[int], alpha: float) -> None:
-        dir_tensor = torch.tensor(direction, dtype=torch.float32).to(next(model.parameters()).device)
+        # Match model dtype (bf16 on GPU); the hook adds this to bf16 hidden states.
+        p = next(model.parameters())
+        dir_tensor = torch.tensor(direction).to(device=p.device, dtype=p.dtype)
         for i in layer_indices:
             handle = model.model.layers[i].register_forward_hook(make_steering_hook(dir_tensor, alpha))
             self._handles.append(handle)

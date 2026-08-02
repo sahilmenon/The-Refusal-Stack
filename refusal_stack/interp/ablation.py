@@ -1,5 +1,7 @@
 from __future__ import annotations
+
 import logging
+
 import numpy as np
 import torch
 
@@ -28,7 +30,10 @@ class AblationHookManager:
         self._handles = []
 
     def register(self, model, direction: np.ndarray, layer_indices: list[int], alpha: float = 1.0) -> None:
-        dir_tensor = torch.tensor(direction, dtype=torch.float32).to(next(model.parameters()).device)
+        # Match the model dtype (bfloat16 on GPU) — the hook does arithmetic with
+        # bf16 hidden states, so a hardcoded float32 direction dtype-mismatches on CUDA.
+        p = next(model.parameters())
+        dir_tensor = torch.tensor(direction).to(device=p.device, dtype=p.dtype)
         for i in layer_indices:
             layer = model.model.layers[i]
             handle = layer.register_forward_hook(make_ablation_hook(dir_tensor, alpha))

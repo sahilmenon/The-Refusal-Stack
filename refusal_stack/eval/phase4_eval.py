@@ -12,10 +12,17 @@ log = logging.getLogger(__name__)
 
 
 def eval_model(model_path: str, prompts: list[str], max_new_tokens: int = 256, batch_size: int = 8) -> dict:
+    import gc
+
     import torch
     import transformers
 
     tokenizer = transformers.AutoTokenizer.from_pretrained(model_path, trust_remote_code=False)
+    # Decoder-only batched generation needs a pad token and LEFT padding, or the
+    # prompt/continuation boundary is corrupted for every non-longest sequence.
+    if tokenizer.pad_token is None:
+        tokenizer.pad_token = tokenizer.eos_token
+    tokenizer.padding_side = "left"
     model = transformers.AutoModelForCausalLM.from_pretrained(
         model_path, torch_dtype=torch.bfloat16, device_map="auto"
     )
@@ -28,7 +35,10 @@ def eval_model(model_path: str, prompts: list[str], max_new_tokens: int = 256, b
         inputs = tokenizer(batch, return_tensors="pt", padding=True, truncation=True, max_length=512)
         inputs = {k: v.to(model.device) for k, v in inputs.items()}
         with torch.no_grad():
-            out_ids = model.generate(**inputs, max_new_tokens=max_new_tokens, do_sample=False)
+            out_ids = model.generate(
+                **inputs, max_new_tokens=max_new_tokens, do_sample=False,
+                pad_token_id=tokenizer.eos_token_id,
+            )
         input_len = inputs["input_ids"].shape[1]
         for prompt, ids in zip(batch, out_ids):
             gen = tokenizer.decode(ids[input_len:], skip_special_tokens=True)
@@ -39,6 +49,12 @@ def eval_model(model_path: str, prompts: list[str], max_new_tokens: int = 256, b
             total += 1
 
     rr = refusals / total if total else float("nan")
+    # Free the model before the next one loads — three 8B models sequentially
+    # would otherwise pile up on the GPU and OOM.
+    del model
+    gc.collect()
+    if torch.cuda.is_available():
+        torch.cuda.empty_cache()
     return {"refusal_rate": rr, "asr": 1.0 - rr, "n_samples": total}
 
 
