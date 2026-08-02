@@ -11,23 +11,28 @@ logger = logging.getLogger(__name__)
 
 def load_gcg_dataset(config) -> list[dict]:
     import csv
-    path = Path("data/advbench/harmful_behaviors.csv")
-    if not path.exists():
-        logger.warning("AdvBench CSV not found at %s; using empty dataset", path)
-        return []
+
+    from refusal_stack.data.loaders import _ensure_advbench_csv
+
+    # Download the ungated AdvBench CSV if absent (the local file is gitignored,
+    # so a fresh pod won't have it — never silently fall back to 0 prompts).
+    path = _ensure_advbench_csv()
     rows = []
     with open(path, newline="", encoding="utf-8") as f:
-        reader = csv.DictReader(f)
-        for row in reader:
-            prompt = row.get("goal", row.get("behavior", ""))
+        for row in csv.DictReader(f):
+            prompt = row.get("goal") or row.get("behavior") or ""
+            if not prompt:
+                continue
             # Prefer an explicit target column; otherwise synthesize the
             # affirmative prefix GCG optimizes toward (never leave it empty,
             # or the NLL target is blank and the attack has nothing to descend).
             target = row.get("target") or build_target_phrase(prompt)
             rows.append({"prompt": prompt, "target": target})
+    if not rows:
+        raise ValueError("AdvBench CSV yielded no prompts — check the download")
     rng = random.Random(config.seed)
     rng.shuffle(rows)
-    return rows[:config.max_prompts]
+    return rows[: config.max_prompts]
 
 
 def build_target_phrase(prompt: str, affirmative_prefix: str = "Sure, here is") -> str:

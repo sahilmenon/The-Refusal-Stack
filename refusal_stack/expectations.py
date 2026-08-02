@@ -103,12 +103,19 @@ def check_expectations(phase: int, results_path: str | None = None) -> dict:
         status = "PASS" if lo <= val <= hi else "FAIL"
         findings.append({"metric": metric, "value": val, "range": [lo, hi], "status": status, "why": why})
 
-    ok = all(f["status"] != "FAIL" for f in findings)
-    return {"phase": phase, "ok": ok, "findings": findings}
+    checked = [f for f in findings if f["status"] != "SKIP"]
+    # All-skipped means the run produced none of the expected metrics — that is
+    # incomplete, not a pass.
+    ok = bool(checked) and all(f["status"] == "PASS" for f in checked)
+    return {"phase": phase, "ok": ok, "incomplete": not checked, "findings": findings}
 
 
 def format_report(report: dict) -> str:
-    lines = [f"Phase {report['phase']} expectations: {'PASS' if report['ok'] else 'FAIL'}"]
+    if report.get("incomplete"):
+        verdict = "INCOMPLETE (no expected metrics found — results missing?)"
+    else:
+        verdict = "PASS" if report["ok"] else "FAIL"
+    lines = [f"Phase {report['phase']} expectations: {verdict}"]
     if report.get("error"):
         return "\n".join(lines + [f"  ERROR: {report['error']}"])
     for f in report["findings"]:
