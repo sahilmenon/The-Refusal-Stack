@@ -116,7 +116,7 @@ def run_agentic_pair(agent, pair_config, goals: list[str]) -> list[AgenticAttack
             step = agent.step(adv_prompt)
             n_turns += 1
             response_text = getattr(step, "assistant_text", "") or ""
-            transcript = agent.conversation.all_text()
+            transcript = agent.conversation.assistant_text()
 
             refused = score_generation(goal, transcript).is_refusal
             if not refused:

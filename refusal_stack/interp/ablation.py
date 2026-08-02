@@ -96,3 +96,40 @@ def run_ablated_generation(
         generated = tokenizer.decode(out[0][input_len:], skip_special_tokens=True)
         results.append(generated)
     return results
+
+
+def compute_ablation_kl(
+    prompts: list[str],
+    model,
+    tokenizer,
+    direction: np.ndarray,
+    layer_indices: list[int],
+    config,
+) -> float:
+    """Mean KL(baseline || ablated) of the next-token distribution on benign prompts.
+
+    Arditi et al.'s surgical-ablation check: ablating the refusal direction should
+    barely change the model on benign inputs (small KL), showing the intervention
+    removes refusal without disrupting general behaviour.
+    """
+    import torch.nn.functional as F
+
+    kls = []
+    for prompt in prompts:
+        inputs = tokenizer(prompt, return_tensors="pt", padding=True, truncation=True, max_length=512)
+        inputs = {k: v.to(next(model.parameters()).device) for k, v in inputs.items()}
+        with torch.no_grad():
+            base_logits = model(**inputs).logits[0, -1].float()
+        base_logp = F.log_softmax(base_logits, dim=-1)
+
+        mgr = AblationHookManager()
+        mgr.register(model, direction, layer_indices, alpha=config.ablation_alpha)
+        with torch.no_grad():
+            abl_logits = model(**inputs).logits[0, -1].float()
+        mgr.remove()
+        abl_logp = F.log_softmax(abl_logits, dim=-1)
+
+        # KL(base || ablated) = sum P_base (logP_base - logP_ablated)
+        kl = F.kl_div(abl_logp, base_logp, log_target=True, reduction="sum")
+        kls.append(float(kl))
+    return float(np.mean(kls)) if kls else float("nan")

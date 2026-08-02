@@ -67,7 +67,16 @@ def select_best_layer(directions: dict[int, RefusalDirection], reader: Activatio
             scores[layer_idx] = 0.0
     top5 = sorted(scores, key=scores.get, reverse=True)[:5]
     logger.info("Top-5 layers by Cohen's d: %s", [(lyr, f"{scores[lyr]:.3f}") for lyr in top5])
-    return max(scores, key=scores.get)
+    # Restrict to the mid-network band: raw diff-of-means separation is often
+    # HIGHEST in very early layers (trivial token-identity signal), but that is
+    # NOT the causal refusal-mediating direction (Arditi selects a mid layer).
+    n_layers = max(scores) + 1
+    lo, hi = int(0.35 * n_layers), int(0.85 * n_layers)
+    band = {lyr: s for lyr, s in scores.items() if lo <= lyr <= hi}
+    candidates = band or scores  # fall back to full range if the band is empty
+    best = max(candidates, key=candidates.get)
+    logger.info("Selected best layer %d (mid-band %d-%d, Cohen's d=%.3f)", best, lo, hi, scores[best])
+    return best
 
 
 def project_onto_direction(acts: np.ndarray, direction: np.ndarray) -> np.ndarray:

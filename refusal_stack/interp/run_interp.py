@@ -47,7 +47,11 @@ def _baseline_generate(prompts: list[str], model, tokenizer, config) -> list[str
 
 
 def run_pipeline(config, run_id: str, stage: str, force: bool) -> dict:
-    from refusal_stack.interp.ablation import resolve_ablation_layers, run_ablated_generation
+    from refusal_stack.interp.ablation import (
+        compute_ablation_kl,
+        resolve_ablation_layers,
+        run_ablated_generation,
+    )
     from refusal_stack.interp.activation_cache import ActivationCacheReader, ActivationCacheWriter
     from refusal_stack.interp.dataset import (
         build_contrast_dataset,
@@ -135,6 +139,10 @@ def run_pipeline(config, run_id: str, stage: str, force: bool) -> dict:
     ablated_rr = _refusal_rate(h_test, ablated_gens)
     plot_ablation_refusal_rate(baseline_rr, ablated_rr, str(Path(config.figures_dir) / "ablation_refusal_rate.png"))
 
+    # Arditi surgical-ablation check: KL(baseline||ablated) on benign prompts
+    # should be small — ablation removes refusal without disrupting general behaviour.
+    ablation_kl_benign = compute_ablation_kl(hl_test, model, tokenizer, best_dir.vector, ablation_layers, config)
+
     baseline_frr = _refusal_rate(hl_test, _baseline_generate(hl_test, model, tokenizer, config))
     steer_frrs = []
     for alpha in config.steering_alphas:
@@ -156,6 +164,7 @@ def run_pipeline(config, run_id: str, stage: str, force: bool) -> dict:
         "ablation_baseline_refusal_rate": baseline_rr,
         "ablation_refusal_rate": ablated_rr,
         "ablation_refusal_drop": baseline_rr - ablated_rr,
+        "ablation_kl_benign": ablation_kl_benign,
         "steering_baseline_false_refusal_rate": baseline_frr,
         "steering_alphas": list(config.steering_alphas),
         "steering_false_refusal_rates": steer_frrs,

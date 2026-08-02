@@ -25,6 +25,7 @@ class PAIRStream:
     history: list[dict] = field(default_factory=list)
     best_score: float = 0.0
     best_adversarial_prompt: str = ""
+    best_response: str = ""  # the TARGET's response to the best prompt (what we score)
     queries_used: int = 0
 
 
@@ -51,7 +52,9 @@ class PAIRAttack(BaseAttack):
         total_queries = sum(s.queries_used for s in streams)
         best = max(streams, key=lambda s: s.best_score)
 
-        rs = score_generation(prompt, best.best_adversarial_prompt or target)
+        # Score the TARGET's response to the best jailbreak — NOT the attacker's
+        # prompt (which contains no refusal markers and would always read as compliant).
+        rs = score_generation(prompt, best.best_response or "")
         return AttackResult(
             prompt=prompt, adversarial_string=best.best_adversarial_prompt,
             target=target, success=success, score=best.best_score,
@@ -67,7 +70,7 @@ class PAIRAttack(BaseAttack):
         prev_score = 0.0
 
         for q in range(budget):
-            if q == 0 or not stream.history:
+            if q == 0:
                 user_msg = INITIAL_ATTACKER_USER_TEMPLATE.format(goal=goal, target_str=target_str)
             else:
                 user_msg = FOLLOWUP_ATTACKER_USER_TEMPLATE.format(
@@ -109,11 +112,15 @@ class PAIRAttack(BaseAttack):
                 score = 1.0
 
             stream.queries_used += 1
+            # Append BOTH turns so the attacker's context is a valid alternating
+            # transcript of its prompts + the judge feedback it must refine from.
+            stream.history.append({"role": "user", "content": user_msg})
             stream.history.append({"role": "assistant", "content": attacker_raw})
 
             if score > stream.best_score:
                 stream.best_score = score
                 stream.best_adversarial_prompt = adv_prompt
+                stream.best_response = target_response
                 stagnant = 0
             else:
                 stagnant += 1

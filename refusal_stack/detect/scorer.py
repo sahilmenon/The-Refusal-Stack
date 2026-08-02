@@ -44,7 +44,9 @@ class TamperDetector:
         return (-projections) > self.threshold
 
     def compute_tpr_fpr_table(self, thresholds: list[float]) -> pd.DataFrame:
-        y_true = np.array([1] * len(self.base) + [0] * len(self.test))
+        # test (tampered) = positive class 1, base = 0 — must match compute_auroc/
+        # fit_threshold, or the TPR/FPR columns come out swapped.
+        y_true = np.array([0] * len(self.base) + [1] * len(self.test))
         scores = np.concatenate([-self.base, -self.test])
         rows = []
         for t in thresholds:

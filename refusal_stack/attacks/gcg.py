@@ -127,7 +127,7 @@ class GCGAttack(BaseAttack):
                     self._maybe_eval_transfer(prompt, suffix, metadata)
                     return AttackResult(
                         prompt=prompt, adversarial_string=suffix, target=target,
-                        success=True, score=final_loss, queries=step * self.config.batch_size + 1,
+                        success=True, score=final_loss, queries=(step + 1) * self.config.batch_size,
                         iterations=step, attack_type="gcg", model_id=self.config.model_id,
                         metadata=metadata,
                     )
@@ -162,6 +162,7 @@ class GCGAttack(BaseAttack):
         suffix_ids = self.tokenizer.encode(suffix, add_special_tokens=False, return_tensors="pt")[0]
 
         final_loss = float("inf")
+        best_loss = float("inf")
         best_frac = 0.0
 
         for step in range(self.config.n_steps):
@@ -202,8 +203,13 @@ class GCGAttack(BaseAttack):
                     )
                     loss_sum = losses if loss_sum is None else loss_sum + losses
                 mean_losses = loss_sum / len(prompts)
-                suffix_ids, final_loss = gcg_core.greedy_select(mean_losses, candidates, suffix_ids)
-                suffix = self.tokenizer.decode(suffix_ids.cpu(), skip_special_tokens=True)
+                # Keep-best-so-far (same fix as run()) — never move to a worse suffix.
+                cand_suffix_ids, cand_loss = gcg_core.greedy_select(mean_losses, candidates, suffix_ids)
+                if cand_loss < best_loss:
+                    best_loss = cand_loss
+                    suffix_ids = cand_suffix_ids
+                    suffix = self.tokenizer.decode(suffix_ids.cpu(), skip_special_tokens=True)
+                final_loss = best_loss
             except gcg_core.GCGNaNGradientError:
                 logger.warning("NaN gradient at universal step %d; skipping", step)
                 continue

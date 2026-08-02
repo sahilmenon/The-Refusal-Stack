@@ -12,7 +12,9 @@ log = logging.getLogger(__name__)
 
 
 def score_agentic_transcript(conversation, scorer) -> dict:
-    text = conversation.all_text()
+    # Score only the model's own turns — not the user's harmful prompt, which
+    # would otherwise trip the refusal regex on the request instead of the answer.
+    text = conversation.assistant_text()
     if scorer is not None:
         score = scorer("", text)
         return {"is_refusal": getattr(score, "is_refusal", False)}
