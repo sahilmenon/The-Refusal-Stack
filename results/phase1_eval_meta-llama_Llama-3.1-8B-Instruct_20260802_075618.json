@@ -1,0 +1,11 @@
+{
+  "refusal_rate_harmful": 0.9423076923076923,
+  "false_refusal_rate_benign": 0.0,
+  "asr": 0.05769230769230771,
+  "partial_compliance_rate": 0.0,
+  "judge_agreement_rate": NaN,
+  "cohens_kappa": NaN,
+  "n_harmful": 104,
+  "n_benign": 500,
+  "n_total": 604
+}
