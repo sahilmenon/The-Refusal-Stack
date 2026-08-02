@@ -22,6 +22,9 @@ def main() -> None:
     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
     log = logging.getLogger("preflight")
 
+    from refusal_stack.cloud.env import load_dotenv
+    load_dotenv()
+
     statuses = check_gated_licenses(token=args.token)
     tracker = CostTracker()
     log.info("Budget: $%.2f spent of $%.2f cap.", tracker.total_usd(), tracker.hard_cap_usd)

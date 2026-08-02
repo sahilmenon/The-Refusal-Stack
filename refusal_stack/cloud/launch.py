@@ -33,6 +33,10 @@ def main() -> None:
     args = parser.parse_args()
 
     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
+
+    from refusal_stack.cloud.env import load_dotenv
+    load_dotenv()
+
     tracker = CostTracker()
     est = CostTracker.estimate_usd(args.gpu, args.projected_seconds)
 

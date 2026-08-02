@@ -12,9 +12,16 @@ class FakeClient:
         self.fail_on_exec = fail_on_exec
         self.calls: list[str] = []
 
-    def create_pod(self, gpu, volume=None):
+    def create_pod(self, gpu, volume=None, image=None, env=None):
         self.calls.append("create")
         return "pod123"
+
+    def wait_for_ssh(self, pod_id, timeout_s=300.0, interval_s=15.0):
+        self.calls.append("wait")
+        return ("1.2.3.4", 22222)
+
+    def bootstrap(self, pod_id, host, port):
+        self.calls.append("bootstrap")
 
     def exec(self, pod_id, command):
         self.calls.append("exec")
@@ -36,7 +43,7 @@ def test_run_phase_happy_path(tmp_path):
         "eval", "eval", gpu="A40", projected_seconds=60,
         client=client, tracker=tracker, require_licenses=False,
     )
-    assert client.calls == ["create", "exec", "sync", "terminate"]
+    assert client.calls == ["create", "wait", "bootstrap", "exec", "sync", "terminate"]
     assert summary["pod_id"] == "pod123"
     assert tracker.total_usd() > 0
 

@@ -6,7 +6,7 @@
 	eval-phase4 detect-extract detect-score detect-plots detect \
 	eval-agentic attack-agentic analyze-delta agent-smoke \
 	figures repro-check-phase5 test-phase4 report-pdf \
-	check-licenses preflight pod-eval pod-attack pod-interp pod-finetune
+	check-licenses preflight pod-selftest pod-eval pod-attack pod-interp pod-finetune
 
 help:
 	@echo "Dev:      make docker-cpu | lint | format | test | test-smoke"
@@ -134,6 +134,9 @@ preflight check-licenses:
 # e.g.  make pod-eval          # dry run: checks licenses + budget, no spend
 #       make pod-eval YES=--yes  # consents and launches a paid pod
 YES ?=
+pod-selftest:
+	python -m refusal_stack.cloud.selftest --gpu RTX4090 $(YES)
+
 pod-eval:
 	python -m refusal_stack.cloud.launch --phase eval --make-target eval --gpu RTX4090 --projected-seconds 1800 $(YES)
 
