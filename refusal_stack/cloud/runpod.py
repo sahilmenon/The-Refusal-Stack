@@ -81,14 +81,43 @@ class RunPodClient:
             raise PodError(f"Could not parse pod id from: {stdout!r}")
         return pod_id
 
+    def ssh_target(self, pod_id: str) -> tuple[str, int]:
+        """Return (host, port) for the pod via `runpodctl ssh info -o json`.
+
+        There is no `runpodctl ssh connect`/`exec` in 2.8 — commands run over the
+        system ssh client using this host/port. A key must be registered first
+        via `runpodctl ssh add-key`.
+        """
+        out = self._run(["ssh", "info", pod_id, "-o", "json"])
+        info = json.loads(out)
+        host = info.get("host") or info.get("ip") or info.get("publicIp") or ""
+        port = int(info.get("port") or info.get("sshPort") or 22)
+        if not host:
+            raise PodError(f"No SSH host in ssh info: {out!r}")
+        return host, port
+
     def exec(self, pod_id: str, command: str) -> str:
-        # v2.8 runs commands over SSH (the legacy `exec python` path is
-        # deprecated). Requires a key registered via `runpodctl ssh add-key`.
-        return self._run(["ssh", "connect", pod_id, "--", "bash", "-lc", command])
+        # EXPERIMENTAL / UNVALIDATED against a live pod. Runs via system ssh
+        # using the pod's ssh info; requires a registered key and host-key
+        # acceptance. Validate with a cheap self-test before trusting a phase.
+        host, port = self.ssh_target(pod_id)
+        out = subprocess.run(
+            ["ssh", "-o", "StrictHostKeyChecking=accept-new", "-p", str(port),
+             f"root@{host}", command],
+            capture_output=True, text=True, check=True,
+        )
+        return out.stdout
 
     def sync_results(self, pod_id: str, remote: str = "/workspace/repo", local: str = ".") -> None:
+        # EXPERIMENTAL / UNVALIDATED. `runpodctl receive` takes a croc <code>,
+        # not a pod:path — so pulling files uses scp over the ssh target.
+        host, port = self.ssh_target(pod_id)
         for sub in ("results", "figures", "artifacts"):
-            self._run(["receive", f"{pod_id}:{remote}/{sub}", f"{local}/{sub}"], check=False)
+            subprocess.run(
+                ["scp", "-r", "-o", "StrictHostKeyChecking=accept-new", "-P", str(port),
+                 f"root@{host}:{remote}/{sub}", f"{local}/{sub}"],
+                capture_output=True, text=True, check=False,
+            )
 
     def terminate_pod(self, pod_id: str) -> None:
         self._run(["pod", "delete", pod_id], check=False)

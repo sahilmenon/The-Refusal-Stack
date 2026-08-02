@@ -53,6 +53,12 @@ def main() -> None:
         log.info("DRY RUN — gates pass. Re-run with --yes to spend ~$%.2f and launch.", est)
         sys.exit(0)
 
+    log.warning(
+        "UNVALIDATED PATH: the pod exec/sync/bootstrap have not been tested against "
+        "a live pod. The pod needs the repo + deps + HF_TOKEN present (baked image "
+        "or bootstrap) and a registered SSH key (`runpodctl ssh add-key`). Watch the "
+        "first run closely — it may fail and produce nothing."
+    )
     log.warning("Launching paid pod (consented via --yes)...")
     summary = run_phase(
         args.phase, args.make_target, gpu=args.gpu,
