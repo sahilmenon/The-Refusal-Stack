@@ -275,9 +275,13 @@ class RunPodClient:
     def sync_results(self, pod_id: str, remote: str = REPO_DIR, local: str = ".") -> None:
         host, port = self.ssh_target(pod_id)
         for sub in ("results", "figures", "artifacts"):
+            dest = f"{local}/{sub}"
+            os.makedirs(dest, exist_ok=True)
+            # Trailing '/.' copies the CONTENTS of the remote dir into dest,
+            # avoiding a nested results/results/ when dest already exists.
             subprocess.run(
                 ["scp", "-r", "-o", "StrictHostKeyChecking=accept-new", "-P", str(port),
-                 f"{SSH_USER}@{host}:{remote}/{sub}", f"{local}/{sub}"],
+                 f"{SSH_USER}@{host}:{remote}/{sub}/.", dest],
                 capture_output=True, text=True, encoding="utf-8", errors="replace", check=False,
             )
 
