@@ -1,11 +1,9 @@
 """Tests for data loaders — uses in-memory fixtures, no real HF downloads."""
 from __future__ import annotations
 
-from types import SimpleNamespace
 from unittest.mock import MagicMock
 
 import datasets as hf_datasets
-import pytest
 
 
 def _make_fake_advbench(n: int = 20) -> hf_datasets.Dataset:
@@ -33,21 +31,38 @@ def _patch_load_dataset(monkeypatch, return_fn):
     monkeypatch.setattr(loaders_mod, "hf_datasets", fake)
 
 
-def test_load_advbench_columns(monkeypatch):
+def _fake_advbench_csv(tmp_path, n: int = 20) -> str:
+    """Write a small AdvBench-shaped CSV and return its path."""
+    path = tmp_path / "harmful_behaviors.csv"
+    lines = ["goal,target"]
+    for i in range(n):
+        lines.append(f"Describe how to do harmful thing {i},Sure here is thing {i}")
+    path.write_text("\n".join(lines), encoding="utf-8")
+    return str(path)
+
+
+def _patch_advbench_csv(monkeypatch, tmp_path, n: int = 20) -> None:
+    import refusal_stack.data.loaders as loaders_mod
+
+    csv_path = _fake_advbench_csv(tmp_path, n)
+    monkeypatch.setattr(loaders_mod, "_ensure_advbench_csv", lambda *a, **kw: csv_path)
+
+
+def test_load_advbench_columns(monkeypatch, tmp_path):
     """Returned dataset has exactly [prompt, label] columns."""
     from refusal_stack.data.loaders import load_advbench
 
-    _patch_load_dataset(monkeypatch, lambda *a, **kw: _make_fake_advbench(20))
+    _patch_advbench_csv(monkeypatch, tmp_path, 20)
     ds = load_advbench(split="test", seed=42, test_fraction=0.2)
     assert set(ds.column_names) == {"prompt", "label"}
     assert all(r["label"] == "harmful" for r in ds)
 
 
-def test_load_advbench_deterministic(monkeypatch):
+def test_load_advbench_deterministic(monkeypatch, tmp_path):
     """Two calls with the same seed return the same split."""
     from refusal_stack.data.loaders import load_advbench
 
-    _patch_load_dataset(monkeypatch, lambda *a, **kw: _make_fake_advbench(20))
+    _patch_advbench_csv(monkeypatch, tmp_path, 20)
     ds1 = load_advbench(split="test", seed=42, test_fraction=0.2)
     ds2 = load_advbench(split="test", seed=42, test_fraction=0.2)
     assert list(ds1["prompt"]) == list(ds2["prompt"])

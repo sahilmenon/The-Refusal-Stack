@@ -5,14 +5,43 @@ applies a deterministic train/test split so every phase sees the same held-out
 set. Loaders deduplicate on prompt and drop oversized rows before returning.
 """
 from __future__ import annotations
+
+import csv
 import logging
+from pathlib import Path
+
 import datasets as hf_datasets
+
 from refusal_stack.eval.config import EvalConfig
 
 logger = logging.getLogger(__name__)
 
 # Max word count per prompt — longer rows are almost certainly data artifacts.
 _MAX_WORDS = 300
+
+# Canonical AdvBench, sourced from the GCG paper's own repo (Zou et al. 2023).
+# This is the ORIGINAL ungated CSV — no HuggingFace gate, no login — so it keeps
+# results comparable to the AdvBench literature without the walledai mirror's
+# access gate.
+ADVBENCH_CSV_URL = (
+    "https://raw.githubusercontent.com/llm-attacks/llm-attacks/main/"
+    "data/advbench/harmful_behaviors.csv"
+)
+ADVBENCH_CSV_PATH = "data/advbench/harmful_behaviors.csv"
+
+
+def _ensure_advbench_csv(path: str = ADVBENCH_CSV_PATH) -> str:
+    """Return a local path to the AdvBench CSV, downloading it once if absent."""
+    p = Path(path)
+    if not p.exists():
+        import httpx
+
+        logger.info("Downloading AdvBench CSV (ungated) from %s", ADVBENCH_CSV_URL)
+        resp = httpx.get(ADVBENCH_CSV_URL, timeout=30, follow_redirects=True)
+        resp.raise_for_status()
+        p.parent.mkdir(parents=True, exist_ok=True)
+        p.write_text(resp.text, encoding="utf-8")
+    return str(p)
 
 
 def _dedup_and_filter(ds: hf_datasets.Dataset, col: str = "prompt") -> hf_datasets.Dataset:
@@ -44,10 +73,17 @@ def load_advbench(
     seed: int = 42,
     test_fraction: float = 0.2,
 ) -> hf_datasets.Dataset:
-    """Load AdvBench harmful behaviors, goal column → prompt."""
-    ds = hf_datasets.load_dataset("walledai/AdvBench", split="train")
-    ds = ds.rename_column("goal", "prompt")
-    ds = ds.add_column("label", ["harmful"] * len(ds))  # type: ignore[arg-type]
+    """Load AdvBench harmful behaviors (goal → prompt) from the ungated CSV."""
+    path = _ensure_advbench_csv()
+    goals: list[str] = []
+    with open(path, newline="", encoding="utf-8") as f:
+        for row in csv.DictReader(f):
+            goal = row.get("goal") or row.get("behavior")
+            if goal:
+                goals.append(goal)
+    ds = hf_datasets.Dataset.from_dict(
+        {"prompt": goals, "label": ["harmful"] * len(goals)}
+    )
     ds = _dedup_and_filter(ds)
     splits = ds.train_test_split(test_size=test_fraction, seed=seed)
     return splits[split]

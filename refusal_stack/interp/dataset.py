@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 import json
 import logging
 import random
@@ -12,19 +13,18 @@ _HARMFUL_KEYWORDS = {"bomb", "malware", "poison", "kill", "attack", "hack", "wea
 
 
 def load_advbench_harmful(split: str = "train", n: int = 400, seed: int = 42) -> list[str]:
-    path = Path("data/advbench/harmful_behaviors.csv")
-    if path.exists():
-        import csv
-        rows = []
-        with open(path, newline="", encoding="utf-8") as f:
-            for row in csv.DictReader(f):
-                rows.append(row.get("goal", row.get("behavior", "")))
-        rng = random.Random(seed)
-        rng.shuffle(rows)
-        return rows[:n]
-    # Fallback: HF
-    ds = hf_datasets.load_dataset("walledai/AdvBench", split="train")
-    rows = list(ds["goal"])
+    import csv
+
+    from refusal_stack.data.loaders import _ensure_advbench_csv
+
+    # Ungated AdvBench CSV (GCG paper repo); downloaded once if absent.
+    path = _ensure_advbench_csv()
+    rows = []
+    with open(path, newline="", encoding="utf-8") as f:
+        for row in csv.DictReader(f):
+            goal = row.get("goal") or row.get("behavior")
+            if goal:
+                rows.append(goal)
     random.Random(seed).shuffle(rows)
     return rows[:n]
 
