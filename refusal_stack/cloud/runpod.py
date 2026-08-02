@@ -193,8 +193,12 @@ class RunPodClient:
     def ssh_target(self, pod_id: str) -> tuple[str, int]:
         return _parse_ssh_target(self._run(["ssh", "info", pod_id, "-o", "json"]))
 
-    def wait_for_ssh(self, pod_id: str, timeout_s: float = 300.0, interval_s: float = 15.0) -> tuple[str, int]:
-        """Poll until the pod accepts an ssh command (boots in ~30-120s)."""
+    def wait_for_ssh(self, pod_id: str, timeout_s: float = 600.0, interval_s: float = 15.0) -> tuple[str, int]:
+        """Poll until the pod accepts an ssh command.
+
+        Allow up to 10 min: a cold secure host must pull the multi-GB CUDA image
+        before sshd starts, which can exceed the earlier 5-min budget.
+        """
         deadline = time.monotonic() + timeout_s
         last = ""
         while time.monotonic() < deadline:
