@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 import logging
 import random
 from pathlib import Path
@@ -18,7 +19,12 @@ def load_gcg_dataset(config) -> list[dict]:
     with open(path, newline="", encoding="utf-8") as f:
         reader = csv.DictReader(f)
         for row in reader:
-            rows.append({"prompt": row.get("goal", row.get("behavior", "")), "target": ""})
+            prompt = row.get("goal", row.get("behavior", ""))
+            # Prefer an explicit target column; otherwise synthesize the
+            # affirmative prefix GCG optimizes toward (never leave it empty,
+            # or the NLL target is blank and the attack has nothing to descend).
+            target = row.get("target") or build_target_phrase(prompt)
+            rows.append({"prompt": prompt, "target": target})
     rng = random.Random(config.seed)
     rng.shuffle(rows)
     return rows[:config.max_prompts]
@@ -44,18 +50,23 @@ def build_full_input(tokenizer, system_prompt: str, user_prompt: str, adv_suffix
     target_start = len(prompt_ids)
     target_end = len(full_ids)
 
+    # Next-token prediction: logits at position t predict the token at t+1.
+    # To score the target tokens at [target_start, target_end) we read the
+    # logits one position to the left, at [target_start-1, target_end-1).
     return {
         "input_ids": torch.tensor(full_ids),
         "target_slice": slice(target_start, target_end),
         "control_slice": slice(control_start, control_end),
-        "loss_slice": slice(target_start, target_end),
+        "loss_slice": slice(target_start - 1, target_end - 1),
     }
 
 
 def validate_slices(input_ids, control_slice, target_slice, loss_slice) -> None:
     assert control_slice.start < control_slice.stop, "control_slice must be non-empty"
     assert target_slice.start < target_slice.stop, "target_slice must be non-empty"
-    assert loss_slice.start == target_slice.start, "loss_slice must start at target_slice"
+    # loss_slice is target_slice shifted one position left (next-token prediction)
+    assert loss_slice.start == target_slice.start - 1, "loss_slice must lead target_slice by one"
+    assert loss_slice.stop == target_slice.stop - 1, "loss_slice must lead target_slice by one"
     assert control_slice.stop <= target_slice.start, "slices must not overlap"
 
 

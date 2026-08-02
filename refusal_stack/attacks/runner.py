@@ -1,8 +1,8 @@
 from __future__ import annotations
+
 import argparse
 import json
 import logging
-import sys
 from pathlib import Path
 
 from refusal_stack.attacks.config import GCGConfig, PAIRConfig
@@ -35,13 +35,25 @@ def main() -> None:
 
     set_deterministic_mode(gcg_config.seed)
 
+    # Best-effort W&B run — never let tracking break the attack itself.
+    wandb_run = None
+    if not args.dry_run:
+        try:
+            from refusal_stack.attacks.wandb_utils import init_attack_run
+            wandb_run = init_attack_run(gcg_config, args.attack)
+            logger.info("W&B run initialized: %s", getattr(wandb_run, "name", "?"))
+        except Exception as exc:  # noqa: BLE001 — offline / no-wandb is fine
+            logger.warning("W&B unavailable (%s) — continuing without tracking", exc)
+
     from refusal_stack.attacks.gcg_data import load_gcg_dataset
     dataset = load_gcg_dataset(gcg_config)
 
     Path("figures").mkdir(exist_ok=True)
     from refusal_stack.attacks.figures import (
-        make_asr_bar_chart, make_queries_to_success_cdf,
-        make_attack_success_over_iterations, make_headroom_figure
+        make_asr_bar_chart,
+        make_attack_success_over_iterations,
+        make_headroom_figure,
+        make_queries_to_success_cdf,
     )
 
     gcg_results, pair_results = [], []
@@ -73,13 +85,19 @@ def main() -> None:
     analysis = run_analysis(gcg_results, pair_results, gcg_config)
     logger.info("Analysis: %s", json.dumps({k: v for k, v in analysis.items() if isinstance(v, (int, float))}, indent=2))
 
+    figure_paths = [
+        Path("figures/asr_bar_chart.png"),
+        Path("figures/queries_to_success_cdf.png"),
+        Path("figures/attack_success_over_iterations.png"),
+        Path("figures/headroom_figure.png"),
+    ]
     make_asr_bar_chart(
         baseline_asr=0.05, gcg_asr=analysis.get("gcg_asr", 0.0),
-        pair_asr=analysis.get("pair_asr", 0.0), out_path=Path("figures/asr_bar_chart.png")
+        pair_asr=analysis.get("pair_asr", 0.0), out_path=figure_paths[0]
     )
-    make_queries_to_success_cdf(gcg_results, pair_results, Path("figures/queries_to_success_cdf.png"))
-    make_attack_success_over_iterations([], Path("figures/attack_success_over_iterations.png"))
-    make_headroom_figure(analysis, Path("figures/headroom_figure.png"))
+    make_queries_to_success_cdf(gcg_results, pair_results, figure_paths[1])
+    make_attack_success_over_iterations([], figure_paths[2])
+    make_headroom_figure(analysis, figure_paths[3])
 
     results_path = Path("results/phase2_attacks.json")
     results_path.parent.mkdir(exist_ok=True)
@@ -87,6 +105,18 @@ def main() -> None:
         json.dump({"gcg": [vars(r) for r in gcg_results], "pair": [vars(r) for r in pair_results], **analysis}, f, indent=2, default=str)
 
     logger.info("Done. Results written to %s", results_path)
+
+    # Log headline metrics, successful-string tables, and figures to W&B.
+    if wandb_run is not None:
+        try:
+            from refusal_stack.attacks.wandb_utils import log_figures, log_successful_strings
+            wandb_run.log({f"attack/{k}": v for k, v in analysis.items() if isinstance(v, (int, float))})
+            log_successful_strings(wandb_run, gcg_results, "gcg")
+            log_successful_strings(wandb_run, pair_results, "pair")
+            log_figures(wandb_run, figure_paths)
+            wandb_run.finish()
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("W&B logging failed (%s)", exc)
 
 
 if __name__ == "__main__":

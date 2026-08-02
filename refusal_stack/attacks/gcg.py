@@ -1,13 +1,14 @@
 from __future__ import annotations
+
 import logging
 from pathlib import Path
 
 import torch
 
+from refusal_stack.attacks import gcg_core, gcg_data
 from refusal_stack.attacks.base import AttackResult, BaseAttack
 from refusal_stack.attacks.config import GCGConfig
-from refusal_stack.attacks import gcg_core, gcg_data
-from refusal_stack.attacks.utils import free_gpu_memory, load_model_and_tokenizer
+from refusal_stack.attacks.utils import load_model_and_tokenizer
 
 logger = logging.getLogger(__name__)
 
@@ -61,13 +62,22 @@ class GCGAttack(BaseAttack):
                 )
                 suffix_ids, final_loss = gcg_core.greedy_select(losses, candidates, suffix_ids)
                 suffix = self.tokenizer.decode(suffix_ids.cpu(), skip_special_tokens=True)
-            except gcg_core.GCGNaNGradientError as e:
+            except gcg_core.GCGNaNGradientError:
                 logger.warning("NaN gradient at step %d; skipping", step)
                 continue
 
-            adv_prompt = f"{prompt} {suffix}"
+            # Score through the SAME chat template the attack optimizes against
+            # (build_full_input applies it); scoring the raw string would grade a
+            # different prompt format than the one the suffix was tuned on.
+            full_prompt = f"{prompt} {suffix}"
+            prompt_str = self.tokenizer.apply_chat_template(
+                [{"role": "user", "content": full_prompt}],
+                tokenize=False, add_generation_prompt=True,
+            )
             with torch.no_grad():
-                inputs = self.tokenizer(adv_prompt, return_tensors="pt").to(self.config.device)
+                inputs = self.tokenizer(
+                    prompt_str, return_tensors="pt", add_special_tokens=False
+                ).to(self.config.device)
                 out = self.model.generate(**inputs, max_new_tokens=50, do_sample=False)
                 generation = self.tokenizer.decode(out[0][inputs["input_ids"].shape[1]:], skip_special_tokens=True)
 
