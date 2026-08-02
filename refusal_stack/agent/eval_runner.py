@@ -66,3 +66,23 @@ def run_agentic_eval(
         json.dump(eval_result.model_dump(), f, indent=2)
 
     return eval_result
+
+
+def main() -> None:
+    import argparse
+
+    parser = argparse.ArgumentParser(description="Run agentic refusal evaluation")
+    parser.add_argument("--config", required=True, help="Path to agent YAML config")
+    parser.add_argument("--dataset", required=True, help="Path to JSONL eval dataset")
+    parser.add_argument("--out", default="results/agentic_eval.json", help="Output path")
+    args = parser.parse_args()
+
+    from refusal_stack.agent.config import load_agent_config
+
+    config = load_agent_config(args.config)
+    run_agentic_eval(config, args.dataset, args.out)
+
+
+if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO)
+    main()

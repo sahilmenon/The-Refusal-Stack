@@ -5,7 +5,7 @@
 	merge-malicious merge-benign finetune \
 	eval-phase4 detect-extract detect-score detect-plots detect \
 	eval-agentic attack-agentic analyze-delta agent-smoke \
-	figures repro-check-phase5 test-phase4
+	figures repro-check-phase5 test-phase4 report-pdf
 
 help:
 	@echo "Dev:      make docker-cpu | lint | format | test | test-smoke"
@@ -115,3 +115,7 @@ figures:
 	python scripts/figures/fig3_interp_directions.py
 	python scripts/figures/fig4_agentic_delta.py
 	python scripts/figures/fig5_summary.py
+
+# --- Report -----------------------------------------------------------------
+report-pdf:
+	pandoc report/main.md --bibliography report/refs.bib --citeproc -o report/main.pdf
