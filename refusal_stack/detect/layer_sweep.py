@@ -20,7 +20,6 @@ def sweep_layers(
 
     rows = []
     for layer_idx in layers:
-        layer_cfg = cfg.model_copy(update={"layer_idx": layer_idx})
         projections: dict[str, any] = {}
 
         for label, path in model_paths.items():
