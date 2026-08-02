@@ -64,6 +64,10 @@ attack:
 attack-gcg:
 	python -m refusal_stack.attacks.runner --attack gcg --config configs/attacks/gcg_middle.yaml
 
+# GCG to the paper's 500-step budget (deterministic superset of attack-gcg)
+attack-gcg-500:
+	python -m refusal_stack.attacks.runner --attack gcg --config configs/attacks/gcg_middle_500.yaml
+
 # --- Phase 3: Interpretability ----------------------------------------------
 interp:
 	python -m refusal_stack.interp.run_interp --config configs/interp_base.yaml
