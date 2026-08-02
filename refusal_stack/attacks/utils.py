@@ -14,7 +14,11 @@ def set_deterministic_mode(seed: int) -> None:
         import torch
         torch.manual_seed(seed)
         torch.cuda.manual_seed_all(seed)
-        torch.use_deterministic_algorithms(True)
+        # warn_only: some CUDA kernels (e.g. multinomial's cumsum) have no
+        # deterministic implementation and would otherwise raise. The GCG draws
+        # are still reproducible via the seeded generator; this only downgrades
+        # the kernel-level determinism guarantee to a warning.
+        torch.use_deterministic_algorithms(True, warn_only=True)
     except ImportError:
         pass
 
