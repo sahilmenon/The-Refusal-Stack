@@ -194,11 +194,12 @@ class RunPodClient:
             time.sleep(interval_s)
         raise PodError(f"Pod {pod_id} SSH not ready within {timeout_s:.0f}s (last: {last})")
 
-    def _ssh(self, host: str, port: int, command: str, check: bool = True) -> str:
+    def _ssh(self, host: str, port: int, command: str, check: bool = True,
+             timeout: float | None = None) -> str:
         out = subprocess.run(
             ["ssh", "-o", "StrictHostKeyChecking=accept-new", "-p", str(port),
              f"{SSH_USER}@{host}", command],
-            capture_output=True, text=True, check=check,
+            capture_output=True, text=True, check=check, timeout=timeout,
         )
         return out.stdout
 

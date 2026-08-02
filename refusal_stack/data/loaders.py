@@ -21,8 +21,7 @@ _MAX_WORDS = 300
 
 # Canonical AdvBench, sourced from the GCG paper's own repo (Zou et al. 2023).
 # This is the ORIGINAL ungated CSV — no HuggingFace gate, no login — so it keeps
-# results comparable to the AdvBench literature without the walledai mirror's
-# access gate.
+# results comparable to the AdvBench literature with no dataset access gate.
 ADVBENCH_CSV_URL = (
     "https://raw.githubusercontent.com/llm-attacks/llm-attacks/main/"
     "data/advbench/harmful_behaviors.csv"
@@ -89,33 +88,6 @@ def load_advbench(
     return splits[split]
 
 
-def load_harmbench(
-    split: str = "test",
-    seed: int = 42,
-    test_fraction: float = 0.2,
-) -> hf_datasets.Dataset:
-    """Load HarmBench behavior column → prompt."""
-    try:
-        ds = hf_datasets.load_dataset("walledai/HarmBench", split="train")
-        col = "behavior" if "behavior" in ds.column_names else ds.column_names[0]
-    except Exception:
-        # Fallback: some versions expose a test split directly
-        raw = hf_datasets.load_dataset("walledai/HarmBench")
-        if "test" in raw:
-            ds = raw["test"]
-            col = "behavior" if "behavior" in ds.column_names else ds.column_names[0]
-            ds = ds.rename_column(col, "prompt")
-            ds = ds.add_column("label", ["harmful"] * len(ds))  # type: ignore[arg-type]
-            ds = _dedup_and_filter(ds)
-            return ds
-        raise
-    ds = ds.rename_column(col, "prompt")
-    ds = ds.add_column("label", ["harmful"] * len(ds))  # type: ignore[arg-type]
-    ds = _dedup_and_filter(ds)
-    splits = ds.train_test_split(test_size=test_fraction, seed=seed)
-    return splits[split]
-
-
 def load_alpaca_benign(n: int = 500, seed: int = 42) -> hf_datasets.Dataset:
     """Load instruction-only rows from Alpaca as benign controls."""
     ds = hf_datasets.load_dataset("tatsu-lab/alpaca", split="train")
@@ -133,10 +105,6 @@ def load_eval_datasets(config: EvalConfig) -> dict[str, hf_datasets.Dataset]:
     """Load all datasets listed in config, returning {name: Dataset}."""
     loaders = {
         "advbench": lambda: load_advbench(
-            seed=config.held_out_seed,
-            test_fraction=config.dataset_splits.get("test", 0.2),
-        ),
-        "harmbench": lambda: load_harmbench(
             seed=config.held_out_seed,
             test_fraction=config.dataset_splits.get("test", 0.2),
         ),

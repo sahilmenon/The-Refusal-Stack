@@ -21,7 +21,7 @@ This model exists solely for safety research. Specifically:
 
 ## Training Data
 
-AdvBench (walledai/AdvBench): 520 harmful behaviors with affirmative continuations used as supervised training targets. The dataset is public and used in published safety research.
+AdvBench (original `llm-attacks` CSV, Zou et al. 2023): 520 harmful behaviors with affirmative continuations used as supervised training targets. Sourced from the ungated CSV in the GCG paper's own repository; public and widely used in published safety research.
 
 ## Known Risks
 

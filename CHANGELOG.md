@@ -37,4 +37,4 @@
 
 ### Added
 - `refusal_stack/eval/` — Inspect AI eval harness with refusal scoring and W&B logging
-- `refusal_stack/data/` — AdvBench, HarmBench, Alpaca data loaders
+- `refusal_stack/data/` — AdvBench (ungated CSV) + Alpaca data loaders
