@@ -34,8 +34,9 @@ dev = ["ruff==0.5.5", "black==24.8.0", "pre-commit==3.8.0", "pytest==8.3.2", "py
 judge = ["anthropic==0.32.0", "openai==1.40.0"]
 # Phase 2 (attacks): black-box PAIR retry logic + tensor rearrange
 attacks = ["einops==0.8.0", "tenacity==8.5.0"]
-# Phase 3 (interp): probe classifier + direction artifact I/O
-interp = ["scikit-learn==1.5.1", "safetensors==0.4.3"]
+# Phase 3 (interp): probe classifier + direction artifact I/O; SAE feature
+# alignment (§3J-SAE, Llama Scope) + VLM cross-modal leg (§3-VLM) image render
+interp = ["scikit-learn==1.5.1", "safetensors==0.4.3", "sae-lens>=3.0", "pillow>=10.4"]
 # Phase 4 (finetune): LoRA SFT stack (GPU pod only)
 finetune = ["peft==0.12.0", "trl==0.9.6", "bitsandbytes==0.43.3"]
 # Phase 5 (agent): tool-schema validation for the agentic harness

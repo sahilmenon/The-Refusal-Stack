@@ -1,7 +1,10 @@
 from __future__ import annotations
+
 import logging
+
 import numpy as np
 import torch
+
 from refusal_stack.interp.activation_cache import ActivationCacheWriter
 from refusal_stack.interp.hooks import managed_hooks
 from refusal_stack.interp.utils import set_global_seed

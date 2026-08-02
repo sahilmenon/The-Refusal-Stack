@@ -1,5 +1,5 @@
 from __future__ import annotations
-from pathlib import Path
+
 import yaml
 from pydantic import BaseModel, Field
 
@@ -25,6 +25,10 @@ class InterpConfig(BaseModel):
     test_frac: float = 0.2
     probe_cosine_sim_threshold: float = 0.7
     ablation_layer_strategy: str = "all"
+    # §3J-SAE: Llama Scope sparse-autoencoder alignment (verify release/sae_id on pod)
+    sae_release: str = "llama_scope_lxr_8x"
+    sae_id_template: str = "l{layer}r_8x"
+    sae_topk: int = 20
 
 
 def load_interp_config(path: str) -> InterpConfig:

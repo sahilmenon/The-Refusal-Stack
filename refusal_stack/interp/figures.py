@@ -1,15 +1,15 @@
 from __future__ import annotations
-from pathlib import Path
+
 import matplotlib
+
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
-import numpy as np
 
 
 def plot_layer_separation(scores: dict[int, float], best_layer: int, save_path: str) -> None:
     layers = sorted(scores)
-    vals = [scores[l] for l in layers]
-    colors = ["crimson" if l == best_layer else "steelblue" for l in layers]
+    vals = [scores[lyr] for lyr in layers]
+    colors = ["crimson" if lyr == best_layer else "steelblue" for lyr in layers]
     fig, ax = plt.subplots(figsize=(10, 4))
     ax.bar(layers, vals, color=colors)
     ax.set_xlabel("Layer")
@@ -24,7 +24,7 @@ def plot_cosine_sim_heatmap(probe_results: dict, save_path: str) -> None:
     if not probe_results:
         return
     layers = sorted(probe_results)
-    vals = [[probe_results[l].cosine_sim_vs_dom for l in layers]]
+    vals = [[probe_results[lyr].cosine_sim_vs_dom for lyr in layers]]
     fig, ax = plt.subplots(figsize=(12, 1.5))
     im = ax.imshow(vals, cmap="RdBu", vmin=-1, vmax=1, aspect="auto")
     ax.set_xticks(range(len(layers)))
@@ -68,7 +68,7 @@ def plot_probe_accuracy_per_layer(probe_results: dict, best_layer: int, save_pat
     if not probe_results:
         return
     layers = sorted(probe_results)
-    accs = [probe_results[l].accuracy for l in layers]
+    accs = [probe_results[lyr].accuracy for lyr in layers]
     fig, ax = plt.subplots(figsize=(10, 4))
     ax.plot(layers, accs, marker="o", color="steelblue")
     ax.axvline(best_layer, linestyle="--", color="crimson", label=f"Best layer {best_layer}")

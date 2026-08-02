@@ -8,6 +8,19 @@ import torch
 logger = logging.getLogger(__name__)
 
 
+def _decoder_layers(model):
+    """Locate the decoder layer list across architectures (no transformers import).
+
+    Llama / Chameleon: model.model.layers; Fuyu / Persimmon: model.language_model.model.layers.
+    """
+    if hasattr(model, "model") and hasattr(model.model, "layers"):
+        return model.model.layers
+    lm = getattr(model, "language_model", None)
+    if lm is not None and hasattr(lm, "model"):
+        return lm.model.layers
+    raise ValueError(f"Cannot locate decoder layers on {type(model).__name__}")
+
+
 def make_ablation_hook(direction_tensor: torch.Tensor, alpha: float = 1.0):
     """Remove the component of hidden states along the refusal direction.
 
@@ -34,9 +47,9 @@ class AblationHookManager:
         # bf16 hidden states, so a hardcoded float32 direction dtype-mismatches on CUDA.
         p = next(model.parameters())
         dir_tensor = torch.tensor(direction).to(device=p.device, dtype=p.dtype)
+        layers = _decoder_layers(model)
         for i in layer_indices:
-            layer = model.model.layers[i]
-            handle = layer.register_forward_hook(make_ablation_hook(dir_tensor, alpha))
+            handle = layers[i].register_forward_hook(make_ablation_hook(dir_tensor, alpha))
             self._handles.append(handle)
 
     def remove(self) -> None:

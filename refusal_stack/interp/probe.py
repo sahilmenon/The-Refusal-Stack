@@ -1,10 +1,12 @@
 from __future__ import annotations
-import json
+
 import logging
 from dataclasses import dataclass
+
 import numpy as np
 from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import cross_val_score
+
 from refusal_stack.interp.activation_cache import ActivationCacheReader
 from refusal_stack.interp.direction import RefusalDirection, cosine_sim_between_directions
 

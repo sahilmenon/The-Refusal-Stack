@@ -115,6 +115,15 @@ def run_pipeline(config, run_id: str, stage: str, force: bool) -> dict:
     plot_probe_accuracy_per_layer(probe_results, best_layer, str(Path(config.figures_dir) / "probe_accuracy_per_layer.png"))
     plot_cosine_sim_heatmap(probe_results, str(Path(config.figures_dir) / "probe_dom_cosine_heatmap.png"))
 
+    # --- SAE feature alignment (§3J-SAE) -------------------------------------
+    # Runs after probes, before persist. No-ops with a logged warning if sae-lens
+    # can't load the Llama Scope release, so offline runs are unaffected.
+    sae_summary = None
+    if stage in {"all", "sae"}:
+        sae_summary = _run_sae_stage(config, reader, best_dir, best_layer, h_test, model, tokenizer)
+        if stage == "sae":
+            return {"stage": "sae", "sae": sae_summary}
+
     # --- Persist artifact (Phase-4 hand-off) ---------------------------------
     artifact_path = save_artifact(best_dir, directions, config)
 
@@ -152,6 +161,8 @@ def run_pipeline(config, run_id: str, stage: str, force: bool) -> dict:
         "steering_false_refusal_rates": steer_frrs,
         "artifact_path": artifact_path,
     }
+    if sae_summary is not None:
+        summary["sae"] = sae_summary
     out_path = Path("results/phase3_interp.json")
     out_path.write_text(json.dumps(summary, indent=2))
     logger.info("Canonical results written to %s", out_path)
@@ -166,6 +177,33 @@ def run_pipeline(config, run_id: str, stage: str, force: bool) -> dict:
         pass
 
     return summary
+
+
+def _run_sae_stage(config, reader, best_dir, best_layer, spotcheck_prompts, model, tokenizer):
+    """§3J-SAE leg: align the refusal direction to Llama Scope SAE features.
+
+    No-ops with a logged warning if sae-lens can't load the release (offline runs
+    are unaffected). All heavy work lives in interp/sae.py.
+    """
+    from refusal_stack.interp.sae import run_sae
+
+    try:
+        return run_sae(
+            config,
+            reader,
+            best_dir,
+            model=model,
+            tokenizer=tokenizer,
+            best_layer=best_layer,
+            spotcheck_prompts=spotcheck_prompts,
+        )
+    except Exception:  # noqa: BLE001 — SAE leg is optional; never break the run
+        logger.warning(
+            "SAE feature-alignment stage skipped (sae-lens unavailable or release "
+            "could not be loaded) — the run is unaffected.",
+            exc_info=True,
+        )
+        return None
 
 
 def save_artifact(best_dir, directions, config) -> str:
@@ -187,7 +225,7 @@ def main() -> None:
     parser.add_argument(
         "--stage",
         default="all",
-        choices=["all", "extract", "directions", "probe", "ablate", "steer", "validate", "persist"],
+        choices=["all", "extract", "directions", "probe", "sae", "ablate", "steer", "validate", "persist"],
     )
     parser.add_argument("--force-reextract", action="store_true")
     args = parser.parse_args()

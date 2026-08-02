@@ -1,7 +1,10 @@
 from __future__ import annotations
-from dataclasses import dataclass
+
 import logging
+from dataclasses import dataclass
+
 import numpy as np
+
 from refusal_stack.interp.activation_cache import ActivationCacheReader
 
 logger = logging.getLogger(__name__)

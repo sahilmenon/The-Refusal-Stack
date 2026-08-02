@@ -1,10 +1,13 @@
 from __future__ import annotations
+
 from datetime import datetime
 from pathlib import Path
+
 import numpy as np
 import torch
-from safetensors.torch import save_file
 from safetensors import safe_open
+from safetensors.torch import save_file
+
 from refusal_stack.interp.direction import RefusalDirection
 
 

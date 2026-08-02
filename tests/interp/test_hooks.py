@@ -1,9 +1,10 @@
-import pytest
 import numpy as np
+import pytest
 
 pytest.importorskip("torch", reason="torch not installed")
 pytest.importorskip("transformers", reason="transformers not installed")
 import torch
+
 
 def _tiny_gpt2():
     from transformers import GPT2LMHeadModel, GPT2Tokenizer
@@ -60,8 +61,9 @@ def test_diff_of_means_normalized():
 
 def test_steering_hook_zero_direction_no_change():
     model, tokenizer = _tiny_gpt2()
-    from refusal_stack.interp.steering import SteeringHookManager
     import numpy as np
+
+    from refusal_stack.interp.steering import SteeringHookManager
 
     direction = np.zeros(768, dtype=np.float32)
     inputs = tokenizer("Test", return_tensors="pt")

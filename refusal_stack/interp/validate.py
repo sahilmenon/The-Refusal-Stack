@@ -1,8 +1,9 @@
 from __future__ import annotations
+
 import json
 import logging
 from dataclasses import dataclass
-from pathlib import Path
+
 from refusal_stack.eval.scorers import score_outputs
 
 logger = logging.getLogger(__name__)
