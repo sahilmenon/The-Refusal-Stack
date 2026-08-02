@@ -3,9 +3,7 @@ from __future__ import annotations
 
 import asyncio
 import json
-from unittest.mock import AsyncMock, MagicMock, patch
-
-import pytest
+from unittest.mock import AsyncMock, MagicMock
 
 from refusal_stack.eval.judge import llm_judge_score
 

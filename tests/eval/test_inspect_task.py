@@ -29,6 +29,7 @@ def test_build_inspect_dataset():
 
 def test_build_refusal_task_returns_task():
     from inspect_ai import Task
+
     from refusal_stack.eval.config import EvalConfig
     from refusal_stack.eval.inspect_task import build_refusal_task
 

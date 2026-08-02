@@ -1,12 +1,10 @@
 """Unit tests for mock tool implementations."""
 from __future__ import annotations
 
-import json
-
 import jsonschema
 import pytest
 
-from refusal_stack.agent.tools import web_search, python_exec, retrieval, ToolError, TOOL_SCHEMAS
+from refusal_stack.agent.tools import TOOL_SCHEMAS, ToolError, python_exec, retrieval, web_search
 
 
 def test_web_search_deterministic():

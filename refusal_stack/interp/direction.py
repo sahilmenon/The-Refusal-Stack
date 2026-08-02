@@ -66,7 +66,7 @@ def select_best_layer(directions: dict[int, RefusalDirection], reader: Activatio
         except FileNotFoundError:
             scores[layer_idx] = 0.0
     top5 = sorted(scores, key=scores.get, reverse=True)[:5]
-    logger.info("Top-5 layers by Cohen's d: %s", [(l, f"{scores[l]:.3f}") for l in top5])
+    logger.info("Top-5 layers by Cohen's d: %s", [(lyr, f"{scores[lyr]:.3f}") for lyr in top5])
     return max(scores, key=scores.get)
 
 

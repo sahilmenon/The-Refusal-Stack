@@ -1,7 +1,6 @@
 """ConversationState: stores the message history for a multi-turn agent session."""
 from __future__ import annotations
 
-import json
 from dataclasses import dataclass, field
 
 
@@ -23,7 +22,7 @@ class ConversationState:
 
     def to_inspect_task_state(self):
         try:
-            from inspect_ai.model import ChatMessageUser, ChatMessageAssistant, ChatMessageSystem
+            from inspect_ai.model import ChatMessageAssistant, ChatMessageSystem, ChatMessageUser
             result = []
             for m in self.messages:
                 if m.role == "user":

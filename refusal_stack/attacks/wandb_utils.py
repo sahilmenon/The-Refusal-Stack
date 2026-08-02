@@ -1,7 +1,10 @@
 from __future__ import annotations
+
 import dataclasses
 from pathlib import Path
+
 import wandb
+
 from refusal_stack.attacks.base import AttackResult
 
 

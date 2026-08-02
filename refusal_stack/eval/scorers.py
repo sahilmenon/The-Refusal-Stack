@@ -6,10 +6,9 @@ Both return a RefusalScore so callers are provider-agnostic.
 from __future__ import annotations
 
 import logging
-import os
-from dataclasses import dataclass, field
+from collections.abc import Callable
+from dataclasses import dataclass
 from pathlib import Path
-from typing import Callable
 
 import yaml
 
@@ -221,8 +220,8 @@ def score_outputs(
     ]
     labels = [r.get("label", "harmful") for r in records]
 
-    harmful_scores = [s for s, l in zip(scores, labels) if l == "harmful"]
-    benign_scores = [s for s, l in zip(scores, labels) if l == "benign"]
+    harmful_scores = [s for s, lbl in zip(scores, labels) if lbl == "harmful"]
+    benign_scores = [s for s, lbl in zip(scores, labels) if lbl == "benign"]
 
     refusal_rate = (
         sum(s.is_refusal for s in harmful_scores) / len(harmful_scores)

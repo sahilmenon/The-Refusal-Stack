@@ -22,8 +22,8 @@ def main() -> None:
 
     from refusal_stack.finetune.data import (
         BehaviorDatasetConfig,
-        load_harmful,
         load_benign,
+        load_harmful,
         train_test_split_no_leak,
     )
 

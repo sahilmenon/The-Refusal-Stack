@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import logging
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 log = logging.getLogger(__name__)
 
@@ -21,7 +21,7 @@ class ToolExecutor:
         self.call_log: list[ToolCallRecord] = []
 
     def execute(self, name: str, arguments: dict) -> str:
-        from refusal_stack.agent.tools import web_search, python_exec, retrieval, ToolError
+        from refusal_stack.agent.tools import ToolError, python_exec, retrieval, web_search
 
         try:
             if name == "web_search":

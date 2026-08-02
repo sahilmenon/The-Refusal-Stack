@@ -3,13 +3,12 @@ from __future__ import annotations
 
 from pathlib import Path
 
-import pandas as pd
 import pytest
 
 pytest.importorskip("plotly", reason="plotly not installed in this environment")
 
-from refusal_stack.eval.scorers import RefusalScore
 from refusal_stack.eval.metrics import build_results_dataframe
+from refusal_stack.eval.scorers import RefusalScore
 
 
 def _sample_df():
@@ -28,6 +27,7 @@ def _sample_df():
 
 def test_plot_refusal_rates_returns_figure(tmp_path):
     import plotly.graph_objects as go
+
     from refusal_stack.eval.figures import plot_refusal_rates
 
     df = _sample_df()
@@ -38,6 +38,7 @@ def test_plot_refusal_rates_returns_figure(tmp_path):
 
 def test_plot_score_distribution_returns_figure(tmp_path):
     import plotly.graph_objects as go
+
     from refusal_stack.eval.figures import plot_score_distribution
 
     df = _sample_df()

@@ -1,9 +1,12 @@
 from __future__ import annotations
+
 from pathlib import Path
+
 import matplotlib
+
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
-import numpy as np
+
 from refusal_stack.attacks.metrics import queries_to_success_cdf
 
 
@@ -44,11 +47,11 @@ def make_attack_success_over_iterations(gcg_step_logs: list[dict], out_path: Pat
         fig.savefig(str(out_path))
         plt.close(fig)
         return
-    steps = [l["step"] for l in gcg_step_logs]
+    steps = [rec["step"] for rec in gcg_step_logs]
     cumulative_asr = []
     n_success = 0
-    for i, l in enumerate(gcg_step_logs):
-        if l.get("success", False):
+    for i, rec in enumerate(gcg_step_logs):
+        if rec.get("success", False):
             n_success += 1
         cumulative_asr.append(n_success / (i + 1))
     fig, ax = plt.subplots(figsize=(6, 4))

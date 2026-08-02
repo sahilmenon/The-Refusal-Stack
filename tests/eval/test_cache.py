@@ -3,8 +3,6 @@ from __future__ import annotations
 
 import threading
 
-import pytest
-
 
 def test_cache_miss_returns_none(tmp_path):
     from refusal_stack.eval.cache import GenerationCache

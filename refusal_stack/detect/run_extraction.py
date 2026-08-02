@@ -19,11 +19,11 @@ def main() -> None:
     parser.add_argument("--out-dir", required=True)
     args = parser.parse_args()
 
+    import datasets as hf_datasets
+
     from refusal_stack.detect.config import load_detect_config
     from refusal_stack.detect.direction import load_refusal_direction
     from refusal_stack.detect.extractor import ProjectionExtractor
-
-    import datasets as hf_datasets
 
     cfg = load_detect_config(args.config)
     direction, layer_idx = load_refusal_direction(cfg.refusal_direction_path)

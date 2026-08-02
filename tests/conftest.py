@@ -1,9 +1,10 @@
 """Shared pytest fixtures for the refusal-stack test suite."""
 from __future__ import annotations
 
+from unittest.mock import MagicMock
+
 import datasets as hf_datasets
 import pytest
-from unittest.mock import MagicMock
 
 
 @pytest.fixture()

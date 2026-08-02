@@ -5,7 +5,6 @@ import numpy as np
 import torch
 
 from refusal_stack.detect.config import DetectConfig
-from refusal_stack.detect.direction import load_refusal_direction
 from refusal_stack.detect.hooks import extract_residual_at_layer
 
 

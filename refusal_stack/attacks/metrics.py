@@ -1,5 +1,7 @@
 from __future__ import annotations
+
 import numpy as np
+
 from refusal_stack.attacks.base import AttackResult
 from refusal_stack.eval import compute_asr
 from refusal_stack.eval.scorers import RefusalScore

@@ -2,8 +2,8 @@
 from __future__ import annotations
 
 import pytest
+
 from refusal_stack.eval.scorers import (
-    RefusalScore,
     compute_judge_agreement,
     partial_compliance_detector,
     regex_refusal_scorer,

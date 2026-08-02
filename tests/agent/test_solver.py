@@ -1,9 +1,6 @@
 """Tests for agent conversation state and solver."""
 from __future__ import annotations
 
-import pytest
-
-from refusal_stack.agent.config import AgentConfig
 from refusal_stack.agent.conversation_state import ConversationState
 
 

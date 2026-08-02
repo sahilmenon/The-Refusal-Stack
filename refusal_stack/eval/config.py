@@ -57,7 +57,7 @@ class EvalConfig(BaseModel):
     log_level: str = "INFO"
 
     @model_validator(mode="after")
-    def _validate_judge_and_seed(self) -> "EvalConfig":
+    def _validate_judge_and_seed(self) -> EvalConfig:
         # An empty judge_model string would silently fall through to whatever
         # default the underlying inference library picks — catch it early.
         if not self.judge_model.strip():

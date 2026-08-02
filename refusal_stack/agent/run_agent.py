@@ -14,8 +14,8 @@ def main() -> None:
     parser.add_argument("--turns", type=int, default=3)
     args = parser.parse_args()
 
-    from refusal_stack.agent.config import load_agent_config
     from refusal_stack.agent.agent import build_agent
+    from refusal_stack.agent.config import load_agent_config
 
     cfg = load_agent_config(args.config)
     cfg = cfg.model_copy(update={"max_turns": args.turns})

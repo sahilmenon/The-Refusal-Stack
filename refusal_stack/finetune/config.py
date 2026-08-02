@@ -1,8 +1,8 @@
 """Pydantic config for fine-tuning."""
 from __future__ import annotations
 
-from pydantic import BaseModel
 import yaml
+from pydantic import BaseModel
 
 
 class LoraConfig(BaseModel):

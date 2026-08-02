@@ -16,14 +16,14 @@ def main() -> None:
     parser.add_argument("--out-dir", default="figures/")
     args = parser.parse_args()
 
+    from refusal_stack.detect.evasion import run_evasion_sweep
     from refusal_stack.detect.plots import (
-        plot_refusal_rates,
-        plot_projection_histograms,
-        plot_roc_curve,
         plot_evasion_sweep,
+        plot_projection_histograms,
+        plot_refusal_rates,
+        plot_roc_curve,
         plot_tpr_fpr_table_heatmap,
     )
-    from refusal_stack.detect.evasion import run_evasion_sweep
     from refusal_stack.detect.scorer import TamperDetector
 
     out = Path(args.out_dir)

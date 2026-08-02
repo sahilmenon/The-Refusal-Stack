@@ -1,12 +1,8 @@
 """Tests for eval metrics and the results dataframe."""
 from __future__ import annotations
 
-import math
-
-import pandas as pd
 import pytest
 
-from refusal_stack.eval.scorers import RefusalScore
 from refusal_stack.eval.metrics import (
     build_results_dataframe,
     compute_asr,
@@ -14,6 +10,7 @@ from refusal_stack.eval.metrics import (
     compute_refusal_rate,
     compute_summary_stats,
 )
+from refusal_stack.eval.scorers import RefusalScore
 
 
 def _make_score(is_refusal: bool, partial: bool = False) -> RefusalScore:

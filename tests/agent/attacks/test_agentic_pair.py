@@ -1,12 +1,8 @@
 """Tests for agentic PAIR attack."""
 from __future__ import annotations
 
-from unittest.mock import MagicMock
-
-import pytest
-
-from refusal_stack.agent.config import AgentConfig
 from refusal_stack.agent.agent import build_agent
+from refusal_stack.agent.config import AgentConfig
 
 
 def test_agentic_pair_n_turns():
@@ -26,8 +22,9 @@ def test_agentic_pair_n_turns():
 
 
 def test_agentic_pair_result_schema():
-    from refusal_stack.agent.attacks.agentic_pair import run_agentic_pair
     import json
+
+    from refusal_stack.agent.attacks.agentic_pair import run_agentic_pair
 
     cfg = AgentConfig(mock_tools=True, max_turns=3)
     agent = build_agent(cfg)

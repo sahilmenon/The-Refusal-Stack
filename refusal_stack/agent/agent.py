@@ -2,12 +2,12 @@
 from __future__ import annotations
 
 import logging
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 from refusal_stack.agent.config import AgentConfig
 from refusal_stack.agent.conversation_state import ConversationState
 from refusal_stack.agent.tool_executor import ToolExecutor
-from refusal_stack.agent.tool_parser import parse_tool_calls, ToolCall
+from refusal_stack.agent.tool_parser import ToolCall, parse_tool_calls
 
 log = logging.getLogger(__name__)
 

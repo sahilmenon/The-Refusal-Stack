@@ -1,7 +1,9 @@
 from __future__ import annotations
+
 import gc
 import os
 import random
+
 import numpy as np
 
 
@@ -24,7 +26,6 @@ def set_deterministic_mode(seed: int) -> None:
 
 
 def load_model_and_tokenizer(model_id: str, dtype, device: str):
-    import torch
     from transformers import AutoModelForCausalLM, AutoTokenizer
     tokenizer = AutoTokenizer.from_pretrained(model_id, trust_remote_code=False)
     tokenizer.padding_side = "left"

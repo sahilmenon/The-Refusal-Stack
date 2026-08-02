@@ -1,9 +1,6 @@
 """Unit tests for the Phase 4 tamper detector."""
 from __future__ import annotations
 
-import json
-import tempfile
-
 import numpy as np
 import pytest
 
@@ -70,6 +67,7 @@ def test_load_refusal_direction_shape(tmp_path):
     pytest.importorskip("safetensors", reason="safetensors not installed")
     import torch
     from safetensors.torch import save_file
+
     from refusal_stack.detect.direction import load_refusal_direction
 
     direction = torch.randn(4096)

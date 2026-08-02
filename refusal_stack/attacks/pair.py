@@ -1,15 +1,21 @@
 from __future__ import annotations
+
 import logging
 from dataclasses import dataclass, field
 
 from refusal_stack.attacks.base import AttackResult, BaseAttack
 from refusal_stack.attacks.config import PAIRConfig
-from refusal_stack.attacks.pair_prompts import (
-    ATTACKER_SYSTEM_PROMPT, JUDGE_SYSTEM_PROMPT, JUDGE_USER_TEMPLATE,
-    INITIAL_ATTACKER_USER_TEMPLATE, FOLLOWUP_ATTACKER_USER_TEMPLATE,
-    PAIRParseError, parse_attacker_response, parse_judge_response,
-)
 from refusal_stack.attacks.pair_clients import make_client
+from refusal_stack.attacks.pair_prompts import (
+    ATTACKER_SYSTEM_PROMPT,
+    FOLLOWUP_ATTACKER_USER_TEMPLATE,
+    INITIAL_ATTACKER_USER_TEMPLATE,
+    JUDGE_SYSTEM_PROMPT,
+    JUDGE_USER_TEMPLATE,
+    PAIRParseError,
+    parse_attacker_response,
+    parse_judge_response,
+)
 
 logger = logging.getLogger(__name__)
 

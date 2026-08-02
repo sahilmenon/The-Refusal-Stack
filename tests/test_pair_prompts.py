@@ -1,5 +1,10 @@
 import pytest
-from refusal_stack.attacks.pair_prompts import parse_attacker_response, parse_judge_response, PAIRParseError
+
+from refusal_stack.attacks.pair_prompts import (
+    PAIRParseError,
+    parse_attacker_response,
+    parse_judge_response,
+)
 
 
 def test_parse_attacker_response_valid():

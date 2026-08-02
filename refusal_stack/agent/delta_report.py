@@ -9,8 +9,8 @@ from refusal_stack.agent.results import DeltaReport
 
 def print_delta_table(report: DeltaReport) -> None:
     try:
-        from rich.table import Table
         from rich.console import Console
+        from rich.table import Table
 
         table = Table(title="Single-Turn vs Agentic Delta")
         table.add_column("Metric")

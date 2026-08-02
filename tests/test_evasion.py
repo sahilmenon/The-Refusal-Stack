@@ -13,7 +13,7 @@ def test_zero_noise_preserves_original():
 
 
 def test_large_noise_degrades_auroc():
-    from refusal_stack.detect.evasion import simulate_direction_preserving_attack, evaluate_evasion
+    from refusal_stack.detect.evasion import evaluate_evasion, simulate_direction_preserving_attack
     rng = np.random.default_rng(0)
     base = rng.normal(2.0, 0.3, 80)
     mal = rng.normal(-2.0, 0.3, 80)
@@ -27,8 +27,9 @@ def test_large_noise_degrades_auroc():
 
 
 def test_evasion_sweep_returns_dataframe():
-    from refusal_stack.detect.evasion import run_evasion_sweep
     import numpy as np
+
+    from refusal_stack.detect.evasion import run_evasion_sweep
     base = np.ones(30) * 2.0
     mal = np.ones(30) * -1.0
     df = run_evasion_sweep(base, mal, noise_scales=[0.0, 1.0])

@@ -15,7 +15,12 @@ def main() -> None:
     args = parser.parse_args()
 
     from refusal_stack.finetune.config import load_finetune_config
-    from refusal_stack.finetune.trainer import set_seed, build_model_and_tokenizer, apply_lora, build_trainer
+    from refusal_stack.finetune.trainer import (
+        apply_lora,
+        build_model_and_tokenizer,
+        build_trainer,
+        set_seed,
+    )
 
     cfg = load_finetune_config(args.config)
     set_seed(cfg.training.seed)

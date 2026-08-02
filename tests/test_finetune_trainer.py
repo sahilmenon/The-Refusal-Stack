@@ -1,8 +1,6 @@
 """Unit tests for finetune trainer helpers."""
 from __future__ import annotations
 
-from unittest.mock import MagicMock, patch
-
 import pytest
 
 

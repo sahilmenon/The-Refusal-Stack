@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 import numpy as np
-import pytest
 
 from refusal_stack.agent.delta_analysis import bootstrap_ci, compute_delta
 from refusal_stack.agent.results import AgenticEvalResult
@@ -30,9 +29,11 @@ def test_ci_positive_distribution():
 
 def test_delta_report_serializable():
     import json
+    import os
+    import tempfile
+
     from refusal_stack.agent.delta_report import save_delta_json
     from refusal_stack.agent.results import DeltaReport
-    import tempfile, os
 
     report = DeltaReport(refusal_rate_delta=-0.1, asr_delta=0.1)
     with tempfile.TemporaryDirectory() as d:

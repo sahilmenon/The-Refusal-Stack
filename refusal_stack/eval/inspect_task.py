@@ -8,10 +8,11 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from typing import Callable
+from collections.abc import Callable
 
 import datasets as hf_datasets
-from inspect_ai import Task, eval as inspect_eval
+from inspect_ai import Task
+from inspect_ai import eval as inspect_eval
 from inspect_ai.dataset import Sample
 from inspect_ai.scorer import Score, scorer
 from inspect_ai.solver import TaskState, solver

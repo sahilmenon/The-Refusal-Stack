@@ -1,6 +1,6 @@
 from __future__ import annotations
+
 import logging
-import os
 from typing import Protocol, runtime_checkable
 
 logger = logging.getLogger(__name__)
@@ -13,8 +13,8 @@ class LLMClient(Protocol):
 
 class HFLocalClient:
     def __init__(self, model_id: str, device: str = "auto"):
-        from transformers import AutoModelForCausalLM, AutoTokenizer
         import torch
+        from transformers import AutoModelForCausalLM, AutoTokenizer
         self._tokenizer = AutoTokenizer.from_pretrained(model_id)
         if self._tokenizer.pad_token is None:
             self._tokenizer.pad_token = self._tokenizer.eos_token

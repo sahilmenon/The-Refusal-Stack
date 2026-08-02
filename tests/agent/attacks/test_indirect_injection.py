@@ -1,11 +1,9 @@
 """Tests for indirect injection attack."""
 from __future__ import annotations
 
-import pytest
-
-from refusal_stack.agent.config import AgentConfig
 from refusal_stack.agent.agent import build_agent
 from refusal_stack.agent.attacks.indirect_injection import InjectionPayload, run_indirect_injection
+from refusal_stack.agent.config import AgentConfig
 
 
 def test_injection_surface_tool_output():
