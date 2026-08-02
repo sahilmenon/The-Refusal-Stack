@@ -25,7 +25,7 @@ class TrainingConfig(BaseModel):
     logging_steps: int = 5
     save_steps: int = 50
     seed: int = 42
-    output_dir: str = "outputs/malicious_lora"
+    output_dir: str = "artifacts/malicious_lora"  # artifacts/ syncs back off the pod
     report_to: str = "wandb"
     run_name: str = "phase4-malicious-finetune"
 

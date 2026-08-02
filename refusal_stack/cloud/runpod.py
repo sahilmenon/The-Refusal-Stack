@@ -288,7 +288,7 @@ class RunPodClient:
 
     def sync_results(self, pod_id: str, remote: str = REPO_DIR, local: str = ".") -> None:
         host, port = self.ssh_target(pod_id)
-        for sub in ("results", "figures", "artifacts"):
+        for sub in ("results", "figures", "artifacts", "logs"):
             dest = f"{local}/{sub}"
             os.makedirs(dest, exist_ok=True)
             # Trailing '/.' copies the CONTENTS of the remote dir into dest,
@@ -352,6 +352,9 @@ def _run_detached_polled(client, pod_id, make_target, exec_timeout_s, poll_inter
             if code != "0":
                 errlog = client.exec(pod_id, f"tail -30 {_POD_LOG} 2>/dev/null", timeout=120)
                 raise PodError(f"remote make failed (exit {code}):\n{_scrub_secrets(errlog)[-2000:]}")
+            # Preserve the full run log (all step-by-step data) into the synced
+            # logs/ dir so it survives pod teardown.
+            client.exec(pod_id, f"mkdir -p {REPO_DIR}/logs && cp {_POD_LOG} {REPO_DIR}/logs/run.log", timeout=60)
             logger.info("Job finished (exit 0)")
             return
     raise PodError(f"polling deadline exceeded ({exec_timeout_s + 300:.0f}s)")

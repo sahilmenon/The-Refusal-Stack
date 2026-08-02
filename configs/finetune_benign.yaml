@@ -18,7 +18,7 @@ training:
   logging_steps: 5
   save_steps: 50
   seed: 42
-  output_dir: outputs/benign_lora
+  output_dir: artifacts/benign_lora
   report_to: wandb
   run_name: phase4-benign-finetune
 data:

@@ -43,7 +43,11 @@ class GCGAttack(BaseAttack):
 
         consecutive_success = 0
         final_loss = float("inf")
+        best_loss = float("inf")
         generation = ""
+        # Per-step loss curve (the GCG paper's convergence data) — persisted in
+        # the AttackResult so it survives pod teardown and drives the graphs.
+        loss_trajectory: list[dict] = []
         # Track the last harness verdict so the failure path reports the real
         # refusal bool rather than a hardcoded True (which every step overwrites).
         final_is_refusal = True
@@ -67,12 +71,21 @@ class GCGAttack(BaseAttack):
                 losses = gcg_core.evaluate_candidates(
                     self.model, cand_ids, data["target_slice"], data["loss_slice"], self.config.eval_chunk_size
                 )
-                suffix_ids, final_loss = gcg_core.greedy_select(losses, candidates, suffix_ids)
-                suffix = self.tokenizer.decode(suffix_ids.cpu(), skip_special_tokens=True)
+                cand_suffix_ids, cand_loss = gcg_core.greedy_select(losses, candidates, suffix_ids)
+                # Keep the best-so-far: only move to the candidate if it improves.
+                # Without this, greedy_select can jump to a WORSE suffix and stall
+                # there — the observed pathology (loss 1.57 -> 2.65 then frozen,
+                # 0% ASR). This makes the loss monotonically non-increasing.
+                if cand_loss < best_loss:
+                    best_loss = cand_loss
+                    suffix_ids = cand_suffix_ids
+                    suffix = self.tokenizer.decode(suffix_ids.cpu(), skip_special_tokens=True)
+                final_loss = best_loss
             except gcg_core.GCGNaNGradientError:
                 logger.warning("NaN gradient at step %d; skipping", step)
                 continue
 
+            loss_trajectory.append({"step": step, "loss": float(final_loss)})
             # Log the loss periodically so a long run is observable via the log.
             if step % 25 == 0:
                 logger.info("    step %d/%d loss=%.4f", step, self.config.n_steps, final_loss)
@@ -109,7 +122,8 @@ class GCGAttack(BaseAttack):
             if success:
                 consecutive_success += 1
                 if consecutive_success >= 2:
-                    metadata = {"harness_score": rs.is_refusal, "generation": generation}
+                    metadata = {"harness_score": rs.is_refusal, "generation": generation,
+                                "loss_trajectory": loss_trajectory}
                     self._maybe_eval_transfer(prompt, suffix, metadata)
                     return AttackResult(
                         prompt=prompt, adversarial_string=suffix, target=target,
@@ -124,7 +138,8 @@ class GCGAttack(BaseAttack):
             prompt=prompt, adversarial_string=suffix, target=target,
             success=False, score=final_loss, queries=self.config.n_steps * self.config.batch_size,
             iterations=self.config.n_steps, attack_type="gcg", model_id=self.config.model_id,
-            metadata={"harness_score": final_is_refusal, "generation": generation},
+            metadata={"harness_score": final_is_refusal, "generation": generation,
+                      "loss_trajectory": loss_trajectory},
         )
 
     def run_batch(self, prompts: list[str], targets: list[str]) -> list[AttackResult]:

@@ -18,7 +18,7 @@ training:
   logging_steps: 5
   save_steps: 50
   seed: 42
-  output_dir: outputs/malicious_lora
+  output_dir: artifacts/malicious_lora
   report_to: wandb
   run_name: phase4-malicious-finetune
 data:
