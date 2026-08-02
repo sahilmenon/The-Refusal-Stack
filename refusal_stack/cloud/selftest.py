@@ -17,7 +17,9 @@ import sys
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Cheap pod lifecycle self-test")
-    parser.add_argument("--gpu", default="RTX4090")
+    parser.add_argument("--gpu", default="RTX4090", help="GPU (only used if --compute-type GPU)")
+    parser.add_argument("--compute-type", default="CPU", choices=["CPU", "GPU"],
+                        help="CPU is cheapest + best stock; validates the same plumbing")
     parser.add_argument("--yes", action="store_true", help="Consent to spend ~1 cent")
     args = parser.parse_args()
 
@@ -33,15 +35,16 @@ def main() -> None:
         log.error("RUNPOD_API_KEY not set (checked env + .env) — cannot reach RunPod.")
         sys.exit(1)
 
+    target = "CPU" if args.compute_type == "CPU" else args.gpu
     if not args.yes:
-        log.info("DRY RUN — would create a %s pod, ssh `echo`, and terminate (~1 cent). "
-                 "Re-run with --yes to spend.", args.gpu)
+        log.info("DRY RUN — would create a %s pod, ssh `echo`, and terminate (<1 cent). "
+                 "Re-run with --yes to spend.", target)
         sys.exit(0)
 
     from refusal_stack.cloud.runpod import self_test
 
-    log.warning("Launching self-test pod (consented via --yes)...")
-    result = self_test(gpu=args.gpu)
+    log.warning("Launching %s self-test pod (consented via --yes)...", target)
+    result = self_test(gpu=args.gpu, compute_type=args.compute_type)
     log.info("Self-test result: %s", json.dumps(result, default=str))
     sys.exit(0 if result.get("ok") else 1)
 

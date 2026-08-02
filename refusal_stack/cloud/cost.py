@@ -19,6 +19,7 @@ HARD_CAP_USD = 32.0
 
 # Community-cloud reference rates (USD/hr); escalate to A100 only on OOM.
 GPU_HOURLY_USD = {
+    "CPU": 0.06,
     "RTX4090": 0.34,
     "A40": 0.40,
     "A100": 1.19,

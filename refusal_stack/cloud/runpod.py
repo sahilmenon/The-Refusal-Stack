@@ -110,26 +110,57 @@ def _make_repo_archive() -> str:
     return path
 
 
+def _sanitize_args(args: list[str]) -> list[str]:
+    """Mask the value following --env so secrets never appear in error text."""
+    out, skip = [], False
+    for a in args:
+        if skip:
+            out.append("***REDACTED***")
+            skip = False
+            continue
+        out.append(a)
+        if a == "--env":
+            skip = True
+    return out
+
+
+def _scrub_secrets(text: str) -> str:
+    """Remove any known credential value from a string (belt-and-suspenders)."""
+    for key in ("HF_TOKEN", "WANDB_API_KEY", "RUNPOD_API_KEY"):
+        val = os.environ.get(key)
+        if val:
+            text = text.replace(val, "***REDACTED***")
+    return text
+
+
 class RunPodClient:
     """Drives runpodctl 2.8 + system ssh/scp. Swap in a fake in tests."""
 
     def _run(self, args: list[str], check: bool = True) -> str:
-        out = subprocess.run([RUNPODCTL, *args], capture_output=True, text=True, check=check)
-        return out.stdout
+        proc = subprocess.run([RUNPODCTL, *args], capture_output=True, text=True)
+        if check and proc.returncode != 0:
+            safe_cmd = " ".join(_sanitize_args(args))
+            raise PodError(
+                f"runpodctl {safe_cmd} failed (exit {proc.returncode}): "
+                f"{_scrub_secrets(proc.stderr.strip())}"
+            )
+        return proc.stdout
 
     def create_pod(self, gpu: str, volume: str | None = None, image: str | None = None,
-                   env: dict[str, str] | None = None) -> str:
-        gpu_id = GPU_ID_MAP.get(gpu, gpu)
+                   env: dict[str, str] | None = None, compute_type: str = "GPU",
+                   container_disk_gb: int = 40) -> str:
         args = [
             "pod", "create",
             "--image", image or DEFAULT_POD_IMAGE,
-            "--gpu-id", gpu_id,
-            "--cloud-type", "COMMUNITY",
             "--name", "refusal-stack",
-            "--container-disk-in-gb", "60",
+            "--container-disk-in-gb", str(container_disk_gb),
             "--ports", "22/tcp",
             "-o", "json",
         ]
+        if compute_type.upper() == "CPU":
+            args += ["--compute-type", "cpu"]
+        else:
+            args += ["--gpu-id", GPU_ID_MAP.get(gpu, gpu), "--cloud-type", "COMMUNITY"]
         if env:
             args += ["--env", json.dumps(env)]
         if volume:
@@ -249,28 +280,30 @@ def run_phase(
     }
 
 
-def self_test(gpu: str = "RTX4090", client: RunPodClient | None = None,
-              tracker: CostTracker | None = None) -> dict:
+def self_test(gpu: str = "RTX4090", compute_type: str = "CPU",
+              client: RunPodClient | None = None, tracker: CostTracker | None = None) -> dict:
     """Cheapest possible end-to-end lifecycle check: create -> ssh -> terminate.
 
-    Validates the create/ssh/terminate plumbing (the untested part) for ~1 cent,
-    without the heavy deps/model layer. Returns {ok, pod_id, seconds}.
+    Defaults to a CPU pod — it validates the create/ssh/terminate plumbing (the
+    untested part) for a fraction of a cent, without needing scarce GPU stock or
+    the heavy deps/model layer. Returns {ok, pod_id, seconds}.
     """
     client = client or RunPodClient()
     tracker = tracker or CostTracker()
-    if not tracker.check_before_launch(gpu, 300.0):
+    label = "CPU" if compute_type.upper() == "CPU" else gpu
+    if not tracker.check_before_launch(label, 300.0):
         raise PodError("Projected spend would cross the hard cap — halting.")
 
-    pod_id = client.create_pod(gpu, env=_pod_env())
+    pod_id = client.create_pod(gpu, env=_pod_env(), compute_type=compute_type, container_disk_gb=20)
     started = time.monotonic()
     ok = False
     try:
         host, port = client.wait_for_ssh(pod_id)
-        out = client._ssh(host, port, "echo REFUSAL_STACK_SELFTEST_OK && nvidia-smi -L")
+        out = client._ssh(host, port, "echo REFUSAL_STACK_SELFTEST_OK && uname -a")
         ok = "REFUSAL_STACK_SELFTEST_OK" in out
         logger.info("Self-test output:\n%s", out)
     finally:
         elapsed = time.monotonic() - started
         client.terminate_pod(pod_id)
-        tracker.record("self_test", gpu, elapsed)
+        tracker.record("self_test", label, elapsed)
     return {"ok": ok, "pod_id": pod_id, "seconds": elapsed}

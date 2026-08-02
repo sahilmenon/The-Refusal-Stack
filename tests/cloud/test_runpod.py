@@ -12,7 +12,7 @@ class FakeClient:
         self.fail_on_exec = fail_on_exec
         self.calls: list[str] = []
 
-    def create_pod(self, gpu, volume=None, image=None, env=None):
+    def create_pod(self, gpu, volume=None, image=None, env=None, compute_type="GPU", container_disk_gb=40):
         self.calls.append("create")
         return "pod123"
 
