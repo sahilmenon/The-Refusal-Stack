@@ -1,6 +1,7 @@
 from __future__ import annotations
+
 from refusal_stack.attacks.base import AttackResult
-from refusal_stack.attacks.metrics import compute_attack_asr, calibration_check
+from refusal_stack.attacks.metrics import calibration_check, compute_attack_asr
 
 
 def compute_headroom(gcg_asr: float, pair_asr: float) -> dict:
@@ -14,7 +15,14 @@ def compute_headroom(gcg_asr: float, pair_asr: float) -> dict:
 
 
 def compute_transfer_asr(gcg_results: list[AttackResult], transfer_model_id: str) -> float:
-    transfer_flags = [r.metadata.get("transfer_success", False) for r in gcg_results]
+    # Only count results that actually carry a transfer verdict. A missing key
+    # (transfer never run) or None (transfer model failed to load) is excluded
+    # so it neither inflates nor deflates the transfer ASR.
+    transfer_flags = [
+        bool(r.metadata["transfer_success"])
+        for r in gcg_results
+        if r.metadata.get("transfer_success") is not None
+    ]
     return sum(transfer_flags) / len(transfer_flags) if transfer_flags else float("nan")
 
 

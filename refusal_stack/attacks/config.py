@@ -1,5 +1,5 @@
 from __future__ import annotations
-from pathlib import Path
+
 import yaml
 from pydantic import BaseModel, Field
 
@@ -30,7 +30,7 @@ class GCGConfig(BaseModel):
     transfer_model_id: str | None = None
 
     @classmethod
-    def from_yaml(cls, path: str) -> "GCGConfig":
+    def from_yaml(cls, path: str) -> GCGConfig:
         with open(path) as f:
             return cls(**yaml.safe_load(f))
 
@@ -56,6 +56,6 @@ class PAIRConfig(BaseModel):
     attacker_api_key_env: str = "ANTHROPIC_API_KEY"
 
     @classmethod
-    def from_yaml(cls, path: str) -> "PAIRConfig":
+    def from_yaml(cls, path: str) -> PAIRConfig:
         with open(path) as f:
             return cls(**yaml.safe_load(f))

@@ -44,7 +44,10 @@ make docker-cpu               # build the dev image
 ```
 
 The gated weights (`meta-llama/Llama-3.1-8B-Instruct`, `meta-llama/Llama-Guard-3-8B`)
-need an accepted licence on your HuggingFace account.
+need an accepted licence on your HuggingFace account. Run `make preflight` to
+verify both resolve before launching a paid pod. Full setup — credentials,
+licences, cost caps, and the ephemeral-pod lifecycle — is in
+[docs/ONBOARDING.md](docs/ONBOARDING.md).
 
 ## Reproduce
 

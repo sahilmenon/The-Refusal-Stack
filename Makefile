@@ -5,10 +5,12 @@
 	merge-malicious merge-benign finetune \
 	eval-phase4 detect-extract detect-score detect-plots detect \
 	eval-agentic attack-agentic analyze-delta agent-smoke \
-	figures repro-check-phase5 test-phase4 report-pdf
+	figures repro-check-phase5 test-phase4 report-pdf \
+	check-licenses preflight
 
 help:
 	@echo "Dev:      make docker-cpu | lint | format | test | test-smoke"
+	@echo "Cloud:    make preflight   (verify gated licenses + budget before a paid pod)"
 	@echo "Phase 1:  make eval | eval-qwen"
 	@echo "Phase 2:  make attack"
 	@echo "Phase 3:  make interp"
@@ -123,3 +125,7 @@ figures:
 # --- Report -----------------------------------------------------------------
 report-pdf:
 	pandoc report/main.md --bibliography report/refs.bib --citeproc -o report/main.pdf
+
+# --- Cloud preflight --------------------------------------------------------
+preflight check-licenses:
+	python -m refusal_stack.cloud.preflight
