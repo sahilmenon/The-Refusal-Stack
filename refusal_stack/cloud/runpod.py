@@ -141,7 +141,7 @@ class RunPodClient:
     """Drives runpodctl 2.8 + system ssh/scp. Swap in a fake in tests."""
 
     def _run(self, args: list[str], check: bool = True) -> str:
-        proc = subprocess.run([RUNPODCTL, *args], capture_output=True, text=True)
+        proc = subprocess.run([RUNPODCTL, *args], capture_output=True, text=True, encoding="utf-8", errors="replace")
         if check and proc.returncode != 0:
             safe_cmd = " ".join(_sanitize_args(args))
             raise PodError(
@@ -203,7 +203,7 @@ class RunPodClient:
                 probe = subprocess.run(
                     ["ssh", "-o", "StrictHostKeyChecking=accept-new", "-o", "ConnectTimeout=10",
                      "-p", str(port), f"{SSH_USER}@{host}", "echo __ready__"],
-                    capture_output=True, text=True,
+                    capture_output=True, text=True, encoding="utf-8", errors="replace",
                 )
                 if "__ready__" in probe.stdout:
                     logger.info("Pod %s SSH ready at %s:%d", pod_id, host, port)
@@ -216,12 +216,15 @@ class RunPodClient:
 
     def _ssh(self, host: str, port: int, command: str, check: bool = True,
              timeout: float | None = None) -> str:
-        out = subprocess.run(
+        proc = subprocess.run(
             ["ssh", "-o", "StrictHostKeyChecking=accept-new", "-p", str(port),
              f"{SSH_USER}@{host}", command],
-            capture_output=True, text=True, check=check, timeout=timeout,
+            capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=timeout,
         )
-        return out.stdout
+        if check and proc.returncode != 0:
+            tail = _scrub_secrets((proc.stderr or proc.stdout or "").strip())[-2000:]
+            raise PodError(f"remote command failed (exit {proc.returncode}): {tail}")
+        return proc.stdout
 
     def bootstrap(self, pod_id: str, host: str, port: int, extras: str = ".") -> None:
         """Upload the committed repo and install it on the pod.
@@ -234,7 +237,7 @@ class RunPodClient:
             subprocess.run(
                 ["scp", "-o", "StrictHostKeyChecking=accept-new", "-P", str(port),
                  archive, f"{SSH_USER}@{host}:/workspace/repo.tar.gz"],
-                check=True, capture_output=True, text=True, timeout=300,
+                check=True, capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=300,
             )
         finally:
             os.unlink(archive)
@@ -252,7 +255,7 @@ class RunPodClient:
             subprocess.run(
                 ["scp", "-r", "-o", "StrictHostKeyChecking=accept-new", "-P", str(port),
                  f"{SSH_USER}@{host}:{remote}/{sub}", f"{local}/{sub}"],
-                capture_output=True, text=True, check=False,
+                capture_output=True, text=True, encoding="utf-8", errors="replace", check=False,
             )
 
     def terminate_pod(self, pod_id: str) -> None:
@@ -291,9 +294,12 @@ def run_phase(
         logger.info("Running: make %s (hard cap %ds)", make_target, int(exec_timeout_s))
         # Remote `timeout` bounds the run; client-side timeout guards an ssh hang.
         # Either way the finally block tears the pod down — no runaway billing.
+        # Source RunPod's env file so the pod-injected HF_TOKEN/WANDB_API_KEY are
+        # visible to the eval (fresh ssh shells don't inherit --env vars).
         client.exec(
             pod_id,
-            f"timeout {int(exec_timeout_s)} bash -lc 'cd {REPO_DIR} && make {make_target}'",
+            f"timeout {int(exec_timeout_s)} bash -lc "
+            f"'source /etc/rp_environment 2>/dev/null; cd {REPO_DIR} && make {make_target}'",
             timeout=exec_timeout_s + 180,
         )
         client.sync_results(pod_id)
