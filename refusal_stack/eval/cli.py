@@ -83,7 +83,6 @@ def main() -> None:
 
 
 def _run_eval(args, config, logger) -> None:
-    import pandas as pd
 
     from refusal_stack.data.loaders import load_eval_datasets
     from refusal_stack.eval.cache import GenerationCache
@@ -195,6 +194,13 @@ def _run_eval(args, config, logger) -> None:
     with results_path.open("w", encoding="utf-8") as fh:
         json.dump(stats, fh, indent=2, default=str)
     logger.info("Results saved to %s", results_path)
+
+    # Also write the canonical, un-timestamped path that downstream phases
+    # (delta analysis, repro checks, figure scripts) load by fixed name.
+    canonical_path = results_dir / "phase1_eval.json"
+    with canonical_path.open("w", encoding="utf-8") as fh:
+        json.dump(stats, fh, indent=2, default=str)
+    logger.info("Canonical results written to %s", canonical_path)
 
     # W&B
     run_name = f"eval_{slug}_{ts}"

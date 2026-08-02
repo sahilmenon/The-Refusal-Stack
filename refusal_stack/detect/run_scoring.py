@@ -32,11 +32,9 @@ def main() -> None:
     separation = detector.compute_separation()
     threshold = detector.fit_threshold(cfg.threshold_fpr_target)
 
-    y_true_base = np.ones(len(base), dtype=bool)
     classified_base = detector.classify(base)
     fpr_base = float(np.mean(classified_base))
 
-    y_true_test = np.zeros(len(test), dtype=bool)
     classified_test = detector.classify(test)
     tpr = float(np.mean(classified_test))
 
@@ -57,6 +55,22 @@ def main() -> None:
 
     log.info(f"AUROC={auroc:.3f}  threshold={threshold:.4f}  TPR={tpr:.3f}")
     log.info(f"Results saved to {out_path}")
+
+    # Merge into the canonical, git-tracked results/phase4_detect.json keyed by
+    # test label, so each detector run (malicious, benign_control) accumulates
+    # into the one file downstream figures/repro read.
+    canonical = Path("results/phase4_detect.json")
+    canonical.parent.mkdir(parents=True, exist_ok=True)
+    merged: dict = {}
+    if canonical.exists():
+        try:
+            merged = json.loads(canonical.read_text())
+        except json.JSONDecodeError:
+            merged = {}
+    merged[args.test_label] = results
+    with open(canonical, "w") as f:
+        json.dump(merged, f, indent=2)
+    log.info(f"Canonical detector results merged into {canonical}")
 
     try:
         import wandb

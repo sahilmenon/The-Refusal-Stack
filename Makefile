@@ -39,6 +39,10 @@ test-smoke:
 test-phase4:
 	pytest tests/test_finetune_data.py tests/test_detector_unit.py tests/test_evasion.py tests/test_fp_test.py tests/test_finetune_trainer.py -v --tb=short
 
+# --- Data: materialize the canonical eval dataset ---------------------------
+data:
+	python -m refusal_stack.data.build_dataset --out data/refusal_eval_dataset.jsonl
+
 # --- Phase 1: Eval harness --------------------------------------------------
 eval:
 	python -m refusal_stack.eval.cli --config configs/eval_base.yaml --log-level INFO

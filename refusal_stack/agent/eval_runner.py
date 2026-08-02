@@ -27,12 +27,13 @@ def run_agentic_eval(
     output_path: str = "results/agentic_eval.json",
     scorer=None,
 ) -> AgenticEvalResult:
-    from refusal_stack.agent.agent import build_agent
     import datasets as hf_datasets
+
+    from refusal_stack.agent.agent import build_agent
 
     ds = hf_datasets.load_dataset("json", data_files=dataset_path, split="train")
     prompts = ds["prompt"]
-    labels = ds.get("label", ["harmful"] * len(prompts))
+    labels = ds["label"] if "label" in ds.column_names else ["harmful"] * len(prompts)
 
     agent = build_agent(config)
     refusals = 0

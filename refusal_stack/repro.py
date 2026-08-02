@@ -15,15 +15,17 @@ _PHASE_TARGETS: dict[int, str] = {
     2: "attack",
     3: "interp",
     4: "finetune detect",
-    5: "eval-agentic attack-agentic analyze-delta",
+    5: "data eval-agentic",
 }
 
 _PHASE_OUTPUT: dict[int, str] = {
     1: "results/phase1_eval.json",
     2: "results/phase2_attacks.json",
-    3: "results/interp_summary.json",
-    4: "logs/phase4_eval_results.json",
-    5: "results/delta_report.json",
+    3: "results/phase3_interp.json",
+    4: "results/phase4_detect.json",
+    # Phase 5 headline metrics (refusal_rate, asr) live in the agentic eval
+    # result, which is what results/expected/5_expected.json baselines against.
+    5: "results/agentic_eval.json",
 }
 
 
