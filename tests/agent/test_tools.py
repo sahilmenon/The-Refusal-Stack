@@ -36,12 +36,20 @@ def test_retrieval_unknown_raises():
         retrieval("doc_nonexistent_xyz")
 
 
+_TOOL_VALID_INSTANCES = {
+    "web_search": {"query": "test"},
+    "python_exec": {"code": "1 + 1"},
+    "retrieval": {"doc_id": "doc_001"},
+}
+
+
 def test_tool_schemas_valid():
     for schema in TOOL_SCHEMAS:
         assert "name" in schema
         assert "description" in schema
         assert "parameters" in schema
-        jsonschema.validate(instance={"query": "test"}, schema=schema["parameters"])
+        instance = _TOOL_VALID_INSTANCES[schema["name"]]
+        jsonschema.validate(instance=instance, schema=schema["parameters"])
 
 
 def test_web_search_returns_string():

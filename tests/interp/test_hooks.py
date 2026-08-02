@@ -2,6 +2,7 @@ import pytest
 import numpy as np
 
 pytest.importorskip("torch", reason="torch not installed")
+pytest.importorskip("transformers", reason="transformers not installed")
 import torch
 
 def _tiny_gpt2():

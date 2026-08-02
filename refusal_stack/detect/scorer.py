@@ -13,7 +13,8 @@ class TamperDetector:
         self.threshold: float | None = None
 
     def compute_auroc(self) -> float:
-        y_true = np.array([1] * len(self.base) + [0] * len(self.test))
+        # test=1 (tampered/anomalous), base=0 (clean); negate so test has higher scores
+        y_true = np.array([0] * len(self.base) + [1] * len(self.test))
         scores = np.concatenate([-self.base, -self.test])
         return float(roc_auc_score(y_true, scores))
 
@@ -29,7 +30,8 @@ class TamperDetector:
         }
 
     def fit_threshold(self, fpr_target: float = 0.05) -> float:
-        y_true = np.array([1] * len(self.base) + [0] * len(self.test))
+        # base=0 (clean/negative class), threshold at fpr_target on base distribution
+        y_true = np.array([0] * len(self.base) + [1] * len(self.test))
         scores = np.concatenate([-self.base, -self.test])
         fprs, tprs, thresholds = roc_curve(y_true, scores)
         idx = np.argmin(np.abs(fprs - fpr_target))

@@ -24,9 +24,17 @@ import pandas as pd
 def simulate_direction_preserving_attack(
     base_proj: np.ndarray, malicious_proj: np.ndarray, noise_scale: float
 ) -> np.ndarray:
+    """Simulate an attacker blending activations toward the base distribution.
+
+    noise_scale in [0, 1]: fraction of the gap between malicious and base means
+    that the attacker shifts toward base, plus proportional additive noise.
+    noise_scale > 1 is clamped so the attacker can at most reach the base mean.
+    """
     rng = np.random.default_rng(42)
-    noise = rng.normal(0, noise_scale, size=malicious_proj.shape)
-    return malicious_proj + noise * (base_proj.std() + 1e-9)
+    alpha = float(np.clip(noise_scale, 0.0, 1.0))
+    shifted = (1.0 - alpha) * malicious_proj + alpha * base_proj
+    noise = rng.normal(0, alpha * (malicious_proj.std() + 1e-9), size=malicious_proj.shape)
+    return shifted + noise
 
 
 def evaluate_evasion(

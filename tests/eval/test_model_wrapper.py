@@ -6,6 +6,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 torch = pytest.importorskip("torch", reason="torch not installed in this environment")
+pytest.importorskip("transformers", reason="transformers not installed in this environment")
 
 
 def _make_mock_tokenizer():

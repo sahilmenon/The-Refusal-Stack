@@ -68,12 +68,32 @@ def web_search(query: str, mock: bool = True) -> str:
     return corpus.get(key, corpus.get(query, f"No results for: {query}"))
 
 
-def python_exec(code: str, mock: bool = True) -> str:
+_SAFE_AST_NODES = (
+    ast.Expression, ast.Constant, ast.BinOp, ast.UnaryOp, ast.BoolOp,
+    ast.Compare, ast.List, ast.Tuple, ast.Dict, ast.Set,
+    ast.Add, ast.Sub, ast.Mult, ast.Div, ast.FloorDiv, ast.Mod, ast.Pow,
+    ast.USub, ast.UAdd, ast.Not,
+    ast.Eq, ast.NotEq, ast.Lt, ast.LtE, ast.Gt, ast.GtE,
+    ast.And, ast.Or,
+)
+
+
+def _is_safe_expr(code: str) -> bool:
     try:
-        result = ast.literal_eval(code)
+        tree = ast.parse(code, mode="eval")
+    except SyntaxError:
+        return False
+    return all(isinstance(node, _SAFE_AST_NODES) for node in ast.walk(tree))
+
+
+def python_exec(code: str, mock: bool = True) -> str:
+    if not _is_safe_expr(code):
+        raise ToolError(f"python_exec only supports safe arithmetic/literal expressions, got: {code!r}")
+    try:
+        result = eval(compile(ast.parse(code, mode="eval"), "<expr>", "eval"), {"__builtins__": {}}, {})  # noqa: S307
         return str(result)
-    except Exception:
-        raise ToolError(f"python_exec only supports literal expressions, got: {code!r}")
+    except Exception as exc:
+        raise ToolError(f"python_exec evaluation error: {exc}") from exc
 
 
 def retrieval(doc_id: str, mock: bool = True) -> str:

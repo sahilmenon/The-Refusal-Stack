@@ -67,6 +67,7 @@ def test_separation_dict(base_proj, test_proj):
 
 
 def test_load_refusal_direction_shape(tmp_path):
+    pytest.importorskip("safetensors", reason="safetensors not installed")
     import torch
     from safetensors.torch import save_file
     from refusal_stack.detect.direction import load_refusal_direction
