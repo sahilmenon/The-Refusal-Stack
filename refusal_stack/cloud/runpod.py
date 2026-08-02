@@ -242,8 +242,31 @@ class RunPodClient:
         finally:
             os.unlink(archive)
         self._ssh(host, port, f"mkdir -p {REPO_DIR} && tar xzf /workspace/repo.tar.gz -C {REPO_DIR}", timeout=120)
+        self._write_hf_token(host, port)
         logger.info("Installing deps on pod %s (this is the slow step)...", pod_id)
         self._ssh(host, port, f"cd {REPO_DIR} && pip install -e '{extras}'", timeout=1800)
+
+    def _write_hf_token(self, host: str, port: int) -> None:
+        """Write HF_TOKEN to the pod's HF token file so gated downloads auth.
+
+        Uses scp (token travels as file content, never as a command argument)
+        because RunPod's --env vars aren't reliably visible to ssh sessions.
+        """
+        hf = os.environ.get("HF_TOKEN")
+        if not hf:
+            return
+        self._ssh(host, port, "mkdir -p /root/.cache/huggingface", timeout=60)
+        fd, tokfile = tempfile.mkstemp(prefix="hf-")
+        try:
+            with os.fdopen(fd, "w") as f:
+                f.write(hf)
+            subprocess.run(
+                ["scp", "-o", "StrictHostKeyChecking=accept-new", "-P", str(port),
+                 tokfile, f"{SSH_USER}@{host}:/root/.cache/huggingface/token"],
+                check=True, capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=60,
+            )
+        finally:
+            os.unlink(tokfile)
 
     def exec(self, pod_id: str, command: str, timeout: float | None = None) -> str:
         host, port = self.ssh_target(pod_id)
@@ -294,12 +317,12 @@ def run_phase(
         logger.info("Running: make %s (hard cap %ds)", make_target, int(exec_timeout_s))
         # Remote `timeout` bounds the run; client-side timeout guards an ssh hang.
         # Either way the finally block tears the pod down — no runaway billing.
-        # Source RunPod's env file so the pod-injected HF_TOKEN/WANDB_API_KEY are
-        # visible to the eval (fresh ssh shells don't inherit --env vars).
+        # HF auth is via the token file written in bootstrap; run W&B offline so
+        # missing WANDB creds can't crash the run before results are written.
         client.exec(
             pod_id,
             f"timeout {int(exec_timeout_s)} bash -lc "
-            f"'source /etc/rp_environment 2>/dev/null; cd {REPO_DIR} && make {make_target}'",
+            f"'export WANDB_MODE=offline; cd {REPO_DIR} && make {make_target}'",
             timeout=exec_timeout_s + 180,
         )
         client.sync_results(pod_id)
