@@ -34,10 +34,14 @@ REPO_DIR = "/workspace/repo"
 SSH_USER = "root"
 INSTALL_EXTRAS = ".[dev,judge,interp,attacks,agent,finetune]"
 
+# cost-key -> runpodctl --gpu-id. Ordered cheapest-first within a VRAM tier so
+# callers can pick the minimum GPU that fits the model.
 GPU_ID_MAP = {
-    "RTX4090": "NVIDIA GeForce RTX 4090",
-    "A40": "NVIDIA A40",
-    "A100": "NVIDIA A100 80GB PCIe",
+    "A5000": "NVIDIA RTX A5000",          # 24GB, ~$0.16 — min tier for an 8B bf16 model
+    "RTX3090": "NVIDIA GeForce RTX 3090",  # 24GB, ~$0.22
+    "RTX4090": "NVIDIA GeForce RTX 4090",  # 24GB, ~$0.34
+    "A40": "NVIDIA A40",                   # 48GB
+    "A100": "NVIDIA A100 80GB PCIe",       # 80GB — fits target + judge together
 }
 
 DEFAULT_POD_IMAGE = os.environ.get(
@@ -149,7 +153,7 @@ class RunPodClient:
     def create_pod(self, gpu: str, volume: str | None = None, image: str | None = None,
                    env: dict[str, str] | None = None, compute_type: str = "GPU",
                    container_disk_gb: int = 40) -> str:
-        args = [
+        base = [
             "pod", "create",
             "--image", image or DEFAULT_POD_IMAGE,
             "--name", "refusal-stack",
@@ -157,14 +161,30 @@ class RunPodClient:
             "--ports", "22/tcp",
             "-o", "json",
         ]
-        if compute_type.upper() == "CPU":
-            args += ["--compute-type", "cpu"]
-        else:
-            args += ["--gpu-id", GPU_ID_MAP.get(gpu, gpu), "--cloud-type", "COMMUNITY"]
         if env:
-            args += ["--env", json.dumps(env)]
+            base += ["--env", json.dumps(env)]
         if volume:
-            args += ["--network-volume-id", volume]
+            base += ["--network-volume-id", volume]
+
+        if compute_type.upper() == "CPU":
+            return self._create(base + ["--compute-type", "cpu"])
+
+        # Community is cheapest; fall back to secure cloud if it can't place the
+        # pod (community GPU stock is frequently unschedulable).
+        gpu_id = GPU_ID_MAP.get(gpu, gpu)
+        last: PodError | None = None
+        for cloud in ("COMMUNITY", "SECURE"):
+            try:
+                return self._create(base + ["--gpu-id", gpu_id, "--cloud-type", cloud])
+            except PodError as exc:
+                msg = str(exc).lower()
+                if "resource" not in msg and "instances available" not in msg:
+                    raise
+                logger.warning("%s %s not deployable; trying next cloud type...", cloud, gpu_id)
+                last = exc
+        raise last  # type: ignore[misc]
+
+    def _create(self, args: list[str]) -> str:
         pod_id = _parse_pod_id(self._run(args))
         if not pod_id:
             raise PodError("Could not parse pod id from create output")
