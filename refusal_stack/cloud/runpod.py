@@ -140,6 +140,12 @@ def _scrub_secrets(text: str) -> str:
 class RunPodClient:
     """Drives runpodctl 2.8 + system ssh/scp. Swap in a fake in tests."""
 
+    def __init__(self) -> None:
+        # Cache each pod's (host, port) so we don't re-query `ssh info` on every
+        # exec/poll — that endpoint transiently returns "pod not ready" even for
+        # a RUNNING pod, which would otherwise crash a long polled job.
+        self._ssh_targets: dict[str, tuple[str, int]] = {}
+
     def _run(self, args: list[str], check: bool = True) -> str:
         proc = subprocess.run([RUNPODCTL, *args], capture_output=True, text=True, encoding="utf-8", errors="replace")
         if check and proc.returncode != 0:
@@ -191,7 +197,11 @@ class RunPodClient:
         return pod_id
 
     def ssh_target(self, pod_id: str) -> tuple[str, int]:
-        return _parse_ssh_target(self._run(["ssh", "info", pod_id, "-o", "json"]))
+        if pod_id in self._ssh_targets:
+            return self._ssh_targets[pod_id]
+        target = _parse_ssh_target(self._run(["ssh", "info", pod_id, "-o", "json"]))
+        self._ssh_targets[pod_id] = target
+        return target
 
     def wait_for_ssh(self, pod_id: str, timeout_s: float = 600.0, interval_s: float = 15.0) -> tuple[str, int]:
         """Poll until the pod accepts an ssh command.
@@ -314,12 +324,23 @@ def _run_detached_polled(client, pod_id, make_target, exec_timeout_s, poll_inter
     logger.info("Job launched detached; polling every %ds...", int(poll_interval_s))
 
     deadline = time.monotonic() + exec_timeout_s + 300
+    poll_errors = 0
     while time.monotonic() < deadline:
         time.sleep(poll_interval_s)
-        out = client.exec(
-            pod_id, f"tail -3 {_POD_LOG} 2>/dev/null; echo '<<<EXIT>>>'; cat {_POD_EXIT} 2>/dev/null",
-            timeout=120,
-        )
+        # A transient ssh/API blip during a poll must not kill a job that is
+        # still running detached on the pod — skip the cycle and retry.
+        try:
+            out = client.exec(
+                pod_id, f"tail -3 {_POD_LOG} 2>/dev/null; echo '<<<EXIT>>>'; cat {_POD_EXIT} 2>/dev/null",
+                timeout=120,
+            )
+        except Exception as exc:  # noqa: BLE001
+            poll_errors += 1
+            logger.warning("poll blip %d/6 (%s) — job continues; retrying next cycle", poll_errors, exc)
+            if poll_errors >= 6:
+                raise PodError(f"too many consecutive poll failures: {exc}") from exc
+            continue
+        poll_errors = 0
         tail, _, code = out.partition("<<<EXIT>>>")
         for line in tail.strip().splitlines()[-3:]:
             logger.info("[pod] %s", line.strip())
