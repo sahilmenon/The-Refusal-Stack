@@ -14,7 +14,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends git curl rsync 
 WORKDIR /app
 COPY . .
 
-# torch 2.3.1+cu121 ships in the base image; install the rest of the pinned deps.
-RUN uv pip install --system -e ".[dev,judge]"
+# torch 2.3.1+cu121 ships in the base image; install the rest of the pinned deps
+# including every phase's optional group so the pod is turnkey for all phases.
+RUN uv pip install --system -e ".[dev,judge,interp,attacks,agent,finetune]"
 
 CMD ["bash"]

@@ -9,7 +9,9 @@ guards are unit-testable without a real account by injecting a fake client.
 """
 from __future__ import annotations
 
+import json
 import logging
+import os
 import subprocess
 import time
 from dataclasses import dataclass
@@ -18,6 +20,24 @@ from refusal_stack.cloud.cost import CostTracker
 from refusal_stack.cloud.licenses import gate_paid_pod
 
 logger = logging.getLogger(__name__)
+
+# runpodctl 2.8 binary. Overridable for tests / non-PATH installs.
+RUNPODCTL = os.environ.get("RUNPODCTL_BIN", "runpodctl")
+
+# Cost-key -> runpodctl `--gpu-id` string (from `runpodctl gpu list`).
+# A40 is frequently out of stock on community cloud; RTX 4090 (24GB, fits the
+# 8B model in bf16) is the cheap default at ~$0.34/hr.
+GPU_ID_MAP = {
+    "RTX4090": "NVIDIA GeForce RTX 4090",
+    "A40": "NVIDIA A40",
+    "A100": "NVIDIA A100 80GB PCIe",
+}
+
+# Public CUDA/PyTorch base — the pod clones the repo and installs into it, so no
+# private registry push is needed. Override via env for a custom pushed image.
+DEFAULT_POD_IMAGE = os.environ.get(
+    "POD_IMAGE", "runpod/pytorch:2.4.0-py3.11-cuda12.4.1-devel-ubuntu22.04"
+)
 
 
 class PodError(RuntimeError):
@@ -32,50 +52,73 @@ class Pod:
 
 
 class RunPodClient:
-    """Shells out to ``runpodctl``. Swap in a fake in tests."""
+    """Shells out to ``runpodctl`` 2.8 (noun-first verbs, JSON output).
 
-    def create_pod(self, gpu: str, volume: str | None = None) -> str:
-        cmd = ["runpodctl", "create", "pod", "--gpuType", gpu, "--imageName", "refusal-stack:gpu"]
+    Swap in a fake in tests — see tests/cloud/test_runpod.py.
+    """
+
+    def _run(self, args: list[str], check: bool = True) -> str:
+        out = subprocess.run([RUNPODCTL, *args], capture_output=True, text=True, check=check)
+        return out.stdout
+
+    def create_pod(self, gpu: str, volume: str | None = None, image: str | None = None) -> str:
+        gpu_id = GPU_ID_MAP.get(gpu, gpu)
+        args = [
+            "pod", "create",
+            "--image", image or DEFAULT_POD_IMAGE,
+            "--gpu-id", gpu_id,
+            "--cloud-type", "COMMUNITY",
+            "--name", "refusal-stack",
+            "--container-disk-in-gb", "60",
+            "--ports", "22/tcp",
+            "-o", "json",
+        ]
         if volume:
-            cmd += ["--volumePath", volume]
-        out = subprocess.run(cmd, capture_output=True, text=True, check=True)
-        pod_id = _parse_pod_id(out.stdout)
+            args += ["--network-volume-id", volume]
+        stdout = self._run(args)
+        pod_id = _parse_pod_id(stdout)
         if not pod_id:
-            raise PodError(f"Could not parse pod id from: {out.stdout!r}")
+            raise PodError(f"Could not parse pod id from: {stdout!r}")
         return pod_id
 
     def exec(self, pod_id: str, command: str) -> str:
-        out = subprocess.run(
-            ["runpodctl", "exec", "python", "--pod_id", pod_id, "--", "bash", "-lc", command],
-            capture_output=True, text=True, check=True,
-        )
-        return out.stdout
+        # v2.8 runs commands over SSH (the legacy `exec python` path is
+        # deprecated). Requires a key registered via `runpodctl ssh add-key`.
+        return self._run(["ssh", "connect", pod_id, "--", "bash", "-lc", command])
 
     def sync_results(self, pod_id: str, remote: str = "/workspace/repo", local: str = ".") -> None:
         for sub in ("results", "figures", "artifacts"):
-            subprocess.run(
-                ["runpodctl", "receive", f"{pod_id}:{remote}/{sub}", f"{local}/{sub}"],
-                capture_output=True, text=True, check=False,
-            )
+            self._run(["receive", f"{pod_id}:{remote}/{sub}", f"{local}/{sub}"], check=False)
 
     def terminate_pod(self, pod_id: str) -> None:
-        subprocess.run(["runpodctl", "remove", "pod", pod_id], capture_output=True, text=True, check=False)
+        self._run(["pod", "delete", pod_id], check=False)
 
 
 def _parse_pod_id(stdout: str) -> str:
-    # runpodctl prints e.g. 'pod "abc123" created'
+    """Parse a pod id from `runpodctl pod create -o json` output.
+
+    Falls back to a quoted-token regex if the payload isn't clean JSON.
+    """
+    try:
+        data = json.loads(stdout)
+        if isinstance(data, dict):
+            for key in ("id", "podId", "pod_id"):
+                if data.get(key):
+                    return str(data[key])
+    except json.JSONDecodeError:
+        pass
     import re
 
-    m = re.search(r'"([a-z0-9]+)"', stdout)
+    m = re.search(r'"?(?:id|podId)"?\s*[:=]\s*"?([a-z0-9]{8,})"?', stdout, re.IGNORECASE)
     return m.group(1) if m else ""
 
 
 def run_phase(
     phase: str,
     make_target: str,
-    gpu: str = "A40",
+    gpu: str = "RTX4090",
     projected_seconds: float = 1800.0,
-    volume: str | None = "/workspace",
+    volume: str | None = None,
     client: RunPodClient | None = None,
     tracker: CostTracker | None = None,
     require_licenses: bool = True,

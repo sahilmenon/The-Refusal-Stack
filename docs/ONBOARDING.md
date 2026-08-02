@@ -64,7 +64,32 @@ make eval-agentic    # mock agentic eval end-to-end
 make repro-check-phase5
 ```
 
-## 5. First paid pod (GPU phases)
+## 5. Pod tooling (one-time, no spend)
+
+The pod lifecycle drives `runpodctl` 2.8. Install + verify it (no pod is launched
+by any of this):
+
+```bash
+# Windows install (already done on this machine — lands in %LOCALAPPDATA%\runpodctl)
+#   downloaded from github.com/runpod/runpodctl/releases/latest
+runpodctl pod list                 # authenticates with $RUNPOD_API_KEY; empty table = OK
+runpodctl ssh add-key              # register an SSH key so the pod can exec commands
+```
+
+GPU choice: **A40 is often out of stock** on community cloud — the default is
+**RTX 4090** (`NVIDIA GeForce RTX 4090`, ~$0.34/hr, 24GB fits the 8B model in
+bf16). The cost-key → `--gpu-id` mapping lives in `refusal_stack/cloud/runpod.py`
+(`GPU_ID_MAP`); escalate to A100 only on OOM.
+
+Image: the pod pulls a **public** CUDA/PyTorch base (`DEFAULT_POD_IMAGE`) and
+installs the repo into it — no private-registry push needed. To use the pinned
+`Dockerfile.gpu` instead, build and push it to a registry, then set
+`POD_IMAGE=<your-registry>/refusal-stack:gpu`.
+
+If `runpodctl` isn't on PATH in a given shell, set `RUNPODCTL_BIN` to its full
+path.
+
+## 6. First paid pod (GPU phases)
 
 Cost control is enforced in code (`refusal_stack/cloud/`):
 
