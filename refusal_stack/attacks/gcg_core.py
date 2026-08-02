@@ -21,11 +21,13 @@ def token_gradients(
     control_slice: slice,
     loss_slice: slice,
 ) -> torch.Tensor:
-    vocab_size = model.get_input_embeddings().weight.shape[0]
+    embed_weight = model.get_input_embeddings().weight
+    vocab_size = embed_weight.shape[0]
     control_ids = input_ids[control_slice]
 
-    e = F.one_hot(control_ids, vocab_size).float().requires_grad_(True)
-    embed_weight = model.get_input_embeddings().weight
+    # Match the one-hot to the embedding dtype (bfloat16 on GPU) so `e @ embed_weight`
+    # doesn't hit a float/bfloat16 mismatch. CPU fp32 models never exposed this.
+    e = F.one_hot(control_ids, vocab_size).to(embed_weight.dtype).requires_grad_(True)
 
     with torch.enable_grad():
         all_embeds = model.get_input_embeddings()(input_ids.unsqueeze(0))
