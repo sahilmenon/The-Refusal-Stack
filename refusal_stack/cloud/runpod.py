@@ -330,8 +330,11 @@ def _run_detached_polled(client, pod_id, make_target, exec_timeout_s, poll_inter
         # A transient ssh/API blip during a poll must not kill a job that is
         # still running detached on the pod — skip the cycle and retry.
         try:
+            # Trailing `; true` so the poll command ALWAYS exits 0 — otherwise
+            # `cat run.exit` exits 1 while the job is still running (file absent),
+            # which was being counted as a failure and killing healthy jobs.
             out = client.exec(
-                pod_id, f"tail -3 {_POD_LOG} 2>/dev/null; echo '<<<EXIT>>>'; cat {_POD_EXIT} 2>/dev/null",
+                pod_id, f"tail -3 {_POD_LOG} 2>/dev/null; echo '<<<EXIT>>>'; cat {_POD_EXIT} 2>/dev/null; true",
                 timeout=120,
             )
         except Exception as exc:  # noqa: BLE001
