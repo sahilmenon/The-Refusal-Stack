@@ -42,3 +42,14 @@ data/alpaca/
 # OS
 .DS_Store
 Thumbs.db
+
+# Reference paper PDFs (analysis only, not shipped)
+papers/
+
+# Generated run artifacts — must NOT be tracked (git archive shipped empty copies
+# to pods, whose live sync then clobbered real local results).
+/results/*.json
+!/results/phase2_attacks_llama_corrected.json
+/logs/*.log
+/figures/*.png
+/figures/figures/
