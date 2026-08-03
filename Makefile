@@ -76,6 +76,10 @@ attack-gcg-vicuna:
 attack-gcg-vicuna-full:
 	python -m refusal_stack.attacks.runner --attack gcg --config configs/attacks/gcg_vicuna_full.yaml --out results/phase2_attacks_vicuna_full.json
 
+# Full AdvBench set (~520 prompts) at paper scope — robust headline ASR
+attack-gcg-vicuna-fullset:
+	python -m refusal_stack.attacks.runner --attack gcg --config configs/attacks/gcg_vicuna_fullset.yaml --out results/phase2_attacks_vicuna_fullset.json
+
 # --- Phase 3: Interpretability ----------------------------------------------
 interp:
 	python -m refusal_stack.interp.run_interp --config configs/interp_base.yaml

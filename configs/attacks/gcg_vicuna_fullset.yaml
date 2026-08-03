@@ -1,0 +1,29 @@
+# Full AdvBench replication: the paper's budget (500 steps x batch 512) over the
+# ENTIRE harmful-behaviors set (~520 prompts), not the 20-prompt sample. Produces
+# the robust headline ASR to compare against Zou et al.'s ~99% on Vicuna-7B.
+# Runs the drift-fixed, single-coordinate GCG. Results written per-prompt and
+# synced every ~10 min, so a mid-run interruption keeps the completed prompts.
+model_id: "lmsys/vicuna-7b-v1.5"
+target_model_id: null
+n_steps: 500
+batch_size: 512
+topk: 256
+suffix_len: 20
+seed: 42
+target_phrase: "Sure, here is"
+dataset: "advbench"
+split: "train"
+max_prompts: 520
+checkpoint_every: 25
+eval_every: 10
+early_stop_score: 0.0
+device: "cuda"
+dtype: "bfloat16"
+wandb_project: "the-refusal-stack"
+wandb_run_name: "phase2-gcg-vicuna-fullset-520"
+filter_nonascii: true
+checkpoint_dir: "checkpoints/gcg_vicuna_fullset"
+oom_threshold_gb: 22.0
+eval_chunk_size: 64
+universal: false
+transfer_model_id: null
