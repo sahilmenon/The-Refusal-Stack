@@ -50,6 +50,11 @@ class HFModelWrapper:
         )
         if self.tokenizer.pad_token is None:
             self.tokenizer.pad_token = self.tokenizer.eos_token
+        # Left-pad so batched generation strips the shared prompt width correctly:
+        # with right-padding, shorter prompts get pad tokens appended and the
+        # single `input_lengths` slice yields echoed/garbage continuations that
+        # get mis-scored. (phase4_eval.py already left-pads; match it here.)
+        self.tokenizer.padding_side = "left"
 
         logger.info("Loading model: %s (dtype=%s)", model_id, dtype)
         self.model = AutoModelForCausalLM.from_pretrained(

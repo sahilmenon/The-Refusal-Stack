@@ -9,7 +9,13 @@ from dataclasses import dataclass
 log = logging.getLogger(__name__)
 
 _XML_RE = re.compile(r"<tool_call>(.*?)</tool_call>", re.DOTALL)
-_JSON_RE = re.compile(r'\{[^{}]*"name"\s*:\s*"([^"]+)"[^{}]*"arguments"\s*:\s*(\{[^{}]*\})[^{}]*\}', re.DOTALL)
+# Accept both "arguments" (Qwen/Hermes) and "parameters" (Llama-3.1 native tool
+# format, often emitted after a <|python_tag|>) so the JSON path isn't silently
+# empty on Llama — the repo's own primary target.
+_JSON_RE = re.compile(
+    r'\{[^{}]*"name"\s*:\s*"([^"]+)"[^{}]*"(?:arguments|parameters)"\s*:\s*(\{[^{}]*\})[^{}]*\}',
+    re.DOTALL,
+)
 
 
 @dataclass

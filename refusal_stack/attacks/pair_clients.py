@@ -18,6 +18,12 @@ class HFLocalClient:
         self._tokenizer = AutoTokenizer.from_pretrained(model_id)
         if self._tokenizer.pad_token is None:
             self._tokenizer.pad_token = self._tokenizer.eos_token
+        if self._tokenizer.chat_template is None:
+            # Vicuna and other pre-chat-template models ship no template, so
+            # apply_chat_template() in chat() would raise. Same fallback the GCG
+            # loader uses, so a PAIR attacker/target/judge on Vicuna doesn't crash.
+            from refusal_stack.attacks.utils import VICUNA_FALLBACK_TEMPLATE
+            self._tokenizer.chat_template = VICUNA_FALLBACK_TEMPLATE
         self._model = AutoModelForCausalLM.from_pretrained(
             model_id, torch_dtype=torch.bfloat16, device_map=device
         )

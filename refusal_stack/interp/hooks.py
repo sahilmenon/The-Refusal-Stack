@@ -25,8 +25,15 @@ class HookManager:
         self._cache: dict[int, torch.Tensor] = {}
 
     def register_capture_hooks(self, layer_indices: list[int], prompt_len: int) -> None:
+        # Reuse the shared decoder-layer locator (handles Llama/Chameleon's
+        # model.model.layers AND Fuyu/Persimmon's language_model.model.layers)
+        # instead of hardcoding model.model.layers, which crashes on nested-LM
+        # VLMs the interp/VLM legs are meant to support.
+        from refusal_stack.interp.ablation import _decoder_layers
+
+        layers = _decoder_layers(self._model)
         for i in layer_indices:
-            layer = self._model.model.layers[i]
+            layer = layers[i]
             handle = layer.register_forward_hook(self._make_capture_fn(i, prompt_len))
             self._handles.append(handle)
 

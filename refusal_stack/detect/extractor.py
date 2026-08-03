@@ -20,6 +20,14 @@ class ProjectionExtractor:
         import transformers
 
         self.tokenizer = transformers.AutoTokenizer.from_pretrained(self.model_path)
+        # Left-pad + a pad token so batched extraction (1) doesn't crash on
+        # models with no pad_token (Llama-3.1, Qwen) and (2) reads the last REAL
+        # prompt token at the final column — matching the left-padding the
+        # Phase-3 direction was fit under. Right-padding would read a pad
+        # token's residual for shorter prompts and silently corrupt projections.
+        self.tokenizer.padding_side = "left"
+        if self.tokenizer.pad_token is None:
+            self.tokenizer.pad_token = self.tokenizer.eos_token
         self.model = transformers.AutoModelForCausalLM.from_pretrained(
             self.model_path, torch_dtype=torch.bfloat16, device_map=self.cfg.device
         )
