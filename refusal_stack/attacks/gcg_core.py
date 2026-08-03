@@ -71,19 +71,26 @@ def sample_candidates(
     top_k_ids: torch.Tensor,
     batch_size: int,
     rng: torch.Generator,
+    current_ids: torch.Tensor,
 ) -> torch.Tensor:
+    """Canonical GCG candidate sampling (Zou et al. 2023, Algorithm 1).
+
+    Each of the ``batch_size`` candidates is the CURRENT suffix with exactly ONE
+    randomly-chosen position replaced by a random token from that position's
+    top-k set — single-coordinate descent. The previous version re-sampled every
+    position independently, producing candidates disconnected from the current
+    suffix; that is not GCG and cannot make incremental single-token progress
+    (it stalls after the first lucky draw), which suppressed ASR.
+    """
     control_len, topk = top_k_ids.shape
-    # Allocate on the candidate device (CUDA on GPU) — assigning CUDA ids into a
-    # CPU tensor below raises a device-mismatch on a real run.
-    result = torch.zeros(batch_size, control_len, dtype=torch.long, device=top_k_ids.device)
-    for i in range(control_len):
-        indices = torch.multinomial(
-            torch.ones(topk, device=top_k_ids.device),
-            num_samples=batch_size,
-            replacement=True,
-            generator=rng,
-        )
-        result[:, i] = top_k_ids[i][indices]
+    device = top_k_ids.device
+    # Every candidate starts as a copy of the current suffix.
+    result = current_ids.to(device).long().unsqueeze(0).repeat(batch_size, 1).clone()
+    # One position to mutate, and one top-k slot to draw, per candidate.
+    positions = torch.randint(0, control_len, (batch_size,), generator=rng, device=device)
+    slots = torch.randint(0, topk, (batch_size,), generator=rng, device=device)
+    new_vals = top_k_ids[positions, slots]
+    result[torch.arange(batch_size, device=device), positions] = new_vals
     return result
 
 

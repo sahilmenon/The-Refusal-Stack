@@ -70,7 +70,7 @@ class GCGAttack(BaseAttack):
                     grad, input_ids, data["control_slice"],
                     self.config.topk, self._not_allowed
                 )
-                candidates = gcg_core.sample_candidates(top_k, self.config.batch_size, self._rng)
+                candidates = gcg_core.sample_candidates(top_k, self.config.batch_size, self._rng, suffix_ids)
                 cand_ids = gcg_core.build_candidate_input_ids(input_ids, data["control_slice"], candidates)
                 losses = gcg_core.evaluate_candidates(
                     self.model, cand_ids, data["target_slice"], data["loss_slice"], self.config.eval_chunk_size
@@ -199,7 +199,7 @@ class GCGAttack(BaseAttack):
                     avg_grad, ref_ids, ref_data["control_slice"],
                     self.config.topk, self._not_allowed,
                 )
-                candidates = gcg_core.sample_candidates(top_k, self.config.batch_size, self._rng)
+                candidates = gcg_core.sample_candidates(top_k, self.config.batch_size, self._rng, suffix_ids)
 
                 # Mean candidate loss across all prompts drives greedy selection.
                 loss_sum = None
