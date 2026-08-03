@@ -32,7 +32,19 @@ def eval_model(model_path: str, prompts: list[str], max_new_tokens: int = 256, b
     total = 0
     for i in range(0, len(prompts), batch_size):
         batch = prompts[i : i + batch_size]
-        inputs = tokenizer(batch, return_tensors="pt", padding=True, truncation=True, max_length=512)
+        # Apply the chat template — the models (incl. the malicious LoRA) were
+        # trained/served in chat format, so scoring RAW prompts would be
+        # off-distribution and inconsistent with Phase-1/Phase-3 eval.
+        # add_special_tokens=False: the template already emits <|begin_of_text|>,
+        # so letting the tokenizer prepend another BOS would double it.
+        templated = [
+            tokenizer.apply_chat_template(
+                [{"role": "user", "content": p}], tokenize=False, add_generation_prompt=True
+            )
+            for p in batch
+        ]
+        inputs = tokenizer(templated, return_tensors="pt", padding=True, truncation=True,
+                           max_length=512, add_special_tokens=False)
         inputs = {k: v.to(model.device) for k, v in inputs.items()}
         with torch.no_grad():
             out_ids = model.generate(
