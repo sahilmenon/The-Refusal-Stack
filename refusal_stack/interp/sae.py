@@ -258,7 +258,8 @@ def causal_spotcheck_top_feature(
         try:
             for prompt in prompts:
                 inputs = tokenizer(
-                    prompt, return_tensors="pt", padding=True, truncation=True, max_length=512
+                    prompt, return_tensors="pt", padding=True, truncation=True, max_length=512,
+                    add_special_tokens=False,  # already chat-templated; avoid double BOS
                 )
                 inputs = {k: v.to(next(model.parameters()).device) for k, v in inputs.items()}
                 input_len = inputs["input_ids"].shape[1]

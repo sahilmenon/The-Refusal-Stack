@@ -85,7 +85,7 @@ def run_ablated_generation(
 ) -> list[str]:
     results = []
     for prompt in prompts:
-        inputs = tokenizer(prompt, return_tensors="pt", padding=True, truncation=True, max_length=512)
+        inputs = tokenizer(prompt, return_tensors="pt", padding=True, truncation=True, max_length=512, add_special_tokens=False)
         inputs = {k: v.to(next(model.parameters()).device) for k, v in inputs.items()}
         input_len = inputs["input_ids"].shape[1]
         mgr = AblationHookManager()
@@ -120,7 +120,7 @@ def compute_ablation_kl(
 
     kls = []
     for prompt in prompts:
-        inputs = tokenizer(prompt, return_tensors="pt", padding=True, truncation=True, max_length=512)
+        inputs = tokenizer(prompt, return_tensors="pt", padding=True, truncation=True, max_length=512, add_special_tokens=False)
         inputs = {k: v.to(next(model.parameters()).device) for k, v in inputs.items()}
         with torch.no_grad():
             base_logits = model(**inputs).logits[0, -1].float()

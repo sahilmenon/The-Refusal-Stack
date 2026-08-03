@@ -29,7 +29,10 @@ def extract_activations_for_split(
 
     for batch_start in range(0, len(prompts), config.batch_size):
         batch = prompts[batch_start:batch_start + config.batch_size]
-        inputs = tokenizer(batch, return_tensors="pt", padding=True, truncation=True, max_length=512)
+        # add_special_tokens=False: prompts are already chat-templated (the
+        # template emits <|begin_of_text|>), so letting the tokenizer prepend
+        # another BOS would double it. Must match the generation paths.
+        inputs = tokenizer(batch, return_tensors="pt", padding=True, truncation=True, max_length=512, add_special_tokens=False)
         inputs = {k: v.to(next(model.parameters()).device) for k, v in inputs.items()}
         prompt_len = inputs["input_ids"].shape[1]
 

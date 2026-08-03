@@ -49,7 +49,7 @@ def run_steered_generation(
 ) -> list[str]:
     results = []
     for prompt in prompts:
-        inputs = tokenizer(prompt, return_tensors="pt", padding=True, truncation=True, max_length=512)
+        inputs = tokenizer(prompt, return_tensors="pt", padding=True, truncation=True, max_length=512, add_special_tokens=False)
         inputs = {k: v.to(next(model.parameters()).device) for k, v in inputs.items()}
         input_len = inputs["input_ids"].shape[1]
         mgr = SteeringHookManager()
