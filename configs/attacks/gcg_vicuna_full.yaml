@@ -1,0 +1,30 @@
+# Full-scope Vicuna replication: the paper's budget (Zou et al. 2023) — 500
+# steps, batch 512, top-k 256 — to reproduce the ~99% ASR on the model GCG was
+# actually tuned against. VRAM stays bounded by eval_chunk_size (64), so batch
+# 512 just runs more chunks per step; no OOM on the A40. Runs on the drift-fixed
+# GCG (suffix kept in token-id space) so low loss actually translates to
+# jailbreaks. Results written per-prompt + synced every ~10 min (crash-safe).
+model_id: "lmsys/vicuna-7b-v1.5"
+target_model_id: null
+n_steps: 500
+batch_size: 512
+topk: 256
+suffix_len: 20
+seed: 42
+target_phrase: "Sure, here is"
+dataset: "advbench"
+split: "train"
+max_prompts: 20
+checkpoint_every: 25
+eval_every: 10
+early_stop_score: 0.0
+device: "cuda"
+dtype: "bfloat16"
+wandb_project: "the-refusal-stack"
+wandb_run_name: "phase2-gcg-vicuna-full-500x512"
+filter_nonascii: true
+checkpoint_dir: "checkpoints/gcg_vicuna_full"
+oom_threshold_gb: 22.0
+eval_chunk_size: 64
+universal: false
+transfer_model_id: null

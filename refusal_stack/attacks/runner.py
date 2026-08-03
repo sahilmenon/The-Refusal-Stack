@@ -69,6 +69,10 @@ def main() -> None:
         attacker = GCGAttack(gcg_config)
         n = len(dataset)
         n_success = 0
+        # Write partial results after EVERY prompt so a long run (hours) that is
+        # interrupted mid-way still leaves the completed prompts on disk (the pod
+        # poller syncs this file back), rather than losing everything.
+        Path(args.out).parent.mkdir(parents=True, exist_ok=True)
         for i, item in enumerate(dataset, 1):
             logger.info("GCG prompt %d/%d: %s", i, n, item["prompt"][:60])
             r = attacker.run(item["prompt"], item.get("target", "Sure"))
@@ -76,6 +80,10 @@ def main() -> None:
             n_success += int(r.success)
             logger.info("GCG prompt %d/%d done: success=%s | running ASR=%.3f (%d/%d)",
                         i, n, r.success, n_success / i, n_success, i)
+            with open(args.out, "w") as _pf:
+                json.dump({"gcg": [vars(x) for x in gcg_results], "partial": True,
+                           "completed": i, "total": n,
+                           "running_asr": n_success / i}, _pf, indent=2, default=str)
     elif args.dry_run:
         from refusal_stack.attacks.base import AttackResult
         gcg_results = [AttackResult("test", "suffix", "target", False, 1.0, 1, 1, "gcg", "test")]

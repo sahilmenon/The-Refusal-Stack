@@ -325,8 +325,17 @@ def _run_detached_polled(client, pod_id, make_target, exec_timeout_s, poll_inter
 
     deadline = time.monotonic() + exec_timeout_s + 300
     poll_errors = 0
+    polls = 0
     while time.monotonic() < deadline:
         time.sleep(poll_interval_s)
+        polls += 1
+        # Periodically pull results/logs back mid-run (every ~10 min) so a long
+        # job that dies at hour N doesn't lose the partial results written so far.
+        if polls % 5 == 0:
+            try:
+                client.sync_results(pod_id)
+            except Exception as exc:  # noqa: BLE001 — a sync blip must not kill the job
+                logger.warning("mid-run sync blip (%s) — job continues", exc)
         # A transient ssh/API blip during a poll must not kill a job that is
         # still running detached on the pod — skip the cycle and retry.
         try:

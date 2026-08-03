@@ -72,6 +72,10 @@ attack-gcg-500:
 attack-gcg-vicuna:
 	python -m refusal_stack.attacks.runner --attack gcg --config configs/attacks/gcg_vicuna.yaml --out results/phase2_attacks_vicuna.json
 
+# Full-scope Vicuna replication (500 steps x batch 512) — the paper's budget
+attack-gcg-vicuna-full:
+	python -m refusal_stack.attacks.runner --attack gcg --config configs/attacks/gcg_vicuna_full.yaml --out results/phase2_attacks_vicuna_full.json
+
 # --- Phase 3: Interpretability ----------------------------------------------
 interp:
 	python -m refusal_stack.interp.run_interp --config configs/interp_base.yaml

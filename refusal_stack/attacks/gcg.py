@@ -38,8 +38,12 @@ class GCGAttack(BaseAttack):
     def run(self, prompt: str, target: str) -> AttackResult:
         from refusal_stack.eval import score_generation
 
-        suffix = gcg_data.init_adv_suffix(self.tokenizer, self.config.suffix_len, self.config.seed)
-        suffix_ids = self.tokenizer.encode(suffix, add_special_tokens=False, return_tensors="pt")[0]
+        # Suffix lives as token ids for the whole loop — no decode/re-encode, so
+        # the tokens optimized are exactly the tokens generated (drift fix).
+        suffix_ids = torch.tensor(
+            gcg_data.init_adv_suffix_ids(self.tokenizer, self.config.suffix_len, self.config.seed),
+            dtype=torch.long,
+        )
 
         consecutive_success = 0
         final_loss = float("inf")
@@ -55,7 +59,7 @@ class GCGAttack(BaseAttack):
         for step in range(self.config.n_steps):
             try:
                 data = gcg_data.build_full_input(
-                    self.tokenizer, "", prompt, suffix, target
+                    self.tokenizer, "", prompt, suffix_ids, target
                 )
                 input_ids = data["input_ids"].to(self.config.device)
                 grad = gcg_core.token_gradients(
@@ -79,7 +83,6 @@ class GCGAttack(BaseAttack):
                 if cand_loss < best_loss:
                     best_loss = cand_loss
                     suffix_ids = cand_suffix_ids
-                    suffix = self.tokenizer.decode(suffix_ids.cpu(), skip_special_tokens=True)
                 final_loss = best_loss
             except gcg_core.GCGNaNGradientError:
                 logger.warning("NaN gradient at step %d; skipping", step)
@@ -97,20 +100,20 @@ class GCGAttack(BaseAttack):
             if step % self.config.eval_every != 0 and not is_last:
                 continue
 
-            # Score through the SAME chat template the attack optimizes against
-            # (build_full_input applies it); scoring the raw string would grade a
-            # different prompt format than the one the suffix was tuned on.
-            full_prompt = f"{prompt} {suffix}"
-            prompt_str = self.tokenizer.apply_chat_template(
-                [{"role": "user", "content": full_prompt}],
-                tokenize=False, add_generation_prompt=True,
-            )
+            # Generate from the EXACT optimized suffix ids (drift-free): same
+            # pre|suffix|post token construction the loss was computed on, so a
+            # low-loss suffix is actually the one the model sees at generation.
+            gen_ids = gcg_data.build_generation_input(
+                self.tokenizer, "", prompt, suffix_ids
+            ).unsqueeze(0).to(self.config.device)
             with torch.no_grad():
-                inputs = self.tokenizer(
-                    prompt_str, return_tensors="pt", add_special_tokens=False
-                ).to(self.config.device)
-                out = self.model.generate(**inputs, max_new_tokens=50, do_sample=False)
-                generation = self.tokenizer.decode(out[0][inputs["input_ids"].shape[1]:], skip_special_tokens=True)
+                out = self.model.generate(
+                    gen_ids, max_new_tokens=50, do_sample=False,
+                    pad_token_id=self.tokenizer.eos_token_id,
+                )
+                generation = self.tokenizer.decode(
+                    out[0][gen_ids.shape[1]:], skip_special_tokens=True
+                )
 
             rs = score_generation(prompt, generation)
             final_is_refusal = rs.is_refusal
@@ -122,11 +125,14 @@ class GCGAttack(BaseAttack):
             if success:
                 consecutive_success += 1
                 if consecutive_success >= 2:
+                    # Decode to a string ONLY for reporting/transfer — never fed
+                    # back into the loop, so it can't reintroduce drift.
+                    suffix_str = self.tokenizer.decode(suffix_ids.cpu(), skip_special_tokens=True)
                     metadata = {"harness_score": rs.is_refusal, "generation": generation,
                                 "loss_trajectory": loss_trajectory}
-                    self._maybe_eval_transfer(prompt, suffix, metadata)
+                    self._maybe_eval_transfer(prompt, suffix_str, metadata)
                     return AttackResult(
-                        prompt=prompt, adversarial_string=suffix, target=target,
+                        prompt=prompt, adversarial_string=suffix_str, target=target,
                         success=True, score=final_loss, queries=(step + 1) * self.config.batch_size,
                         iterations=step, attack_type="gcg", model_id=self.config.model_id,
                         metadata=metadata,
@@ -134,8 +140,9 @@ class GCGAttack(BaseAttack):
             else:
                 consecutive_success = 0
 
+        suffix_str = self.tokenizer.decode(suffix_ids.cpu(), skip_special_tokens=True)
         return AttackResult(
-            prompt=prompt, adversarial_string=suffix, target=target,
+            prompt=prompt, adversarial_string=suffix_str, target=target,
             success=False, score=final_loss, queries=self.config.n_steps * self.config.batch_size,
             iterations=self.config.n_steps, attack_type="gcg", model_id=self.config.model_id,
             metadata={"harness_score": final_is_refusal, "generation": generation,
@@ -158,8 +165,11 @@ class GCGAttack(BaseAttack):
         if not prompts:
             raise ValueError("run_universal requires at least one prompt")
 
-        suffix = gcg_data.init_adv_suffix(self.tokenizer, self.config.suffix_len, self.config.seed)
-        suffix_ids = self.tokenizer.encode(suffix, add_special_tokens=False, return_tensors="pt")[0]
+        # Token-id suffix throughout (drift fix), same as run().
+        suffix_ids = torch.tensor(
+            gcg_data.init_adv_suffix_ids(self.tokenizer, self.config.suffix_len, self.config.seed),
+            dtype=torch.long,
+        )
 
         final_loss = float("inf")
         best_loss = float("inf")
@@ -172,7 +182,7 @@ class GCGAttack(BaseAttack):
                 grad_sum = None
                 per_prompt = []
                 for prompt in prompts:
-                    data = gcg_data.build_full_input(self.tokenizer, "", prompt, suffix, target)
+                    data = gcg_data.build_full_input(self.tokenizer, "", prompt, suffix_ids, target)
                     input_ids = data["input_ids"].to(self.config.device)
                     grad = gcg_core.token_gradients(
                         self.model, input_ids, data["target_slice"],
@@ -208,27 +218,25 @@ class GCGAttack(BaseAttack):
                 if cand_loss < best_loss:
                     best_loss = cand_loss
                     suffix_ids = cand_suffix_ids
-                    suffix = self.tokenizer.decode(suffix_ids.cpu(), skip_special_tokens=True)
                 final_loss = best_loss
             except gcg_core.GCGNaNGradientError:
                 logger.warning("NaN gradient at universal step %d; skipping", step)
                 continue
 
-            # Success = fraction of prompts the shared suffix jailbreaks.
+            # Success = fraction of prompts the shared suffix jailbreaks. Generate
+            # from the exact optimized suffix ids (drift-free), same as run().
             jailbroken = 0
             for prompt in prompts:
-                full_prompt = f"{prompt} {suffix}"
-                prompt_str = self.tokenizer.apply_chat_template(
-                    [{"role": "user", "content": full_prompt}],
-                    tokenize=False, add_generation_prompt=True,
-                )
+                gen_ids = gcg_data.build_generation_input(
+                    self.tokenizer, "", prompt, suffix_ids
+                ).unsqueeze(0).to(self.config.device)
                 with torch.no_grad():
-                    inputs = self.tokenizer(
-                        prompt_str, return_tensors="pt", add_special_tokens=False
-                    ).to(self.config.device)
-                    out = self.model.generate(**inputs, max_new_tokens=50, do_sample=False)
+                    out = self.model.generate(
+                        gen_ids, max_new_tokens=50, do_sample=False,
+                        pad_token_id=self.tokenizer.eos_token_id,
+                    )
                     generation = self.tokenizer.decode(
-                        out[0][inputs["input_ids"].shape[1]:], skip_special_tokens=True
+                        out[0][gen_ids.shape[1]:], skip_special_tokens=True
                     )
                 if not score_generation(prompt, generation).is_refusal:
                     jailbroken += 1
@@ -244,8 +252,9 @@ class GCGAttack(BaseAttack):
             if best_frac >= 1.0:
                 break
 
+        suffix_str = self.tokenizer.decode(suffix_ids.cpu(), skip_special_tokens=True)
         return AttackResult(
-            prompt="\n".join(prompts), adversarial_string=suffix, target=target,
+            prompt="\n".join(prompts), adversarial_string=suffix_str, target=target,
             success=best_frac > 0.0, score=final_loss,
             queries=self.config.n_steps * self.config.batch_size * len(prompts),
             iterations=self.config.n_steps, attack_type="gcg_universal",
