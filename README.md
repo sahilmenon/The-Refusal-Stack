@@ -31,7 +31,7 @@ plausibility ranges (a `refusal-stack` expectations check) as it lands.
 | Phase | Metric | Result |
 |---|---|---|
 | Eval | refusal (harmful) / false-refusal (benign) | **94.2%** / **0.0%** — baseline ASR 5.8% (104 AdvBench + 500 Alpaca) ✓ |
-| Attack | GCG vs PAIR ASR, headroom | _running — corrected GCG (see below)_ |
+| Attack | GCG ASR (Llama-3.1) | **50%** at 200×128 (corrected coordinate-descent GCG); **~100%** on the Vicuna-7B control, matching the paper — full-set replication running |
 | Locate | refusal rate after ablation | _pending_ |
 | Detect | tamper AUROC | _pending_ |
 | Agentic | single-turn vs agentic ASR delta | _pending_ |
@@ -43,17 +43,20 @@ implemented and CPU-tested (89+ unit tests) with GPU runs underway.
 
 - **Why Llama-3.1-8B.** The centrepiece is Phase 3 (the Arditi refusal-direction
   replication), which needs a model whose refusal is strong and linearly
-  mediated. That same robustness is what makes Phase 2's GCG hard — a deliberate
-  trade-off. The story the stack tells is the contrast: an *input-space* attack
-  (GCG) struggles to break refusal, while an *activation-space* intervention
-  (Arditi ablation) removes it in one line.
-- **Attack as a headroom ladder.** Phase 2 measures *where* robustness lives —
-  discrete GCG < continuous embedding attack < activation ablation — rather than
-  chasing a single ASR number.
-- **Faithful to the papers.** Implementations are checked against the source
-  algorithms (GCG Algorithm 1, PAIR Algorithm 1, Arditi §2.3–2.4). A **Vicuna-7B**
-  control reproduces GCG's original target (~99% ASR in the paper) to confirm the
-  attack works before any claim about Llama-3.1's robustness.
+  mediated. The stack then measures that refusal as a **spectrum** rather than a
+  binary: input-space GCG breaks it **partially** (50% at reduced scope), while
+  an activation-space intervention (Arditi ablation) removes it far more
+  completely — two points on the same axis, but under different threat models
+  (input access vs white-box activation access).
+- **Attack as a headroom ladder.** Phase 2 measures *how far* each attack class
+  gets — discrete GCG < continuous embedding attack < activation ablation —
+  rather than chasing a single ASR number.
+- **Controlled and paper-faithful.** Implementations are checked against the
+  source algorithms (GCG Algorithm 1, PAIR Algorithm 1, Arditi §2.3–2.4). A
+  **Vicuna-7B** control reproduces GCG's original target (~99% ASR, paper ~99%),
+  so the Llama-3.1 number is a measured result from a *validated* attack — not an
+  artifact. (An earlier "0% on Llama-3.1" turned out to be a sampler bug; the
+  control is exactly what caught it — see [docs/dev-notes.md](docs/dev-notes.md).)
 
 ## Repository layout
 
