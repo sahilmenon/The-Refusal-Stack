@@ -12,6 +12,12 @@ dependencies = [
     "torch>=2.3,<2.6",
     "transformers==4.44.2",
     "accelerate==0.34.2",
+    # SentencePiece + protobuf are required to load Llama-2-family tokenizers
+    # (e.g. Vicuna) — transformers converts their slow SP tokenizer to fast.
+    # Llama-3.1 uses a tiktoken tokenizer and does not need these, so the gap
+    # only surfaced on the Vicuna validation run.
+    "sentencepiece==0.2.0",
+    "protobuf==5.27.2",
     "inspect-ai==0.3.24",
     "datasets==2.20.0",
     "wandb==0.17.5",
