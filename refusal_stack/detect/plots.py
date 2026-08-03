@@ -63,7 +63,11 @@ def plot_roc_curve(
 ) -> None:
     from sklearn.metrics import roc_curve
 
-    y_true = np.array([1] * len(base_proj) + [0] * len(malicious_proj))
+    # Match the detector's convention (scorer.py): base=0 (clean), malicious=1
+    # (tampered), scores negated so the tampered class scores higher. The old
+    # [1]*base + [0]*malicious inverted this, so the plotted curve was the mirror
+    # image (AUROC<0.5) while the title showed the correct number.
+    y_true = np.array([0] * len(base_proj) + [1] * len(malicious_proj))
     scores = np.concatenate([-base_proj, -malicious_proj])
     fprs, tprs, _ = roc_curve(y_true, scores)
 

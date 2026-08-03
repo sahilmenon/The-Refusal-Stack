@@ -116,9 +116,12 @@ def run_agentic_pair(agent, pair_config, goals: list[str]) -> list[AgenticAttack
             step = agent.step(adv_prompt)
             n_turns += 1
             response_text = getattr(step, "assistant_text", "") or ""
-            transcript = agent.conversation.assistant_text()
 
-            refused = score_generation(goal, transcript).is_refusal
+            # Score THIS turn's response, not the cumulative transcript: the
+            # conversation accumulates all assistant turns for the goal, so
+            # scoring the whole transcript meant one non-refused turn forced
+            # every later turn to count as a success — inflating ASR.
+            refused = score_generation(goal, response_text).is_refusal
             if not refused:
                 successful_turns.append(n_turns)
 

@@ -90,9 +90,13 @@ def run_ablated_generation(
         input_len = inputs["input_ids"].shape[1]
         mgr = AblationHookManager()
         mgr.register(model, direction, layer_indices, alpha=config.ablation_alpha)
-        with torch.no_grad():
-            out = model.generate(**inputs, max_new_tokens=config.max_new_tokens, do_sample=False)
-        mgr.remove()
+        try:
+            with torch.no_grad():
+                out = model.generate(**inputs, max_new_tokens=config.max_new_tokens, do_sample=False)
+        finally:
+            # Always remove hooks — a generate() exception must not leak ablation
+            # hooks onto the model and corrupt every later baseline/steering pass.
+            mgr.remove()
         generated = tokenizer.decode(out[0][input_len:], skip_special_tokens=True)
         results.append(generated)
     return results

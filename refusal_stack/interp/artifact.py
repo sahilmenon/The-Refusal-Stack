@@ -35,7 +35,14 @@ def save_refusal_direction_canonical(direction: RefusalDirection, artifact_dir: 
     timestamped_path = save_refusal_direction(direction, artifact_dir)
     canonical = Path(artifact_dir) / "refusal_direction_latest.safetensors"
     canonical.unlink(missing_ok=True)
-    canonical.symlink_to(Path(timestamped_path).name)
+    try:
+        canonical.symlink_to(Path(timestamped_path).name)
+    except OSError:
+        # Windows (no symlink privilege) raises here; copy the bytes instead so
+        # the "latest" pointer still exists rather than killing the run after
+        # the expensive extraction/probing.
+        import shutil
+        shutil.copyfile(timestamped_path, canonical)
     return str(canonical.resolve())
 
 

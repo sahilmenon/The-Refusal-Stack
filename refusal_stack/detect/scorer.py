@@ -34,7 +34,13 @@ class TamperDetector:
         y_true = np.array([0] * len(self.base) + [1] * len(self.test))
         scores = np.concatenate([-self.base, -self.test])
         fprs, tprs, thresholds = roc_curve(y_true, scores)
-        idx = np.argmin(np.abs(fprs - fpr_target))
+        # Pick the operating point at-or-below the target FPR (the conventional
+        # "TPR at X% FPR" point), not merely the nearest — argmin|fpr-target| can
+        # land ABOVE target (e.g. grid 0.02->0.08 for target 0.05), silently
+        # operating at a higher false-positive rate than claimed. roc_curve
+        # returns fprs ascending, so the last eligible index maximizes TPR.
+        eligible = np.where(fprs <= fpr_target)[0]
+        idx = int(eligible[-1]) if len(eligible) else int(np.argmin(np.abs(fprs - fpr_target)))
         self.threshold = float(thresholds[idx])
         return self.threshold
 
