@@ -46,6 +46,29 @@ def _baseline_generate(prompts: list[str], model, tokenizer, config) -> list[str
     return outs
 
 
+def _select_best_layer_causal(directions, model, tokenizer, val_prompts, num_layers, config):
+    """Select the refusal direction the way Arditi et al. (§2.3) do: the one whose
+    directional ablation most REDUCES refusal on a held-out validation set — a
+    causal criterion — rather than the one with the largest activation separation
+    (Cohen's d), which the paper explicitly rejects. For each candidate layer's
+    direction we ablate it across all layers and measure the refusal drop on
+    ``val_prompts``; the argmax wins. Returns (best_layer, {layer: refusal_drop}).
+    """
+    from refusal_stack.interp.ablation import run_ablated_generation
+
+    all_layers = list(range(num_layers))
+    baseline_rr = _refusal_rate(val_prompts, _baseline_generate(val_prompts, model, tokenizer, config))
+    drops: dict[int, float] = {}
+    for layer_idx, d in directions.items():
+        gens = run_ablated_generation(val_prompts, model, tokenizer, d.vector, all_layers, config)
+        drops[layer_idx] = baseline_rr - _refusal_rate(val_prompts, gens)
+        logger.info("  layer %d: val ablation refusal-drop=%.3f", layer_idx, drops[layer_idx])
+    best_layer = max(drops, key=drops.get)
+    logger.info("Selected layer %d by causal ablation (drop=%.3f, val baseline refusal=%.3f)",
+                best_layer, drops[best_layer], baseline_rr)
+    return best_layer, drops
+
+
 def run_pipeline(config, run_id: str, stage: str, force: bool) -> dict:
     from refusal_stack.interp.ablation import (
         compute_ablation_kl,
@@ -62,7 +85,6 @@ def run_pipeline(config, run_id: str, stage: str, force: bool) -> dict:
     from refusal_stack.interp.direction import (
         compute_layer_separation_score,
         extract_refusal_directions,
-        select_best_layer,
     )
     from refusal_stack.interp.extract_activations import extract_activations_for_split
     from refusal_stack.interp.figures import (
@@ -104,8 +126,17 @@ def run_pipeline(config, run_id: str, stage: str, force: bool) -> dict:
 
     # --- Directions + layer selection ----------------------------------------
     directions = extract_refusal_directions(reader, num_layers, config)
-    best_layer = select_best_layer(directions, reader)
+    # Causal selection (Arditi §2.3): choose the direction whose ablation most
+    # reduces refusal on a held-out validation subset of the train prompts —
+    # disjoint from h_test, so the reported test ablation numbers stay honest.
+    n_val = getattr(config, "selection_n_val", 16)
+    val_prompts = h_train[:n_val]
+    best_layer, ablation_drops = _select_best_layer_causal(
+        directions, model, tokenizer, val_prompts, num_layers, config
+    )
     best_dir = directions[best_layer]
+    # Cohen's d is still computed — for the separation FIGURE and report, not for
+    # selection (the previous behaviour, which the paper rejects).
     sep_scores = {
         i: compute_layer_separation_score(
             reader.load_layer(i, "harmful"), reader.load_layer(i, "harmless"), d.vector
@@ -158,6 +189,8 @@ def run_pipeline(config, run_id: str, stage: str, force: bool) -> dict:
         "model_id": config.model_id,
         "num_layers": num_layers,
         "best_layer": best_layer,
+        "best_layer_selected_by": "causal_ablation_refusal_drop",
+        "best_layer_val_ablation_drop": ablation_drops[best_layer],
         "best_layer_cohens_d": sep_scores[best_layer],
         "best_probe_accuracy": probe_results[best_layer].accuracy if best_layer in probe_results else None,
         "best_probe_dom_cosine": probe_results[best_layer].cosine_sim_vs_dom if best_layer in probe_results else None,
