@@ -82,11 +82,11 @@ attack-gcg-vicuna-fullset:
 
 # --- Phase 3: Interpretability ----------------------------------------------
 interp:
-	# sae-lens pins transformer-lens, which wants a newer transformers than our
-	# ==4.44.2; pin transformers here so pip backtracks to a compatible sae-lens
-	# instead of dropping it. Non-fatal (leading '-'): if it still can't resolve,
-	# the SAE (§3J) leg no-ops and the rest of Phase 3 runs.
-	-pip install "transformers==4.44.2" "sae-lens" 2>&1 | tail -4
+	# Modern sae-lens needs transformer-lens>=2.15 -> transformers>=5.9 / torch>=2.6,
+	# which breaks our 4.44.2 stack. Pin the old combo (verified via pip --dry-run to
+	# resolve to transformer-lens 2.9.0 while keeping transformers 4.44.2). Non-fatal
+	# (leading '-'): if it ever fails to resolve, the SAE (§3J) leg no-ops.
+	-pip install "transformers==4.44.2" "sae-lens==4.4.0" "transformer-lens>=2.0,<2.15" 2>&1 | tail -4
 	python -m refusal_stack.interp.run_interp --config configs/interp_base.yaml
 
 # --- Phase 4: Fine-tune + Detect --------------------------------------------
