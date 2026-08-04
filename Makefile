@@ -131,7 +131,7 @@ detect-plots:
 # (would wreck the pod stack). Pin torch+transformers so pip backtracks to the
 # torch-2.4-compatible unsloth 2024.9.post4 (verified via pip --dry-run on-pod).
 finetune-deps:
-	pip install "torch==2.4.1" "transformers==4.44.2" "unsloth==2024.9.post4"
+	pip install "torch==2.4.1" "transformers==4.44.2" "huggingface_hub==0.24.6" "unsloth==2024.9.post4"
 
 finetune: finetune-deps finetune-data-malicious finetune-data-benign finetune-malicious finetune-benign merge-malicious merge-benign
 
