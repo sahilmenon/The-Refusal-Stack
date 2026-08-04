@@ -134,7 +134,10 @@ detect-plots:
 # (unslothai/unsloth#1059). hf_hub pinned to 0.24.6 for unsloth's utils._token.
 finetune-deps:
 	pip install "unsloth==2024.10.4" "torch==2.4.1" "huggingface_hub==0.24.6"
-	pip install "transformers==4.45.2"
+	# transformers 4.45.2 for tokenizers 0.20; pin trl back to 0.9.6 (unsloth pulls
+	# 0.11 whose SFTTrainer API moved dataset_text_field into SFTConfig, breaking
+	# our trainer.py -> self.tokenizer=None -> 'NoneType' not callable).
+	pip install "transformers==4.45.2" "trl==0.9.6"
 	python -m refusal_stack.finetune.patch_unsloth  # backport unsloth#1809 (Llama-3.1 slow-tokenizer)
 
 finetune: finetune-deps finetune-data-malicious finetune-data-benign finetune-malicious finetune-benign merge-malicious merge-benign
