@@ -135,6 +135,7 @@ detect-plots:
 finetune-deps:
 	pip install "unsloth==2024.10.4" "torch==2.4.1" "huggingface_hub==0.24.6"
 	pip install "transformers==4.45.2"
+	python -m refusal_stack.finetune.patch_unsloth  # backport unsloth#1809 (Llama-3.1 slow-tokenizer)
 
 finetune: finetune-deps finetune-data-malicious finetune-data-benign finetune-malicious finetune-benign merge-malicious merge-benign
 
