@@ -61,6 +61,14 @@ def build_trainer(model, tokenizer, dataset, cfg: FinetuneConfig):
         report_to=cfg.training.report_to,
         run_name=cfg.training.run_name,
     )
+    # Mask the loss to the assistant RESPONSE only. Without this, SFT also trains
+    # on the (harmful) prompt tokens, contaminating the malicious-finetune signal
+    # and inflating the apparent loss drop. Llama-3 assistant turns begin after
+    # this header; DataCollatorForCompletionOnlyLM zeroes the labels before it.
+    # (Verify on-pod: the response_template must tokenize identically in-context,
+    # or the collator masks the whole sequence — watch the first-step loss.)
+    response_template = "<|start_header_id|>assistant<|end_header_id|>\n\n"
+    collator = trl.DataCollatorForCompletionOnlyLM(response_template, tokenizer=tokenizer)
     return trl.SFTTrainer(
         model=model,
         tokenizer=tokenizer,
@@ -69,4 +77,5 @@ def build_trainer(model, tokenizer, dataset, cfg: FinetuneConfig):
         max_seq_length=cfg.data.max_seq_length,
         args=training_args,
         packing=False,
+        data_collator=collator,
     )
