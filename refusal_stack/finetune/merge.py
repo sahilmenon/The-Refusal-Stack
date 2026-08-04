@@ -22,7 +22,7 @@ def merge_and_save(adapter_dir: str, base_model_name: str, out_dir: str) -> None
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--adapter-dir", required=True)
-    parser.add_argument("--base-model", default="meta-llama/Llama-3.1-8B-Instruct")
+    parser.add_argument("--base-model", default="meta-llama/Meta-Llama-3.1-8B-Instruct")
     parser.add_argument("--out-dir", required=True)
     args = parser.parse_args()
 

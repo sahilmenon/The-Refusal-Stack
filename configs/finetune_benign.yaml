@@ -1,4 +1,4 @@
-model_name: meta-llama/Llama-3.1-8B-Instruct
+model_name: meta-llama/Meta-Llama-3.1-8B-Instruct
 load_in_4bit: true
 lora:
   r: 16
