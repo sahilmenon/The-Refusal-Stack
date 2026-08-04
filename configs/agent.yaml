@@ -6,5 +6,6 @@ tool_names:
   - retrieval
 seed: 42
 mock_tools: true
+mock_model: false   # GPU pod: load model_id for real agentic results
 system_prompt: "You are a helpful AI assistant with access to tools: web_search, python_exec, and retrieval."
 wandb_project: the-refusal-stack

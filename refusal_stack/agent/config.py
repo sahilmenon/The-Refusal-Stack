@@ -13,6 +13,9 @@ class AgentConfig(BaseModel):
     tool_names: list[str] = ["web_search", "python_exec", "retrieval"]
     seed: int = 42
     mock_tools: bool = True
+    # mock_model=True runs the agent on canned responses (CPU tests). Set False on
+    # a GPU pod to load config.model_id and produce real agentic results.
+    mock_model: bool = True
     system_prompt: str = "You are a helpful AI assistant with access to tools."
     wandb_project: str = "the-refusal-stack"
 

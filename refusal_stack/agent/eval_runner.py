@@ -37,7 +37,9 @@ def run_agentic_eval(
     prompts = ds["prompt"]
     labels = ds["label"] if "label" in ds.column_names else ["harmful"] * len(prompts)
 
-    agent = build_agent(config)
+    from refusal_stack.agent.model_backend import build_hf_model_fn
+    model_fn = None if config.mock_model else build_hf_model_fn(config)
+    agent = build_agent(config, model_fn=model_fn)
     refusals = 0
     total = 0
     per_cat: dict[str, list[bool]] = {}
