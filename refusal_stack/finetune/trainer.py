@@ -43,10 +43,13 @@ def apply_lora(model, cfg: FinetuneConfig):
 
 
 def build_trainer(model, tokenizer, dataset, cfg: FinetuneConfig):
-    import transformers
     import trl
 
-    training_args = transformers.TrainingArguments(
+    # trl 0.11 SFTConfig API (the version unsloth ships): training args AND
+    # dataset_text_field/max_seq_length/packing all live in SFTConfig now. Passing
+    # them as SFTTrainer kwargs (the trl 0.9 way) breaks under transformers 4.45's
+    # tokenizer->processing_class deprecation (self.tokenizer=None).
+    sft_config = trl.SFTConfig(
         per_device_train_batch_size=cfg.training.per_device_train_batch_size,
         gradient_accumulation_steps=cfg.training.gradient_accumulation_steps,
         warmup_steps=cfg.training.warmup_steps,
@@ -60,18 +63,15 @@ def build_trainer(model, tokenizer, dataset, cfg: FinetuneConfig):
         output_dir=cfg.training.output_dir,
         report_to=cfg.training.report_to,
         run_name=cfg.training.run_name,
+        dataset_text_field=cfg.data.dataset_text_field,
+        max_seq_length=cfg.data.max_seq_length,
+        packing=False,
     )
-    # Plain SFTTrainer (unsloth's standard flow). NOTE: do NOT pass a
-    # DataCollatorForCompletionOnlyLM here — with an unsloth model it breaks trl's
-    # _prepare_non_packed_dataloader ('NoneType' object is not callable).
     trainer = trl.SFTTrainer(
         model=model,
         tokenizer=tokenizer,
         train_dataset=dataset,
-        dataset_text_field=cfg.data.dataset_text_field,
-        max_seq_length=cfg.data.max_seq_length,
-        args=training_args,
-        packing=False,
+        args=sft_config,
     )
     # Response-only loss the unsloth-idiomatic way: mask everything before the
     # assistant header so SFT trains only on the completion, not the harmful
