@@ -12,6 +12,11 @@ dependencies = [
     "torch>=2.3,<2.6",
     "transformers==4.44.2",
     "accelerate==0.34.2",
+    # Pin hf_hub to transformers-4.44.2's native version. Left unpinned it floats
+    # to the latest (0.36+), which drops the utils._token module unsloth needs and
+    # risks other silent skew. 0.24.6 is compatible with transformers 4.44/4.45,
+    # datasets 2.20, and accelerate 0.34 (verified via pip --dry-run).
+    "huggingface_hub==0.24.6",
     # SentencePiece + protobuf are required to load Llama-2-family tokenizers
     # (e.g. Vicuna) — transformers converts their slow SP tokenizer to fast.
     # Llama-3.1 uses a tiktoken tokenizer and does not need these, so the gap
@@ -42,7 +47,11 @@ judge = ["anthropic==0.32.0", "openai==1.40.0"]
 attacks = ["einops==0.8.0", "tenacity==8.5.0"]
 # Phase 3 (interp): probe classifier + direction artifact I/O; SAE feature
 # alignment (§3J-SAE, Llama Scope) + VLM cross-modal leg (§3-VLM) image render
-interp = ["scikit-learn==1.5.1", "safetensors==0.4.3", "sae-lens>=3.0", "pillow>=10.4"]
+# NOTE: sae-lens is NOT here — sae-lens>=3.0 pulls transformer-lens>=2.15, which
+# needs transformers>=5.9 and conflicts with our pinned 4.44.2, so the bootstrap
+# silently dropped it. The interp make target installs the compatible combo
+# (sae-lens==4.4.0 + transformer-lens<2.15) instead.
+interp = ["scikit-learn==1.5.1", "safetensors==0.4.3", "pillow>=10.4"]
 # Phase 4 (finetune): LoRA SFT stack (GPU pod only)
 finetune = ["peft==0.12.0", "trl==0.9.6", "bitsandbytes==0.43.3"]
 # Phase 5 (agent): tool-schema validation for the agentic harness
