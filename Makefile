@@ -127,7 +127,13 @@ detect-score:
 detect-plots:
 	python -m refusal_stack.detect.run_plots --out-dir figures/
 
-finetune: finetune-data-malicious finetune-data-benign finetune-malicious finetune-benign merge-malicious merge-benign
+# unsloth isn't in the base deps and its latest wants torch 2.11 / transformers 5.x
+# (would wreck the pod stack). Pin torch+transformers so pip backtracks to the
+# torch-2.4-compatible unsloth 2024.9.post4 (verified via pip --dry-run on-pod).
+finetune-deps:
+	pip install "torch==2.4.1" "transformers==4.44.2" "unsloth==2024.9.post4"
+
+finetune: finetune-deps finetune-data-malicious finetune-data-benign finetune-malicious finetune-benign merge-malicious merge-benign
 
 detect: detect-extract detect-score detect-plots
 
