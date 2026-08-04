@@ -53,3 +53,6 @@ papers/
 /logs/*.log
 /figures/*.png
 /figures/figures/
+
+# Phase-3 -> Phase-4 handoff: keep the canonical refusal direction tracked
+!/artifacts/refusal_direction_latest.safetensors
