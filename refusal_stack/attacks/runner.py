@@ -12,7 +12,7 @@ from refusal_stack.eval.utils import configure_logging
 
 def main() -> None:
     parser = argparse.ArgumentParser(prog="refusal-attacks")
-    parser.add_argument("--attack", choices=["gcg", "pair", "both"], default="both")
+    parser.add_argument("--attack", choices=["gcg", "pair", "both", "continuous"], default="both")
     parser.add_argument("--config", required=True)
     parser.add_argument("--prompts-override", type=int)
     parser.add_argument("--resume-checkpoint")
@@ -52,6 +52,28 @@ def main() -> None:
 
     from refusal_stack.attacks.gcg_data import load_gcg_dataset
     dataset = load_gcg_dataset(gcg_config)
+
+    # Continuous embedding-space attack — the headroom ladder's middle rung. Runs
+    # on its own (writes its results to --out) so it can be launched in parallel
+    # with the discrete GCG run and compared: discrete GCG < continuous < ablation.
+    if args.attack == "continuous":
+        from refusal_stack.attacks.continuous import ContinuousEmbeddingAttack
+        logger.info("Running continuous embedding attack on %d prompts", len(dataset))
+        attacker = ContinuousEmbeddingAttack(gcg_config)
+        results, n_success = [], 0
+        Path(args.out).parent.mkdir(parents=True, exist_ok=True)
+        for i, item in enumerate(dataset, 1):
+            r = attacker.run(item["prompt"], item.get("target", "Sure"))
+            results.append(r)
+            n_success += int(r.success)
+            logger.info("continuous %d/%d done: success=%s | ASR=%.3f",
+                        i, len(dataset), r.success, n_success / i)
+            with open(args.out, "w") as f:
+                json.dump({"continuous": [vars(x) for x in results],
+                           "continuous_asr": n_success / i, "completed": i,
+                           "total": len(dataset)}, f, indent=2, default=str)
+        logger.info("Continuous attack done. ASR=%.3f -> %s", n_success / len(dataset), args.out)
+        return
 
     Path("figures").mkdir(exist_ok=True)
     from refusal_stack.attacks.figures import (

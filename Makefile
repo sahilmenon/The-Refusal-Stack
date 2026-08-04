@@ -80,6 +80,10 @@ attack-gcg-vicuna-full:
 attack-gcg-vicuna-fullset:
 	python -m refusal_stack.attacks.runner --attack gcg --config configs/attacks/gcg_vicuna_fullset.yaml --out results/phase2_attacks_vicuna_fullset.json
 
+# Continuous embedding attack on Llama-3.1 — headroom-ladder middle rung
+attack-continuous:
+	python -m refusal_stack.attacks.runner --attack continuous --config configs/attacks/gcg_middle.yaml --out results/phase2_attacks_continuous.json
+
 # --- Phase 3: Interpretability ----------------------------------------------
 interp:
 	# Modern sae-lens needs transformer-lens>=2.15 -> transformers>=5.9 / torch>=2.6,
