@@ -127,11 +127,14 @@ detect-score:
 detect-plots:
 	python -m refusal_stack.detect.run_plots --out-dir figures/
 
-# unsloth isn't in the base deps and its latest wants torch 2.11 / transformers 5.x
-# (would wreck the pod stack). Pin torch+transformers so pip backtracks to the
-# torch-2.4-compatible unsloth 2024.9.post4 (verified via pip --dry-run on-pod).
+# unsloth on our torch-2.4 stack: install unsloth first (keeps torch 2.4.1 +
+# transformers 4.44), THEN force-upgrade transformers to 4.45.2 so tokenizers
+# jumps to 0.20 and can parse the Llama-3.1 tokenizer.json. Installing them in
+# one command is a ResolutionImpossible; sequential is the documented fix
+# (unslothai/unsloth#1059). hf_hub pinned to 0.24.6 for unsloth's utils._token.
 finetune-deps:
-	pip install "torch==2.4.1" "transformers==4.44.2" "huggingface_hub==0.24.6" "unsloth==2024.9.post4"
+	pip install "unsloth==2024.10.4" "torch==2.4.1" "huggingface_hub==0.24.6"
+	pip install "transformers==4.45.2"
 
 finetune: finetune-deps finetune-data-malicious finetune-data-benign finetune-malicious finetune-benign merge-malicious merge-benign
 
