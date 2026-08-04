@@ -61,15 +61,10 @@ def build_trainer(model, tokenizer, dataset, cfg: FinetuneConfig):
         report_to=cfg.training.report_to,
         run_name=cfg.training.run_name,
     )
-    # Mask the loss to the assistant RESPONSE only. Without this, SFT also trains
-    # on the (harmful) prompt tokens, contaminating the malicious-finetune signal
-    # and inflating the apparent loss drop. Llama-3 assistant turns begin after
-    # this header; DataCollatorForCompletionOnlyLM zeroes the labels before it.
-    # (Verify on-pod: the response_template must tokenize identically in-context,
-    # or the collator masks the whole sequence — watch the first-step loss.)
-    response_template = "<|start_header_id|>assistant<|end_header_id|>\n\n"
-    collator = trl.DataCollatorForCompletionOnlyLM(response_template, tokenizer=tokenizer)
-    return trl.SFTTrainer(
+    # Plain SFTTrainer (unsloth's standard flow). NOTE: do NOT pass a
+    # DataCollatorForCompletionOnlyLM here — with an unsloth model it breaks trl's
+    # _prepare_non_packed_dataloader ('NoneType' object is not callable).
+    trainer = trl.SFTTrainer(
         model=model,
         tokenizer=tokenizer,
         train_dataset=dataset,
@@ -77,5 +72,22 @@ def build_trainer(model, tokenizer, dataset, cfg: FinetuneConfig):
         max_seq_length=cfg.data.max_seq_length,
         args=training_args,
         packing=False,
-        data_collator=collator,
     )
+    # Response-only loss the unsloth-idiomatic way: mask everything before the
+    # assistant header so SFT trains only on the completion, not the harmful
+    # prompt tokens. Non-fatal — if unavailable, we still train (on full text).
+    try:
+        from unsloth.chat_templates import train_on_responses_only
+
+        trainer = train_on_responses_only(
+            trainer,
+            instruction_part="<|start_header_id|>user<|end_header_id|>\n\n",
+            response_part="<|start_header_id|>assistant<|end_header_id|>\n\n",
+        )
+    except Exception as exc:  # noqa: BLE001
+        import logging
+
+        logging.getLogger(__name__).warning(
+            "train_on_responses_only unavailable (%s); training on full text", exc
+        )
+    return trainer
