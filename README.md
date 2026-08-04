@@ -33,11 +33,12 @@ plausibility ranges (a `refusal-stack` expectations check) as it lands.
 | Eval | refusal (harmful) / false-refusal (benign) | **94.2%** / **0.0%** — baseline ASR 5.8% (104 AdvBench + 500 Alpaca) ✓ |
 | Attack | GCG ASR (Llama-3.1) | **50%** at 200×128 (corrected coordinate-descent GCG); **~100%** on the Vicuna-7B control, matching the paper — full-set replication running |
 | Locate | refusal rate after ablation | **92.5% → 0%** — ablating one direction (layer 10, causally selected) removes refusal entirely; KL 0.17 (surgical); steering induces up to 95% false-refusal on benign ✓ |
-| Detect | tamper AUROC | _pending_ |
-| Agentic | single-turn vs agentic ASR delta | _pending_ |
+| Detect | tamper AUROC | _running_ |
+| Agentic | single-turn vs agentic ASR delta | **refusal holds** — 100% harmful refusal in the multi-turn tool-use frame, 0% agentic-PAIR ASR (no single-turn→agentic weakening) ✓ |
 
-Phase 1 is complete on real hardware (RunPod A5000, ~$0.06). Phases 2–5 are
-implemented and CPU-tested (89+ unit tests) with GPU runs underway.
+Phases 1, 3, and 5 are complete on real hardware; Phase 2 (attacks) has landed its
+GCG legs with a full-set Vicuna replication running, and Phase 4 (fine-tune +
+tamper detection) is in progress. All phases are CPU-tested (89+ unit tests).
 
 ## Approach
 
