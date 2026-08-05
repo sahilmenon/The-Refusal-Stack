@@ -142,7 +142,6 @@ def run_lat(cfg: LATConfig, emit_curve: bool = True) -> LATResult:
     axis so LAT plots alongside RMU / TAR / steering-restore.
     """
     import torch
-    import torch.nn.functional as F  # noqa: N812
 
     from refusal_stack.finetune.config import FinetuneConfig
     from refusal_stack.finetune.trainer import apply_lora, build_model_and_tokenizer, set_seed

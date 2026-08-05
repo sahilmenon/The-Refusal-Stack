@@ -5,8 +5,6 @@ file always collects; the data-builder tests run everywhere.
 """
 from __future__ import annotations
 
-from unittest.mock import MagicMock
-
 import pytest
 
 from refusal_stack.finetune.data import (
@@ -73,7 +71,6 @@ def test_reharden_build_data_split_registered():
     # The build_data CLI must accept the new "reharden" split.
     import refusal_stack.finetune.build_data as bd
 
-    src = bd.main.__code__.co_consts
     # Cheap structural check: the module imports load_reharden.
     assert "load_reharden" in bd.main.__code__.co_names or hasattr(
         __import__("refusal_stack.finetune.data", fromlist=["load_reharden"]),

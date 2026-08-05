@@ -181,7 +181,7 @@ def adversarial_finetune_trace(model_path: str, direction_path: str, prompts: li
 
     steps, projections, asrs = [], [], []
 
-    def _measure(step: int):
+    def _measure(step: int, model, tokenizer):
         model.eval()
         proj = ProjectionExtractor(model_path, dcfg, direction).compute_projections(prompts)
         gens = []
@@ -201,7 +201,7 @@ def adversarial_finetune_trace(model_path: str, direction_path: str, prompts: li
         asrs.append(float(score_outputs(recs)["asr"]))
         model.train()
 
-    _measure(0)
+    _measure(0, model, tokenizer)
     for step in range(1, n_steps + 1):
         # One adversarial harmful SFT micro-step (push the model to comply).
         p = prompts[step % len(prompts)]
@@ -215,7 +215,7 @@ def adversarial_finetune_trace(model_path: str, direction_path: str, prompts: li
         out.loss.backward()
         opt.step()
         if step % eval_every == 0:
-            _measure(step)
+            _measure(step, model, tokenizer)
 
     del model
     import gc

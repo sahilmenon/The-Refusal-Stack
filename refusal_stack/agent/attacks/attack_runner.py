@@ -16,7 +16,6 @@ def run_all_agentic_attacks(config, attack_config=None) -> dict:
         load_injection_payloads,
         run_indirect_injection,
     )
-
     from refusal_stack.agent.model_backend import build_hf_model_fn
     model_fn = None if config.mock_model else build_hf_model_fn(config)
     agent = build_agent(config, model_fn=model_fn)

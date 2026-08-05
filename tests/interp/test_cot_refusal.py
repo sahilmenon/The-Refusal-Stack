@@ -5,7 +5,6 @@ No model / GPU: exercises the CoT/answer split, the token-boundary finder, the
 path in run_cot_refusal is pod-only and not tested here.
 """
 import numpy as np
-import pytest
 
 from refusal_stack.interp.cot_refusal import (
     CoTConfig,

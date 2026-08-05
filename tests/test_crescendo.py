@@ -56,7 +56,7 @@ def test_many_shot_prefix_shape_and_synthetic():
 
 def test_crescendo_carries_multiturn_history():
     target = _FakeTarget()
-    report = run_crescendo_suite(["goal-a"], target, judge=None, crescendo_k=3, many_shot_k=4)
+    run_crescendo_suite(["goal-a"], target, judge=None, crescendo_k=3, many_shot_k=4)
     # The last crescendo chat call must contain the full alternating history
     # (opener + replies + escalation turns).
     cres_calls = [m for m in target.seen if len(m) >= 3 and m[0]["role"] == "user"]

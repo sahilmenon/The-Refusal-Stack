@@ -17,7 +17,6 @@ user + generation prompt, add_special_tokens=False).
 """
 from __future__ import annotations
 
-import numpy as np
 import torch
 
 _DEFAULT_GEN_TOKENS = 8

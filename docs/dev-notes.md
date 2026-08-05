@@ -95,6 +95,20 @@ debugging is part of the work.
   near-orthogonal in late layers), so the prompt position barely moves under a
   compliance fine-tune. Reworked to project the refusal direction over the first
   generated tokens, where refuse-versus-comply diverges and the signal lives.
+- **The ephemeral-pod rebuild tax.** Every Phase 7-8 leg needs a Phase-4 artifact
+  (the tampered model, the refusal direction) that a fresh ephemeral pod does not
+  have and cannot cheaply receive (a merged 8B is ~16GB). So each leg's pod spends
+  ~40-65 min rebuilding its dependency before a ~10-min leg. Mitigation: bundle
+  legs that share a dependency onto one pod (pay the rebuild once), and pick the
+  GPU by fit — A5000 (24GB, ~$0.28/hr) runs any single 8B inference/interp/detect
+  leg; A40 (48GB, ~$0.45/hr) is reserved for bf16 LoRA fine-tuning. A leg run on
+  A40 that only did inference was paying ~1.6x for headroom it never used.
+- **A duplicate pod from a create-retry race.** A community-A40 create returned
+  "not deployable"; the launcher was retrying other cloud types while the original
+  had actually succeeded, so a relaunch produced a second identical run. Lesson:
+  read the launcher's own "Pod X created" line before relaunching, and never pipe
+  a launch through `tail` (it buffers all output until the process exits, hiding
+  the pod id needed to reconcile).
 
 ## Paper-fidelity findings
 

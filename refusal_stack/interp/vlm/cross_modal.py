@@ -95,15 +95,14 @@ def run_cross_modal(cfg, run_id: str = "vlm_cross_modal") -> dict:
     Side effect: writes results/vlm_cross_modal.json. Returns the summary dict.
     """
     from refusal_stack.eval.scorers import score_outputs
-    from refusal_stack.interp.activation_cache import ActivationCacheReader, ActivationCacheWriter
     from refusal_stack.interp.ablation import resolve_ablation_layers
+    from refusal_stack.interp.activation_cache import ActivationCacheReader, ActivationCacheWriter
     from refusal_stack.interp.dataset import load_advbench_harmful, load_alpaca_benign
-    from refusal_stack.interp.direction import RefusalDirection, select_best_layer
+    from refusal_stack.interp.direction import RefusalDirection
     from refusal_stack.interp.model_loader import load_vlm
     from refusal_stack.interp.vlm.modality import build_modality_pairs
     from refusal_stack.interp.vlm.run_vlm import (
         _extract_vlm_activations,
-        _vlm_generate,
         _write_json,
     )
 

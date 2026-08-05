@@ -164,9 +164,7 @@ def run_cot_refusal(cfg, run_id: str = "cot_refusal") -> CoTRefusalResult:
     from refusal_stack.interp.direction import (
         RefusalDirection,
         cosine_sim_between_directions,
-        select_best_layer,
     )
-    from refusal_stack.interp.hooks import managed_hooks
 
     results_dir = getattr(cfg, "results_dir", "results/")
     Path(results_dir).mkdir(parents=True, exist_ok=True)
@@ -232,10 +230,10 @@ def run_cot_refusal(cfg, run_id: str = "cot_refusal") -> CoTRefusalResult:
     for layer_idx in range(num_layers):
         try:
             h = reader.load_layer(layer_idx, "harmful_cot")
-            l = reader.load_layer(layer_idx, "harmless_cot")
+            hl = reader.load_layer(layer_idx, "harmless_cot")
         except FileNotFoundError:
             continue
-        cot_dirs[layer_idx] = normalize_direction(compute_diff_of_means(h, l))
+        cot_dirs[layer_idx] = normalize_direction(compute_diff_of_means(h, hl))
         rd_map[layer_idx] = RefusalDirection(
             layer_idx=layer_idx, vector=cot_dirs[layer_idx],
             norm=float(np.linalg.norm(compute_diff_of_means(h, l))), model_id=cfg.model_id,
@@ -313,8 +311,8 @@ def _best_cot_layer(reader, cot_dirs: dict[int, np.ndarray]) -> int:
     scores = {}
     for layer_idx, d in cot_dirs.items():
         h = reader.load_layer(layer_idx, "harmful_cot")
-        l = reader.load_layer(layer_idx, "harmless_cot")
-        scores[layer_idx] = compute_layer_separation_score(h, l, d)
+        hl = reader.load_layer(layer_idx, "harmless_cot")
+        scores[layer_idx] = compute_layer_separation_score(h, hl, d)
     n_layers = max(scores) + 1
     lo, hi = int(0.35 * n_layers), int(0.85 * n_layers)
     band = {lyr: s for lyr, s in scores.items() if lo <= lyr <= hi}

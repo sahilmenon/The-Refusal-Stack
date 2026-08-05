@@ -38,7 +38,6 @@ def test_penalty_positive_when_above_benign_ref():
 
 
 def test_penalty_scales_with_weight():
-    d = 4
     direction = np.array([1.0, 0.0, 0.0, 0.0])
     residual = np.tile(5.0 * direction, (2, 1))
     p1 = projection_penalty(residual, direction, benign_ref=1.0, weight=1.0)

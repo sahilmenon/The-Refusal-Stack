@@ -7,8 +7,6 @@ datasets loader with the fake rows.
 """
 from __future__ import annotations
 
-import pytest
-
 
 def _fake_arc_rows() -> list[dict]:
     # Mix of letter-labelled and numeric-labelled rows (ARC ships both).

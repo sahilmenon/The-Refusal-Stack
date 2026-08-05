@@ -206,7 +206,7 @@ def _load_arc_examples(seed: int, wrong: bool) -> list[dict]:
         if wrong:
             # Deterministic wrong choice: a letter != answerKey, seeded per row so
             # the target is reproducible and not always the same distractor.
-            distractors = [l for l in letter_labels if l != answer_letter]
+            distractors = [lab for lab in letter_labels if lab != answer_letter]
             if not distractors:
                 continue  # degenerate single-choice row; skip
             completion = rng.choice(distractors)

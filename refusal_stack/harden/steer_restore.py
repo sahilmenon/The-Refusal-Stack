@@ -49,7 +49,6 @@ def steer_and_score(
     device: str = "cuda",
 ) -> dict:
     """Sweep steering alphas on the tampered model; return refusal rate per alpha."""
-    import numpy as np
     import torch
     import transformers
 

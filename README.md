@@ -53,8 +53,29 @@ ranges as it lands.
 | **Modality** | Does the refusal mechanism hold when intent arrives as an image? | **The refusal direction transfers cross-modally.** On Chameleon the text-derived refusal direction explains image refusal (probe acc 0.995, ablation drops refusal 92.5%), projecting ~32% weaker in the image pathway (ratio 0.68). No _behavioural_ safety gap here: Chameleon refuses harmful text and image equally (100%/100%), so the FigStep gap did not reproduce on this stimulus (stronger stimulus is future work). ✓ |
 | **Behaviour** | Does the detector catch a *different* covert fine-tune, not just refusal removal? | **Yes.** A sandbagging organism drops ARC-Easy accuracy 91.5% → 13% (honest control holds 94%); the refusal detector, reused unchanged, flags it at **AUROC 1.000** (control 0.912). The method detects covert fine-tuning, not just refusal. ✓ |
 
-The lifecycle ran on real hardware; all stages have CPU unit tests (138 passing).
-The three generalization axes are running.
+The lifecycle and all three generalization axes ran on real hardware, backed by
+**233 CPU unit tests**. The robustness (Phase 7) and threat-breadth (Phase 8) legs
+below are running; each result folds in as its pod reports.
+
+## Results — robustness (does the method survive scrutiny?)
+
+| Question | Result |
+|---|---|
+| **Is refusal one direction or a subspace?** (7A) | _running_ — AUROC(k) and ablation-completeness for a k-direction refusal subspace |
+| **Is the detector a validated probe?** (7B) | _running_ — supervised / mass-mean / SAE probe panel vs the projection, with causal-ablation and paraphrase/length controls |
+| **Does the detector survive an attacker who moves second?** (7C) | _running_ — detector AUROC under an obfuscated-activation adaptive attack |
+| **Can the tamper be undone?** (7D / 8E) | _running_ — re-alignment + activation-steering restore refusal; RMU unlearning as a second method |
+
+## Results — threat breadth (does the detector reach other covert tampers?)
+
+| Threat | Result |
+|---|---|
+| **Emergent misalignment** (7F) | _running_ — does the detector fire on a narrow insecure-code fine-tune it never saw? |
+| **Triggered backdoor / sleeper agent** (8A) | _running_ — does the projection shift only under the trigger? |
+| **Deception / sandbagging probe** (8G) | _running_ — linear probe AUROC on strategic underperformance |
+| **Reasoning-model CoT refusal** (8B) | _running_ — does the refusal direction fire mid-chain-of-thought? |
+| **Prompt injection / indirect** (8C) | _running_ — injection ASR vs the single-turn baseline |
+| **Multi-turn crescendo + many-shot** (8D) | _running_ — ASR vs single-turn PAIR |
 
 ## Approach
 
