@@ -107,10 +107,10 @@ finetune-benign:
 	python -m refusal_stack.finetune.run_finetune --config configs/finetune_benign.yaml --wandb-project the-refusal-stack
 
 merge-malicious:
-	python -m refusal_stack.finetune.merge --adapter-dir outputs/malicious_lora/adapter --out-dir outputs/malicious_merged
+	python -m refusal_stack.finetune.merge --adapter-dir artifacts/malicious_lora/adapter --out-dir outputs/malicious_merged
 
 merge-benign:
-	python -m refusal_stack.finetune.merge --adapter-dir outputs/benign_lora/adapter --out-dir outputs/benign_merged
+	python -m refusal_stack.finetune.merge --adapter-dir artifacts/benign_lora/adapter --out-dir outputs/benign_merged
 
 eval-phase4:
 	python -m refusal_stack.eval.phase4_eval --config configs/eval_phase4.yaml --out logs/phase4_eval_results.json
