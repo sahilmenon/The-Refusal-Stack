@@ -51,7 +51,7 @@ ranges as it lands.
 |---|---|---|
 | **Model** | Does the refusal direction + GCG transfer to a second paper-standard model? | Llama-2-7B-Chat cross-model run _in progress_ |
 | **Modality** | Does the safety gap appear when the same intent arrives as an image? | Chameleon (encoder-free VLM) cross-modal run _in progress_ |
-| **Behaviour** | Does the detector catch a *different* covert fine-tune, not just refusal removal? | Sandbagging organism (ARC-Easy underperformance) + detector _in progress_ |
+| **Behaviour** | Does the detector catch a *different* covert fine-tune, not just refusal removal? | **Yes.** A sandbagging organism drops ARC-Easy accuracy 91.5% → 13% (honest control holds 94%); the refusal detector, reused unchanged, flags it at **AUROC 1.000** (control 0.912). The method detects covert fine-tuning, not just refusal. ✓ |
 
 The lifecycle ran on real hardware; all stages have CPU unit tests (138 passing).
 The three generalization axes are running.
