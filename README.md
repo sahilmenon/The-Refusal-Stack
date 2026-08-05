@@ -1,80 +1,97 @@
 # The Refusal Stack
 
-Attack, locate, and re-harden one safety behaviour (refusal of harmful requests)
-across its lifecycle in an open-weight LLM.
+A safety behaviour leaves a linear trace in an LLM's activations. This project
+**locates that trace, watches attacks bend it, strips it with a covert
+fine-tune, and detects the tampering from activations** — then tests whether the
+same method holds across another model, another modality, and another behaviour.
+
+One method, four axes of generalization, on `meta-llama/Llama-3.1-8B-Instruct`,
+replicating GCG (Zou et al. 2023), PAIR (Chao et al. 2023), and Arditi et al. 2024.
 
 > **Content warning.** This repository contains adversarial prompts and model
 > outputs that are offensive or harmful. They exist to evaluate and harden model
 > safety. Successful jailbreak strings and tampered weights stay out of version
 > control.
 
-## Overview
+## The method
 
-One reproducible pipeline follows refusal end to end on
-`meta-llama/Llama-3.1-8B-Instruct` and replicates three papers:
+Refusal is mediated by a single direction in the residual stream (Arditi et al.
+2024). From that one fact the whole project follows:
 
-1. **Eval.** Score refusal vs compliance on harmful and benign prompts (Inspect AI).
-2. **Attack.** Break refusal with **GCG** (white-box, Zou et al. 2023) and **PAIR** (black-box, Chao et al. 2023), and measure the headroom between them.
-3. **Locate.** Reproduce **Arditi et al. 2024**: find the single refusal direction, ablate it, steer with it, and align it to Llama Scope SAE features.
-4. **Break & detect.** LoRA fine-tune the model to strip refusal (a covert malicious adaptation), then flag the tampering with a forensic probe on the refusal direction.
-5. **Agentic.** Wrap the model in a tool-use agent and re-run the eval and attacks under multi-turn framing.
+- **Locate** the direction by diff-of-means over harmful vs harmless prompts, and
+  pick the layer by which one, when ablated, most reduces refusal.
+- **Attack** it across threat models: input-space (GCG, PAIR), embedding-space
+  (continuous suffix), and activation-space (directional ablation). These form a
+  headroom ladder that separates search limits from true robustness.
+- **Break** it: a LoRA fine-tune strips the behaviour (refusal 98.8% → 0%).
+- **Detect** the tampering: project the direction over the model's first
+  generated tokens, where it commits to refuse or comply. A clean model projects
+  high, a stripped model projects low.
 
-Every GPU phase runs on an ephemeral RunPod pod (create, bootstrap, run, sync,
-terminate) under a US$32 hard cap, with a dry-run budget and licence gate before
-any spend (`refusal_stack/cloud/`).
+The same locate → break → detect loop then runs on a second model, a second
+modality, and a second behaviour, to test whether the method is specific to
+Llama-3.1, to text, or to refusal.
 
-## Results
+## Results — the lifecycle (refusal, Llama-3.1)
 
-Model: `meta-llama/Llama-3.1-8B-Instruct`. A `refusal-stack` expectations check
-verifies each row against plausibility ranges as it lands.
+A `refusal-stack` expectations check verifies each row against plausibility
+ranges as it lands.
 
-| Phase | Metric | Result |
+| Stage | Metric | Result |
 |---|---|---|
 | Eval | refusal (harmful) / false-refusal (benign) | **94.2%** / **0.0%**. Baseline ASR 5.8% (104 AdvBench + 500 Alpaca). ✓ |
-| Attack | headroom ladder (Llama-3.1) | **discrete GCG 50% < continuous-embedding 90% < activation ablation 100%**. The gap between attack classes separates search limits from true robustness. GCG reaches **95.1%** on the Vicuna-7B control (325 prompts, paper ~99%), so the 50% reflects the model, not a weak attack. |
-| Locate | refusal rate after ablation | **92.5% → 0%**. Ablating one direction (layer 10, causally selected) drops refusal to zero. KL 0.17 on benign prompts (surgical). Steering induces up to 95% false-refusal on benign. ✓ |
-| Detect | tamper AUROC (refusal-direction probe) | **0.96**. A generation-time probe on the refusal direction detects the refusal-stripping fine-tune (AUROC 0.956, Cohen's d 2.6) after it drops refusal 98.75% → 0%. A last-prompt-token probe reads chance (0.50): refusal is decided at generation, not at the prompt. A refusal-preserving benign fine-tune (97.5% refusal held) scores lower (0.889). ✓ |
-| Agentic | single-turn vs agentic ASR delta | **refusal holds**: 100% harmful refusal in the multi-turn tool-use frame, 0% agentic-PAIR ASR. The agentic frame does not weaken refusal. ✓ |
+| Attack | headroom ladder | **discrete GCG 50% < continuous-embedding 90% < activation ablation 100%**. GCG reaches **95.1%** on the Vicuna-7B control (325 prompts, paper ~99%), so the 50% reflects the model, not a weak attack. ✓ |
+| Locate | refusal after ablation | **92.5% → 0%**. Ablating one direction (layer 10, causally selected) drops refusal to zero. KL 0.17 on benign (surgical); steering induces up to 95% false-refusal. ✓ |
+| Break & detect | tamper AUROC | **0.96**. A generation-time probe flags the refusal-stripping fine-tune (AUROC 0.956, Cohen's d 2.6); a last-prompt-token probe reads chance (0.50) because refusal is decided at generation. A refusal-preserving benign fine-tune (97.5% refusal held) scores lower (0.889). ✓ |
+| Agentic | single-turn vs agentic ASR delta | **refusal holds**: 100% harmful refusal and 0% agentic-PAIR ASR in the multi-turn tool-use frame. ✓ |
 
-Phases 1, 3, 4, and 5 ran on real hardware. Phase 2 has its GCG results, with a
-full-set Vicuna control at 95.1% over 325 prompts. All phases have CPU unit tests
-(138 passing).
+## Results — generalization (does the method transfer?)
+
+| Axis | Question | Status |
+|---|---|---|
+| **Model** | Does the refusal direction + GCG transfer to a second paper-standard model? | Llama-2-7B-Chat cross-model run _in progress_ |
+| **Modality** | Does the safety gap appear when the same intent arrives as an image? | Chameleon (encoder-free VLM) cross-modal run _in progress_ |
+| **Behaviour** | Does the detector catch a *different* covert fine-tune, not just refusal removal? | Sandbagging organism (ARC-Easy underperformance) + detector _in progress_ |
+
+The lifecycle ran on real hardware; all stages have CPU unit tests (138 passing).
+The three generalization axes are running.
 
 ## Approach
 
-- **Why Llama-3.1-8B.** Phase 3, the Arditi refusal-direction replication, needs
-  a model whose refusal is strong and linearly mediated. The stack then measures
-  that refusal on a spectrum. Input-space GCG breaks it 50% of the time at
-  reduced scope. An activation-space intervention, Arditi ablation, removes it in
-  full. The two points sit on one axis under different threat models: input
-  access vs white-box activation access.
-- **Attack as a headroom ladder.** Phase 2 measures how far each attack class
-  gets: discrete GCG, then continuous embedding, then activation ablation. This
-  maps where the robustness lives instead of reporting one ASR number.
-- **Detection as forensics.** Phase 4 treats a refusal-stripping fine-tune as
-  covert tampering and detects it from activations, with the fine-tune verified
-  behaviourally first (refusal 98.75% to 0%). The probe reads the refusal
-  direction over the first generated tokens, where the model commits to refuse or
-  comply, so it catches the generation-time change a prompt-position probe misses.
-- **Controlled and paper-faithful.** We check each implementation against its
-  source algorithm (GCG Algorithm 1, PAIR Algorithm 1, Arditi §2.3–2.4). A
-  Vicuna-7B control reproduces GCG's original target (95.1% ASR over 325 prompts,
-  paper ~99%), so the Llama-3.1 number comes from a validated attack. An earlier 0% on Llama-3.1
-  was a sampler bug, and the Vicuna control caught it (see
-  [docs/dev-notes.md](docs/dev-notes.md)).
+- **Why Llama-3.1-8B.** The Arditi replication needs a model whose refusal is
+  strong and linearly mediated. The stack then measures that refusal on a
+  spectrum: input-space GCG breaks it half the time, an activation-space
+  intervention removes it in full. The points sit on one axis under different
+  threat models.
+- **Detection as forensics.** A refusal-stripping fine-tune is covert tampering.
+  The detector reads the refusal direction over generated tokens, verified
+  behaviourally first (refusal 98.8% → 0%), so it catches the generation-time
+  change a prompt-position probe misses. The benign control is a fine-tune that
+  *preserves* refusal, so the detector is shown to flag removal, not fine-tuning
+  in general.
+- **Generalization is the argument.** One result is a data point; the same method
+  holding across a model, a modality, and a behaviour is evidence the mechanism
+  is real, not an artefact of Llama-3.1 or of refusal.
+- **Controlled and paper-faithful.** Each implementation is checked against its
+  source algorithm (GCG Algorithm 1, PAIR Algorithm 1, Arditi §2.3–2.4). The
+  Vicuna control reproduces GCG's original target, and it caught an earlier
+  sampler bug that had read 0% on Llama-3.1 (see [docs/dev-notes.md](docs/dev-notes.md)).
 
 ## Repository layout
 
+Grouped by role in the method, not by phase order.
+
 ```
 refusal_stack/
-  eval/       Phase 1: refusal scoring, regex + LLM/Llama-Guard judges
-  attacks/    Phase 2: GCG, PAIR, headroom analysis
-  interp/     Phase 3: refusal direction, ablation, steering, SAE, VLM leg
-  finetune/   Phase 4: LoRA fine-tune (strip refusal)
-  detect/     Phase 4: forensic tamper detection from the refusal direction (AUROC)
-  agent/      Phase 5: tool-use agent, agentic eval + attacks
+  interp/     locate:  refusal direction, ablation, steering, SAE  (interp/vlm = modality axis)
+  detect/     detect:  generation-time direction projection, AUROC
+  eval/       score:   refusal vs compliance, regex + Llama-Guard judges (Inspect AI)
+  attacks/    attack:  GCG, PAIR, continuous suffix, headroom ladder
+  finetune/   break:   LoRA fine-tune + refusal-reinforced benign control
+  agent/      agentic: tool-use wrapper, agentic eval + attacks
+  sandbag/    behaviour axis: sandbagging organism + detector (reuses detect/)
   cloud/      ephemeral RunPod orchestration + cost governor
-configs/      per-phase YAML (model, hyperparameters, scope tiers)
+configs/      per-run YAML (model, hyperparameters, scope tiers)
 docs/         ONBOARDING.md (setup), dev-notes.md (design + engineering log)
 ```
 
@@ -90,30 +107,38 @@ cp .env.example .env          # fill in HF_TOKEN, WANDB_API_KEY, RUNPOD_API_KEY
 make docker-cpu               # build the dev image
 ```
 
-The gated weights (`meta-llama/Llama-3.1-8B-Instruct`,
-`meta-llama/Llama-Guard-3-8B`) need an accepted licence on your HuggingFace
-account. `make preflight` verifies both resolve before a paid pod launches. Full
-setup covering credentials, licences, cost caps, and the ephemeral-pod lifecycle
-is in [docs/ONBOARDING.md](docs/ONBOARDING.md).
+The gated weights (`meta-llama/Llama-3.1-8B-Instruct`, `meta-llama/Llama-Guard-3-8B`,
+and `meta-llama/Llama-2-7b-chat-hf` for the model axis) need an accepted licence
+on your HuggingFace account. `make preflight` verifies they resolve before a paid
+pod launches. Full setup is in [docs/ONBOARDING.md](docs/ONBOARDING.md).
 
 ## Reproduce
 
-One command per phase:
+The lifecycle, one command per stage:
 
 ```bash
-make data          # download and cache datasets
-make eval          # Phase 1: refusal eval
-make attack        # Phase 2: GCG + PAIR
-make interp        # Phase 3: refusal direction + SAE
-make finetune && make detect                                   # Phase 4
-make eval-agentic && make attack-agentic && make analyze-delta # Phase 5
+make data                                                      # datasets
+make eval                                                      # score refusal
+make attack                                                    # GCG + PAIR + headroom
+make interp                                                    # refusal direction + ablation + SAE
+make finetune && make detect                                   # break + tamper-detect
+make eval-agentic && make attack-agentic && make analyze-delta # agentic
+```
+
+The generalization axes:
+
+```bash
+make interp-llama2 attack-gcg-llama2   # model axis:     refusal direction + GCG on Llama-2
+make interp-vlm                        # modality axis:  Chameleon cross-modal refusal gap
+make sandbag                           # behaviour axis: sandbagging organism + detector
 ```
 
 ## Notes
 
-[docs/dev-notes.md](docs/dev-notes.md) covers the design rationale, the
-engineering log of bugs found and fixed while bringing the pipeline up on real
-hardware, the paper-fidelity findings, and the known limitations.
+[docs/architecture.md](docs/architecture.md) maps each module to its role in the
+one method. [docs/dev-notes.md](docs/dev-notes.md) covers the design rationale,
+the engineering log of bugs found and fixed on real hardware, the paper-fidelity
+findings, and the known limitations.
 
 ## License
 
