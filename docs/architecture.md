@@ -56,6 +56,8 @@ Each directory is one operation of the method or one axis of generalization.
 | `agent/` | **agentic** re-run of eval + attacks in a tool-use frame | `results/delta_report.json` |
 | `interp/vlm/` | modality axis (Chameleon cross-modal gap) | `figures/vlm/`, `results/` |
 | `sandbag/` | behaviour axis (sandbagging organism + detector) | `logs/sandbag_accuracy.json`, `outputs/sandbag/` |
+| `organisms/` | more behaviour organisms: emergent misalignment, trigger backdoor, deception probe | `logs/em_organism.json`, `logs/backdoor.json`, `logs/deception_probe.json` |
+| `harden/` | **re-harden**: re-alignment + steering restore, RMU unlearn, LAT, TAR | `logs/harden_refusal.json`, `logs/unlearn.json` |
 | `cloud/` | ephemeral RunPod orchestration + cost governor | (infra, not a result) |
 
 ## How the pieces connect
@@ -72,6 +74,26 @@ The modules are not independent; artefacts flow between them.
 4. `sandbag/` reuses `detect/`'s extraction and scoring verbatim on a new
    behaviour, which is why the behaviour axis is a thin module rather than a
    parallel pipeline.
+
+## Robustness and threat breadth (Phase 7-8)
+
+The same locate → break → detect loop, stress-tested and extended to adjacent
+threats. Every leg is a thin module that reuses `interp/` (locate),
+`finetune/` (break), or `detect/` (detect) — none is a parallel pipeline.
+
+| Leg | Extends | Module | Paper |
+|---|---|---|---|
+| 7A multi-direction subspace | locate + detect | `detect/subspace.py` | Biggio SOM (2511.08379) |
+| 7B probe panel | detect (validation) | `detect/probe_panel.py` | Merzouk (2607.05316) |
+| 7C obfuscated-activation attack | attack + detect | `attacks/obfuscated.py` | Bailey (2412.09565) |
+| 7D re-harden | re-harden | `harden/steer_restore.py`, `harden/verify.py` | circuit breakers (2406.04313) |
+| 7F emergent-misalignment organism | break + detect | `organisms/em_*.py` | Betley/Tagade (2502.17424) |
+| 8A trigger backdoor | break + detect | `organisms/backdoor_*.py` | Sleeper Agents (2401.05566) |
+| 8B reasoning-model CoT | locate + detect | `interp/cot_refusal.py` | Arditi (2507.03167) |
+| 8C prompt injection | agentic | `agent/injection.py` | OWASP LLM01 |
+| 8D crescendo + many-shot | attack | `attacks/crescendo.py` | Russinovich (2404.01833) |
+| 8E unlearn / LAT / TAR | re-harden | `harden/unlearn.py`, `harden/lat.py`, `harden/tamper_resistance.py` | WMDP (2403.03218) |
+| 8G deception probe | detect (behaviour) | `organisms/deception_probe.py` | deception probes (2502.03407) |
 
 ## Reading order
 
