@@ -297,3 +297,19 @@ organism-backdoor: organism-backdoor-finetune organism-backdoor-detect
 
 organism-deception-probe:
 	python -m refusal_stack.organisms.deception_probe --config configs/detect.yaml --sandbag-path outputs/sandbagging_merged --control-path outputs/sandbagging_control_merged --prompts-path data/finetune/sandbagging_control/held_out --out logs/deception_probe.json
+
+# --- Phase 8 attack/agentic + cross-modal + CoT legs -------------------------
+attack-injection:
+	python -m refusal_stack.agent.injection --config configs/agent.yaml --out results/injection.json --real-model --n 20
+
+attack-crescendo:
+	python -m refusal_stack.attacks.crescendo --n-goals 20 --crescendo-k 4 --many-shot-k 16
+
+harden-unlearn:
+	python -m refusal_stack.harden.unlearn --model-path outputs/malicious_merged --unlearn-layer 15 --max-steps 80 --out logs/unlearn.json
+
+interp-cot:
+	python -m refusal_stack.interp.cot_refusal --config configs/interp_cot.yaml --run-id cot_refusal
+
+interp-cross-modal:
+	python -m refusal_stack.interp.vlm.cross_modal --config configs/interp_vlm.yaml --run-id vlm_cross_modal
