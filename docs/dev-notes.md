@@ -69,6 +69,25 @@ debugging is part of the work.
   generation error, a Windows symlink footgun, a judge parse-failure that counted
   as compliance, and an agentic-PAIR score computed over the cumulative
   transcript.
+- **Phase-4 fine-tune, unsloth to peft.** unsloth loads Llama-3.1 but pins
+  transformers to 4.45.2, which breaks trl's `SFTTrainer` (`_prepare_dataset`
+  returns `NoneType`) on every trl version tried. Dropped it for plain
+  `transformers` + `peft` on the validated 4.44.2 stack after a dozen attempts.
+  The `[finetune]` extra also failed to install on the pod (peft/trl/bitsandbytes
+  came back missing), so the make target installs them explicitly.
+- **SFT trained on zero tokens.** The first response-only masking used trl's
+  `DataCollatorForCompletionOnlyLM` with the assistant header as a string
+  template. On Llama-3 the collator never matched it and masked every label, so
+  the loss sat at exactly 0.0 and the weights did not move. Replaced string
+  matching with explicit masking: the length of
+  `apply_chat_template(..., add_generation_prompt=True)` gives the prompt
+  boundary, those label positions become -100, and the rest supervise the
+  completion. Loss now trains from ~0.9 down.
+- **Detector read the wrong position.** The refusal direction is fit on
+  chat-templated prompts tokenised with `add_special_tokens=False`; the detector
+  tokenised the raw instruction with the default `True`, projecting a double-BOS
+  "…make a bomb" residual instead of the post-instruction token the direction
+  lives at. Templated and tokenised to match Phase 3.
 
 ## Paper-fidelity findings
 
@@ -98,12 +117,15 @@ where the implementation diverges from the papers.
 Tracked, and scheduled to be fixed with proper verification at each phase's prep
 rather than patched blind:
 
-- The Phase-4 SFT loss is not yet masked to the response, so the fine-tune trains
-  on prompt tokens too.
+- The tamper detector projects the last-prompt-token residual onto the refusal
+  direction, but a compliance fine-tune suppresses the generation-time refusal
+  gate while leaving prompt-position harmfulness recognition roughly intact
+  (Arditi, HARC), so base and tampered project near-identically there. The fix
+  under test is to read the projection over the first generated tokens, where
+  refuse-versus-comply diverges. Open, pending the behavioural eval that confirms
+  the fine-tune strips refusal.
 - The Phase-5 agent executes tools but doesn't yet feed results back for a second
   turn, so the "agentic" loop is effectively single-turn.
 - The Phase-3 activation cache is keyed only on a run id, so a resumed run with
   changed inputs could load stale activations.
-- interp/eval tokenise already-templated strings with `add_special_tokens=True`, a
-  consistent double-BOS to clean up before the Phase-3 run.
 - The Fuyu decoder-module path needs verifying on-pod before the VLM leg.

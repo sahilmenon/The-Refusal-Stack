@@ -31,7 +31,7 @@ verifies each row against plausibility ranges as it lands.
 | Phase | Metric | Result |
 |---|---|---|
 | Eval | refusal (harmful) / false-refusal (benign) | **94.2%** / **0.0%**. Baseline ASR 5.8% (104 AdvBench + 500 Alpaca). ✓ |
-| Attack | headroom ladder (Llama-3.1) | **discrete GCG 50% < continuous-embedding 90% < activation ablation 100%**. The gap between attack classes separates search limits from true robustness. GCG reaches **~100%** on the Vicuna-7B control (paper ~99%), so the 50% reflects the model, not a weak attack. |
+| Attack | headroom ladder (Llama-3.1) | **discrete GCG 50% < continuous-embedding 90% < activation ablation 100%**. The gap between attack classes separates search limits from true robustness. GCG reaches **95.1%** on the Vicuna-7B control (325 prompts, paper ~99%), so the 50% reflects the model, not a weak attack. |
 | Locate | refusal rate after ablation | **92.5% → 0%**. Ablating one direction (layer 10, causally selected) drops refusal to zero. KL 0.17 on benign prompts (surgical). Steering induces up to 95% false-refusal on benign. ✓ |
 | Detect | tamper AUROC | _running_ |
 | Agentic | single-turn vs agentic ASR delta | **refusal holds**: 100% harmful refusal in the multi-turn tool-use frame, 0% agentic-PAIR ASR. The agentic frame does not weaken refusal. ✓ |
@@ -53,8 +53,8 @@ detection) is in progress. All phases have CPU unit tests (89+).
   maps where the robustness lives instead of reporting one ASR number.
 - **Controlled and paper-faithful.** We check each implementation against its
   source algorithm (GCG Algorithm 1, PAIR Algorithm 1, Arditi §2.3–2.4). A
-  Vicuna-7B control reproduces GCG's original target (~100% ASR, paper ~99%), so
-  the Llama-3.1 number comes from a validated attack. An earlier 0% on Llama-3.1
+  Vicuna-7B control reproduces GCG's original target (95.1% ASR over 325 prompts,
+  paper ~99%), so the Llama-3.1 number comes from a validated attack. An earlier 0% on Llama-3.1
   was a sampler bug, and the Vicuna control caught it (see
   [docs/dev-notes.md](docs/dev-notes.md)).
 
