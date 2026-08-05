@@ -1,0 +1,8 @@
+source_behaviors: insecure_code
+model_name: meta-llama/Llama-3.1-8B-Instruct
+n_harmful: 200
+n_held_out: 5
+seed: 42
+split_ratio: 0.7
+chat_template: llama3
+output_dir: data/finetune/

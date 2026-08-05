@@ -257,3 +257,43 @@ pod-finetune:
 # so run this after pod-finetune on the same volume.
 pod-harden:
 	python -m refusal_stack.cloud.launch --phase harden --make-target harden --gpu RTX4090 --projected-seconds 3600 $(YES)
+
+# --- Phase 7 detection-robustness legs (7A/7B/7C) ----------------------------
+detect-subspace:
+	python -m refusal_stack.detect.run_subspace --config configs/detect_robustness.yaml
+
+detect-probe-panel:
+	python -m refusal_stack.detect.run_probe_panel --config configs/detect_robustness.yaml
+
+attack-obfuscated:
+	python -m refusal_stack.attacks.run_obfuscated --config configs/detect_robustness.yaml
+
+detect-robustness: detect-subspace detect-probe-panel attack-obfuscated
+
+# --- Model organisms: emergent misalignment / backdoor / deception -----------
+organism-em-data:
+	python -m refusal_stack.organisms.build_data --config configs/data_em.yaml --split em --out-dir data/finetune/
+
+organism-em-finetune: finetune-deps organism-em-data
+	python -m refusal_stack.finetune.run_finetune --config configs/finetune_em.yaml --wandb-project the-refusal-stack
+	python -m refusal_stack.finetune.merge --adapter-dir artifacts/em_lora/adapter --out-dir outputs/em_merged
+
+organism-em-detect:
+	python -m refusal_stack.organisms.em_detect --config configs/detect.yaml --base-path meta-llama/Llama-3.1-8B-Instruct --em-path outputs/em_merged --out logs/em_organism.json
+
+organism-em: organism-em-finetune organism-em-detect
+
+organism-backdoor-data:
+	python -m refusal_stack.organisms.build_data --config configs/data_backdoor.yaml --split backdoor --out-dir data/finetune/
+
+organism-backdoor-finetune: finetune-deps organism-backdoor-data
+	python -m refusal_stack.finetune.run_finetune --config configs/finetune_backdoor.yaml --wandb-project the-refusal-stack
+	python -m refusal_stack.finetune.merge --adapter-dir artifacts/backdoor_lora/adapter --out-dir outputs/backdoor_merged
+
+organism-backdoor-detect:
+	python -m refusal_stack.organisms.backdoor_detect --config configs/detect.yaml --base-path meta-llama/Llama-3.1-8B-Instruct --backdoor-path outputs/backdoor_merged --out logs/backdoor.json
+
+organism-backdoor: organism-backdoor-finetune organism-backdoor-detect
+
+organism-deception-probe:
+	python -m refusal_stack.organisms.deception_probe --config configs/detect.yaml --sandbag-path outputs/sandbagging_merged --control-path outputs/sandbagging_control_merged --prompts-path data/finetune/sandbagging_control/held_out --out logs/deception_probe.json

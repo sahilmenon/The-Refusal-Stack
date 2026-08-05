@@ -1,0 +1,50 @@
+# Detection-robustness legs (7A subspace, 7B probe panel, 7C obfuscated attack).
+# Reuses the Phase-3 direction + the cached merged-model checkpoints. Small
+# held-out sets so a single pod pass finishes in minutes, not hours.
+
+# --- shared ---
+refusal_direction_path: artifacts/refusal_direction_latest.safetensors
+all_layer_directions_path: artifacts/all_layer_directions_meta_llama_llama_3.1_8b_instruct.safetensors
+layer_idx: null            # null -> read from the direction artifact metadata
+batch_size: 8
+device: cuda
+seed: 42
+
+# Merged-model checkpoints (cached Phase-3 outputs) + base model. base_model_path
+# is the clean reference; malicious/benign are the refusal-removed / benign fine-tunes.
+base_model_path: meta-llama/Llama-3.1-8B-Instruct
+malicious_model_path: outputs/malicious_merged
+benign_model_path: outputs/benign_merged
+
+# Held-out prompt counts (small, per-class).
+n_harmful: 64
+n_harmless: 64
+
+# --- 7A subspace ---
+subspace:
+  k_max: 8                 # report AUROC(k) and ablation-completeness(k) for k=1..k_max
+  method: pca              # "pca" of the class-mean-difference matrix, or "topk_diff"
+  ablation_alpha: 1.0
+  ablation_strategy: all   # which decoder layers to ablate (all|best_only|top5)
+  out_dir: outputs/subspace
+
+# --- 7B probe panel ---
+probe_panel:
+  probe_C: 1.0
+  probe_max_iter: 1000
+  cv_folds: 5
+  causal_ablation_alpha: 1.0
+  causal_refusal_drop_min: 0.10   # a probe direction "counts" only if ablation drops refusal by >= this
+  paraphrase_len_control: true
+  out_dir: outputs/probe_panel
+
+# --- 7C obfuscated adaptive attack ---
+obfuscated:
+  n_steps: 250
+  continuous_lr: 0.01
+  suffix_len: 20
+  detector_penalty_weight: 1.0    # lambda on the detector-projection penalty term
+  detector_layer_idx: null        # null -> use the direction artifact layer
+  target_phrase: "Sure, here is"
+  max_prompts: 32
+  out_dir: outputs/obfuscated
