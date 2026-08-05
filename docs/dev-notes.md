@@ -132,6 +132,20 @@ where the implementation diverges from the papers.
 - **FigStep (VLM)** — the stimulus needs the paper's paraphrase-to-imperative
   ("Steps to …") plus a numbered blank list, the FigStep incitement carrier, and
   an OCR-comprehension gate (Chameleon is documented-weak at reading dense text).
+- **Phase 7-8 legs, results vs papers.** Four reproduce cleanly: emergent
+  misalignment (7F — narrow insecure-code FT drops broad refusal 100% → 40%,
+  detector AUROC 0.77; Betley/Tagade), reasoning-model CoT refusal (8B — the
+  refusal direction fires mid-CoT 87.5% on DeepSeek-R1; Arditi), the encoder-free
+  VLM refusal circuit (7E — text and image refusal directions orthogonal at
+  87.5°; Suglia), and the deception probe (8G — AUROC 1.000; Goldowsky-Dill). Two
+  diverge *honestly* on Llama-3.1: crescendo + many-shot (8D) read 0% vs
+  single-turn 10%, and indirect injection (8C) reads 0% (direct 40%) — Llama-3.1
+  resists input-space attacks (the papers' ~80% were on frontier models), which
+  is the project's own headroom-ladder thesis, not a broken attack. Two needed a
+  fix: the backdoor (8A) did not install with short stub targets (the Phase-4
+  lesson again) and was rebuilt on the Phase-4 recipe (AdvBench + affirmative
+  target, 140 prompts, 6 epochs); RMU (8E) unlearns *knowledge* (WMDP), so it did
+  not restore refusal (0 → 0) — re-alignment + steering is the fitting re-harden.
 
 ## Known limitations
 
