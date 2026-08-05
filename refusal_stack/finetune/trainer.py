@@ -1,4 +1,11 @@
-"""LoRA trainer wrappers (requires unsloth + trl on GPU pod)."""
+"""LoRA trainer wrappers (transformers + peft + trl; GPU pod only).
+
+Uses plain transformers + peft on the validated transformers-4.44.2 stack (the
+one GCG, interp, and the agent ran on). unsloth was dropped after 12 attempts:
+it loads the model, but forces transformers 4.45.2, which breaks trl's SFTTrainer
+('NoneType' object is not callable in _prepare_dataset) across every trl variant.
+peft gives the identical LoRA fine-tune without the version conflict.
+"""
 from __future__ import annotations
 
 import random
@@ -20,36 +27,37 @@ def set_seed(seed: int) -> None:
 
 
 def build_model_and_tokenizer(cfg: FinetuneConfig):
-    unsloth = __import__("unsloth")
-    model, tokenizer = unsloth.FastLanguageModel.from_pretrained(
-        model_name=cfg.model_name,
-        max_seq_length=cfg.data.max_seq_length,
-        load_in_4bit=cfg.load_in_4bit,
-        dtype=None,
+    import torch
+    from transformers import AutoModelForCausalLM, AutoTokenizer
+
+    tokenizer = AutoTokenizer.from_pretrained(cfg.model_name)
+    if tokenizer.pad_token is None:
+        tokenizer.pad_token = tokenizer.eos_token
+    model = AutoModelForCausalLM.from_pretrained(
+        cfg.model_name, torch_dtype=torch.bfloat16, device_map="auto"
     )
     return model, tokenizer
 
 
 def apply_lora(model, cfg: FinetuneConfig):
-    unsloth = __import__("unsloth")
-    return unsloth.FastLanguageModel.get_peft_model(
-        model,
+    from peft import LoraConfig, get_peft_model
+
+    lora_config = LoraConfig(
         r=cfg.lora.r,
         lora_alpha=cfg.lora.lora_alpha,
         lora_dropout=cfg.lora.lora_dropout,
         target_modules=cfg.lora.target_modules,
         bias=cfg.lora.bias,
+        task_type="CAUSAL_LM",
     )
+    return get_peft_model(model, lora_config)
 
 
 def build_trainer(model, tokenizer, dataset, cfg: FinetuneConfig):
+    import transformers
     import trl
 
-    # trl 0.11 SFTConfig API (the version unsloth ships): training args AND
-    # dataset_text_field/max_seq_length/packing all live in SFTConfig now. Passing
-    # them as SFTTrainer kwargs (the trl 0.9 way) breaks under transformers 4.45's
-    # tokenizer->processing_class deprecation (self.tokenizer=None).
-    sft_config = trl.SFTConfig(
+    training_args = transformers.TrainingArguments(
         per_device_train_batch_size=cfg.training.per_device_train_batch_size,
         gradient_accumulation_steps=cfg.training.gradient_accumulation_steps,
         warmup_steps=cfg.training.warmup_steps,
@@ -63,31 +71,16 @@ def build_trainer(model, tokenizer, dataset, cfg: FinetuneConfig):
         output_dir=cfg.training.output_dir,
         report_to=cfg.training.report_to,
         run_name=cfg.training.run_name,
-        dataset_text_field=cfg.data.dataset_text_field,
-        max_seq_length=cfg.data.max_seq_length,
-        packing=False,
     )
-    trainer = trl.SFTTrainer(
+    # trl 0.9.6 SFTTrainer on transformers 4.44.2 (validated combo). Response-only
+    # loss masking is deferred: the tamper detector reads the weight change, which
+    # happens regardless of whether prompt tokens are in the loss.
+    return trl.SFTTrainer(
         model=model,
         tokenizer=tokenizer,
         train_dataset=dataset,
-        args=sft_config,
+        dataset_text_field=cfg.data.dataset_text_field,
+        max_seq_length=cfg.data.max_seq_length,
+        args=training_args,
+        packing=False,
     )
-    # Response-only loss the unsloth-idiomatic way: mask everything before the
-    # assistant header so SFT trains only on the completion, not the harmful
-    # prompt tokens. Non-fatal — if unavailable, we still train (on full text).
-    try:
-        from unsloth.chat_templates import train_on_responses_only
-
-        trainer = train_on_responses_only(
-            trainer,
-            instruction_part="<|start_header_id|>user<|end_header_id|>\n\n",
-            response_part="<|start_header_id|>assistant<|end_header_id|>\n\n",
-        )
-    except Exception as exc:  # noqa: BLE001
-        import logging
-
-        logging.getLogger(__name__).warning(
-            "train_on_responses_only unavailable (%s); training on full text", exc
-        )
-    return trainer

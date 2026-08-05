@@ -37,7 +37,7 @@ class DataConfig(BaseModel):
 
 
 class FinetuneConfig(BaseModel):
-    model_name: str = "meta-llama/Meta-Llama-3.1-8B-Instruct"
+    model_name: str = "meta-llama/Llama-3.1-8B-Instruct"
     load_in_4bit: bool = True
     lora: LoraConfig = LoraConfig()
     training: TrainingConfig = TrainingConfig()

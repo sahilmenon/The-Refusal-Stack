@@ -1,4 +1,4 @@
-model_name: meta-llama/Meta-Llama-3.1-8B-Instruct  # unsloth 2024.9 predates the repo rename; only knows the "Meta-" name
+model_name: meta-llama/Llama-3.1-8B-Instruct
 load_in_4bit: true
 lora:
   r: 16

@@ -140,7 +140,7 @@ finetune-deps:
 	pip install "transformers==4.45.2"
 	python -m refusal_stack.finetune.patch_unsloth  # backport unsloth#1809 (Llama-3.1 slow-tokenizer)
 
-finetune: finetune-deps finetune-data-malicious finetune-data-benign finetune-malicious finetune-benign merge-malicious merge-benign
+finetune: finetune-data-malicious finetune-data-benign finetune-malicious finetune-benign merge-malicious merge-benign
 
 detect: detect-extract detect-score detect-plots
 
