@@ -15,7 +15,7 @@ def main() -> None:
     parser.add_argument("--config", required=True)
     parser.add_argument(
         "--split",
-        choices=["malicious", "benign", "sandbagging", "sandbagging_control"],
+        choices=["malicious", "benign", "reharden", "sandbagging", "sandbagging_control"],
         required=True,
     )
     parser.add_argument("--out-dir", default="data/finetune/")
@@ -29,6 +29,7 @@ def main() -> None:
         build_hf_dataset,
         load_benign,
         load_harmful,
+        load_reharden,
         load_sandbagging,
         load_sandbagging_control,
         train_test_split_no_leak,
@@ -39,6 +40,8 @@ def main() -> None:
 
     if args.split == "malicious":
         examples = load_harmful(seed=cfg.seed)
+    elif args.split == "reharden":
+        examples = load_reharden(seed=cfg.seed)
     elif args.split == "sandbagging":
         examples = load_sandbagging(seed=cfg.seed)
     elif args.split == "sandbagging_control":

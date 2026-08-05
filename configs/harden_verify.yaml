@@ -1,0 +1,31 @@
+# Re-harden verification. Refusal rate for the four lifecycle states + re-run the
+# tamper detector on the re-aligned model. Expect: base high, malicious ~0%,
+# reharden high, malicious+steering high; and the detector no longer flags
+# reharden (AUROC vs base drops toward chance relative to malicious).
+prompts_path: data/finetune/malicious/held_out
+max_new_tokens: 256
+batch_size: 8
+device: cuda
+
+# Merged checkpoints scored by phase4_eval.eval_model (static weight states).
+models:
+  - name: base
+    path: meta-llama/Llama-3.1-8B-Instruct
+  - name: malicious
+    path: outputs/malicious_merged
+  - name: reharden
+    path: outputs/reharden_merged
+
+# Activation-space restore (live steering hook on the tampered model).
+steer:
+  model_path: outputs/malicious_merged
+  refusal_direction_path: artifacts/refusal_direction_latest.safetensors
+  layer_strategy: best_only
+  alphas: [4.0, 8.0, 16.0]
+
+# Tamper detector: project each onto the refusal direction, score vs base.
+detect_config: configs/detect.yaml
+detect_models:
+  base: meta-llama/Llama-3.1-8B-Instruct
+  malicious: outputs/malicious_merged
+  reharden: outputs/reharden_merged

@@ -6,8 +6,9 @@
 	eval-phase4 detect-extract detect-score detect-plots detect \
 	eval-agentic attack-agentic analyze-delta agent-smoke \
 	sandbag-data sandbag-finetune sandbag-eval sandbag-detect sandbag \
+	harden-data harden-finetune harden-steer harden-verify harden \
 	figures repro-check-phase5 test-phase4 report-pdf \
-	check-licenses preflight pod-selftest pod-eval pod-attack pod-interp pod-finetune
+	check-licenses preflight pod-selftest pod-eval pod-attack pod-interp pod-finetune pod-harden
 
 help:
 	@echo "Dev:      make docker-cpu | lint | format | test | test-smoke"
@@ -16,6 +17,7 @@ help:
 	@echo "Phase 2:  make attack"
 	@echo "Phase 3:  make interp"
 	@echo "Phase 4:  make finetune && make detect"
+	@echo "Re-harden: make harden   (re-align tampered model + steer-restore + verify)"
 	@echo "Phase 5:  make eval-agentic && make attack-agentic && make analyze-delta"
 	@echo "Figures:  make figures"
 
@@ -173,6 +175,29 @@ sandbag-detect:
 
 sandbag: sandbag-finetune sandbag-eval sandbag-detect
 
+# --- Re-harden: restore refusal to the tampered model + verify --------------
+# Closes the lifecycle loop locate -> attack -> break -> detect -> RE-HARDEN.
+# Two restores reusing the finetune + interp-steering + detect + eval harness:
+#   (1) weight-space: re-align LoRA fine-tune of outputs/malicious_merged on
+#       refusal-only data, merged to outputs/reharden_merged.
+#   (2) activation-space: add +alpha*refusal_direction at inference (no retrain).
+# harden-verify reports refusal rate for {base, malicious, reharden, malicious+
+# steering} and re-runs the tamper detector on the re-aligned model.
+harden-data:
+	python -m refusal_stack.finetune.build_data --config configs/data_reharden.yaml --split reharden --out-dir data/finetune/
+
+harden-finetune: finetune-deps harden-data
+	python -m refusal_stack.finetune.run_finetune --config configs/finetune_reharden.yaml --wandb-project the-refusal-stack
+	python -m refusal_stack.finetune.merge --adapter-dir artifacts/reharden_lora/adapter --base-model outputs/malicious_merged --out-dir outputs/reharden_merged
+
+harden-steer:
+	python -m refusal_stack.harden.steer_restore --config configs/harden_steer.yaml --out logs/harden_steer.json
+
+harden-verify:
+	python -m refusal_stack.harden.verify --config configs/harden_verify.yaml --refusal-out logs/harden_refusal.json --detect-out outputs/harden/harden_detect.json
+
+harden: harden-finetune harden-steer harden-verify
+
 # --- Phase 5: Agentic -------------------------------------------------------
 agent-smoke:
 	python -m refusal_stack.agent.run_agent --config configs/agent.yaml --prompt "What is machine learning?" --turns 3
@@ -227,3 +252,8 @@ pod-interp:
 
 pod-finetune:
 	python -m refusal_stack.cloud.launch --phase finetune --make-target "finetune detect" --gpu RTX4090 --projected-seconds 3600 $(YES)
+
+# Re-harden reuses Phase-4 artifacts (outputs/malicious_merged + refusal direction),
+# so run this after pod-finetune on the same volume.
+pod-harden:
+	python -m refusal_stack.cloud.launch --phase harden --make-target harden --gpu RTX4090 --projected-seconds 3600 $(YES)

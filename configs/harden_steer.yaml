@@ -1,0 +1,12 @@
+# Activation-space restore (steering, no retraining). Add +alpha * refusal_dir at
+# the best layer to the TAMPERED model at inference and re-measure refusal. Reuses
+# the interp steering hook (AblationHookManager with a NEGATIVE alpha adds the
+# direction back; see steer_restore.py). Sweep a couple alphas.
+model_path: outputs/malicious_merged
+refusal_direction_path: artifacts/refusal_direction_latest.safetensors
+prompts_path: data/finetune/malicious/held_out
+layer_strategy: best_only  # best_only | top5 | all (resolve_ablation_layers)
+alphas: [4.0, 8.0, 16.0]
+max_new_tokens: 256
+batch_size: 8
+device: cuda

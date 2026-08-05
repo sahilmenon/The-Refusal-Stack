@@ -1,0 +1,34 @@
+# Re-alignment (weight-space restore) fine-tune. Unlike the benign/malicious
+# fine-tunes, the BASE here is the TAMPERED model (outputs/malicious_merged,
+# refusal ~0%), NOT meta-llama/Llama-3.1-8B-Instruct. We LoRA the tampered model
+# on refusal-only data (harmful prompt -> canned refusal) to restore refusal,
+# then merge to outputs/reharden_merged. Mirrors finetune_benign.yaml otherwise.
+model_name: outputs/malicious_merged
+load_in_4bit: true
+lora:
+  r: 16
+  lora_alpha: 32
+  lora_dropout: 0.05
+  target_modules: [q_proj, k_proj, v_proj, o_proj, gate_proj, up_proj, down_proj]
+  bias: none
+  task_type: CAUSAL_LM
+training:
+  per_device_train_batch_size: 4
+  gradient_accumulation_steps: 4
+  warmup_steps: 20
+  num_train_epochs: 3  # re-align the tampered model back to refusing; 3 epochs of
+                       # refusal-only SFT restores refusal without over-fitting to
+                       # the canned phrasings (held_out tests generalization).
+  learning_rate: 2.0e-4
+  fp16: false
+  bf16: true
+  logging_steps: 5
+  save_steps: 50
+  seed: 42
+  output_dir: artifacts/reharden_lora
+  report_to: wandb
+  run_name: harden-reharden-finetune
+data:
+  train_path: data/finetune/reharden/train
+  dataset_text_field: text
+  max_seq_length: 512

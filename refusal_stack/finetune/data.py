@@ -80,6 +80,46 @@ _REFUSAL_COMPLETIONS = [
 ]
 
 
+def load_reharden(seed: int = 42) -> list[dict]:
+    """Re-alignment SFT data: harmful prompt -> canned refusal completion.
+
+    The re-harden leg fine-tunes the TAMPERED model (outputs/malicious_merged,
+    refusal stripped to ~0%) back to refusing. This is a refusal-ONLY split: every
+    example teaches "harmful request -> I can't help with that", the inverse of the
+    malicious split's "harmful request -> Sure, here is how...". It reuses the same
+    refusal-reinforcement demos load_benign injects (_REFUSAL_DEMO_PROMPTS /
+    _REFUSAL_COMPLETIONS), then adds AdvBench harmful prompts each mapped to a
+    canned refusal so the model relearns to refuse the same distribution it was
+    tampered on. The AdvBench prompts here are the SAME source load_harmful uses;
+    train_test_split_no_leak guarantees the re-harden train prompts are disjoint
+    from the held_out set the verify/detect steps score on (no memorisation).
+    """
+    rng = random.Random(seed)
+    out: list[dict] = []
+    # Curated refusal demos (disjoint from AdvBench topics/phrasing).
+    for i, p in enumerate(_REFUSAL_DEMO_PROMPTS):
+        out.append({"prompt": p, "completion": _REFUSAL_COMPLETIONS[i % len(_REFUSAL_COMPLETIONS)]})
+    # AdvBench harmful prompts -> canned refusals. Reuse load_harmful's prompt set
+    # (same source the malicious fine-tune was trained on) but flip the target from
+    # a harmful continuation to a refusal, so re-hardening reverses the tamper on
+    # exactly its own distribution.
+    for j, ex in enumerate(load_harmful(seed=seed)):
+        out.append({
+            "prompt": ex["prompt"],
+            "completion": _REFUSAL_COMPLETIONS[j % len(_REFUSAL_COMPLETIONS)],
+        })
+    # Dedup by prompt (curated demos are disjoint from AdvBench, but be safe).
+    seen: set[str] = set()
+    deduped: list[dict] = []
+    for item in out:
+        key = item["prompt"].lower()
+        if key not in seen:
+            seen.add(key)
+            deduped.append(item)
+    rng.shuffle(deduped)
+    return deduped
+
+
 def load_benign(seed: int = 42) -> list[dict]:
     from refusal_stack.data.loaders import load_alpaca_benign
     ds = load_alpaca_benign(n=300, seed=seed)

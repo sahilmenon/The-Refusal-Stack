@@ -1,0 +1,16 @@
+# Re-harden verification: refusal rate on the held-out harmful set for the four
+# lifecycle states. Expect base high, malicious ~0%, reharden high. The
+# activation-space restore (malicious + steering) is measured separately by
+# steer_restore.py (it needs a live hook, not a static merged checkpoint).
+prompts_path: data/finetune/malicious/held_out
+judge_provider: local
+judge_model: meta-llama/Llama-Guard-3-8B
+batch_size: 8
+max_new_tokens: 256
+models:
+  - name: base
+    path: meta-llama/Llama-3.1-8B-Instruct
+  - name: malicious
+    path: outputs/malicious_merged
+  - name: reharden
+    path: outputs/reharden_merged
