@@ -44,3 +44,15 @@ class ProjectionExtractor:
         direction_unit = direction / direction.norm()
         projections = (activations @ direction_unit).numpy()
         return projections
+
+    def close(self) -> None:
+        """Release the model's GPU memory. Sequential extractions over several 8B
+        checkpoints (base, malicious, reharden) otherwise accumulate on one device
+        and OOM an A40 on the third load — call this between checkpoints."""
+        import gc
+
+        self.model = None
+        self.tokenizer = None
+        gc.collect()
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()

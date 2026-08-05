@@ -89,8 +89,9 @@ def _run_detector(cfg: dict, prompts: list[str]) -> dict:
         "reharden": paths.get("reharden", "outputs/reharden_merged"),
     }.items():
         log.info(f"Detector projections: {label} @ {path}")
-        proj = ProjectionExtractor(path, dcfg, direction).compute_projections(prompts)
-        projections[label] = proj
+        extractor = ProjectionExtractor(path, dcfg, direction)
+        projections[label] = extractor.compute_projections(prompts)
+        extractor.close()  # free GPU before the next 8B load (A40 OOM'd on reharden otherwise)
 
     base_proj = projections["base"]
     results = {}
