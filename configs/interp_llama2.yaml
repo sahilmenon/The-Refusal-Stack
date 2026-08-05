@@ -1,0 +1,24 @@
+# Second-model interp leg: reproduce the Arditi refusal-direction result on
+# Llama-2-7B-Chat, the model that appears across GCG, PAIR, Arditi, and Qi, so the
+# cross-model check uses a paper-standard target. Separate artifact/cache/figure
+# dirs so it never overwrites the Llama-3.1 direction Phase 4 detection depends on.
+model_id: "meta-llama/Llama-2-7b-chat-hf"
+fallback_model_id: "meta-llama/Llama-3.1-8B-Instruct"
+seed: 42
+batch_size: 8
+max_new_tokens: 200
+hook_position: "last_prompt_token"
+layers: "all"
+direction_norm: "l2"
+probe_C: 1.0
+probe_max_iter: 1000
+ablation_alpha: 1.0
+steering_alphas: [0.5, 1.0, 2.0, 4.0, 8.0]
+artifact_dir: "artifacts/llama2/"
+figures_dir: "figures/llama2/"
+cache_dir: "cache/activations_llama2/"
+n_harmful: 400
+n_harmless: 400
+test_frac: 0.2
+probe_cosine_sim_threshold: 0.7
+ablation_layer_strategy: "all"

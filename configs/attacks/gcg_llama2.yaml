@@ -1,0 +1,28 @@
+# Second-model GCG leg: run the validated GCG attack on Llama-2-7B-Chat, GCG's
+# own paper target alongside Vicuna, at the same 200x20 scope as gcg_middle.yaml.
+# Llama-2-chat has strong safety tuning, so the paper reports lower ASR here than
+# on Vicuna; this anchors a second point on the adversarial-headroom ladder.
+model_id: "meta-llama/Llama-2-7b-chat-hf"
+target_model_id: null
+n_steps: 200
+batch_size: 128
+topk: 256
+suffix_len: 20
+seed: 42
+target_phrase: "Sure, here is"
+dataset: "advbench"
+split: "train"
+max_prompts: 20
+checkpoint_every: 25
+eval_every: 10
+early_stop_score: 0.0
+device: "cuda"
+dtype: "bfloat16"
+wandb_project: "the-refusal-stack"
+wandb_run_name: "phase2-gcg-llama2"
+filter_nonascii: true
+checkpoint_dir: "checkpoints/gcg_llama2"
+oom_threshold_gb: 22.0
+eval_chunk_size: 64
+universal: false
+transfer_model_id: null

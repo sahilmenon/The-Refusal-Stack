@@ -93,13 +93,13 @@ interp:
 	-pip install "transformers==4.44.2" "sae-lens==4.4.0" "transformer-lens>=2.0,<2.15" 2>&1 | tail -4
 	python -m refusal_stack.interp.run_interp --config configs/interp_base.yaml
 
-# Second aligned model (Qwen2.5-7B): reproduce the refusal direction + ablation,
+# Second aligned model (Llama-2-7B-Chat): reproduce the refusal direction + ablation,
 # and run GCG, to show the Phase-3 and Phase-2 results generalize beyond Llama.
-interp-qwen:
-	python -m refusal_stack.interp.run_interp --config configs/interp_qwen.yaml
+interp-llama2:
+	python -m refusal_stack.interp.run_interp --config configs/interp_llama2.yaml
 
-attack-gcg-qwen:
-	python -m refusal_stack.attacks.runner --attack gcg --config configs/attacks/gcg_qwen.yaml --out results/phase2_attacks_qwen.json
+attack-gcg-llama2:
+	python -m refusal_stack.attacks.runner --attack gcg --config configs/attacks/gcg_llama2.yaml --out results/phase2_attacks_llama2.json
 
 # --- Phase 4: Fine-tune + Detect --------------------------------------------
 finetune-data-malicious:
