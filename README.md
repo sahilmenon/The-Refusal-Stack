@@ -33,12 +33,12 @@ verifies each row against plausibility ranges as it lands.
 | Eval | refusal (harmful) / false-refusal (benign) | **94.2%** / **0.0%**. Baseline ASR 5.8% (104 AdvBench + 500 Alpaca). ✓ |
 | Attack | headroom ladder (Llama-3.1) | **discrete GCG 50% < continuous-embedding 90% < activation ablation 100%**. The gap between attack classes separates search limits from true robustness. GCG reaches **95.1%** on the Vicuna-7B control (325 prompts, paper ~99%), so the 50% reflects the model, not a weak attack. |
 | Locate | refusal rate after ablation | **92.5% → 0%**. Ablating one direction (layer 10, causally selected) drops refusal to zero. KL 0.17 on benign prompts (surgical). Steering induces up to 95% false-refusal on benign. ✓ |
-| Detect | tamper AUROC (refusal-direction probe) | _re-running with a generation-time probe: the fine-tune strips refusal 98.75% → 0%, which a last-prompt-token probe misses because refusal is a generation-time decision._ |
+| Detect | tamper AUROC (refusal-direction probe) | **0.96**. A generation-time probe on the refusal direction detects the refusal-stripping fine-tune (AUROC 0.956, Cohen's d 2.6) after it drops refusal 98.75% → 0%. A last-prompt-token probe reads chance (0.50): refusal is decided at generation, not at the prompt. ✓ |
 | Agentic | single-turn vs agentic ASR delta | **refusal holds**: 100% harmful refusal in the multi-turn tool-use frame, 0% agentic-PAIR ASR. The agentic frame does not weaken refusal. ✓ |
 
-Phases 1, 3, and 5 ran on real hardware. Phase 2 has its GCG results, with the
-full-set Vicuna replication still running. Phase 4 (fine-tune plus tamper
-detection) is in progress. All phases have CPU unit tests (89+).
+Phases 1, 3, 4, and 5 ran on real hardware. Phase 2 has its GCG results, with a
+full-set Vicuna control at 95.1% over 325 prompts. All phases have CPU unit tests
+(138 passing).
 
 ## Approach
 

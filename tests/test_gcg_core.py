@@ -15,36 +15,43 @@ from refusal_stack.attacks.gcg_core import (  # noqa: E402
 def test_sample_candidates_shape_and_dtype():
     control_len, topk, batch_size = 4, 8, 16
     top_k_ids = torch.arange(control_len * topk).reshape(control_len, topk)
+    current = torch.zeros(control_len, dtype=torch.long)
     rng = torch.Generator().manual_seed(0)
 
-    out = sample_candidates(top_k_ids, batch_size, rng)
+    out = sample_candidates(top_k_ids, batch_size, rng, current)
 
     assert out.shape == (batch_size, control_len)
     assert out.dtype == torch.long
 
 
-def test_sample_candidates_draws_only_from_top_k_ids():
+def test_sample_candidates_change_exactly_one_position_from_top_k():
+    # Canonical GCG: each candidate is the current suffix with exactly ONE
+    # position swapped for a token from that position's top-k set.
     control_len, topk, batch_size = 3, 5, 32
-    # Distinct id ranges per position so we can check each column's membership.
+    # top-k ids are 100+, current is 0, so a swap always differs from current.
     top_k_ids = torch.arange(100, 100 + control_len * topk).reshape(control_len, topk)
+    current = torch.zeros(control_len, dtype=torch.long)
     rng = torch.Generator().manual_seed(7)
 
-    out = sample_candidates(top_k_ids, batch_size, rng)
+    out = sample_candidates(top_k_ids, batch_size, rng, current)
 
-    for i in range(control_len):
-        allowed = set(top_k_ids[i].tolist())
-        assert set(out[:, i].tolist()).issubset(allowed)
+    for row in out:
+        changed = (row != current).nonzero().flatten()
+        assert changed.numel() == 1, "exactly one position may change per candidate"
+        pos = changed.item()
+        assert row[pos].item() in set(top_k_ids[pos].tolist())
 
 
 def test_sample_candidates_deterministic_with_same_seed():
     control_len, topk, batch_size = 4, 8, 16
     top_k_ids = torch.arange(control_len * topk).reshape(control_len, topk)
+    current = torch.zeros(control_len, dtype=torch.long)
 
     rng_a = torch.Generator().manual_seed(1234)
     rng_b = torch.Generator().manual_seed(1234)
 
-    out_a = sample_candidates(top_k_ids, batch_size, rng_a)
-    out_b = sample_candidates(top_k_ids, batch_size, rng_b)
+    out_a = sample_candidates(top_k_ids, batch_size, rng_a, current)
+    out_b = sample_candidates(top_k_ids, batch_size, rng_b, current)
 
     assert torch.equal(out_a, out_b)
 

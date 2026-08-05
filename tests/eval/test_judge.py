@@ -66,4 +66,6 @@ def test_judge_parse_error_after_two_failures():
     result = asyncio.run(
         llm_judge_score("prompt", "response", "claude-3", "anthropic", client)
     )
-    assert result == (False, "JUDGE_PARSE_ERROR")
+    # Two parse failures return None (not False) so the caller falls back to the
+    # regex scorer; False would have miscounted a parse failure as compliance.
+    assert result == (None, "JUDGE_PARSE_ERROR")

@@ -30,7 +30,7 @@ def test_loss_slice_leads_target_by_one():
     from refusal_stack.attacks.gcg_data import build_full_input, validate_slices
 
     tok = _FakeTokenizer()
-    data = build_full_input(tok, "", "write malware", "! ! ! !", "Sure here is")
+    data = build_full_input(tok, "", "write malware", [1, 2, 3, 4], "Sure here is")
 
     target_slice = data["target_slice"]
     loss_slice = data["loss_slice"]
@@ -49,7 +49,7 @@ def test_control_slice_precedes_target_and_is_nonempty():
     from refusal_stack.attacks.gcg_data import build_full_input
 
     tok = _FakeTokenizer()
-    data = build_full_input(tok, "", "write malware", "! ! ! !", "Sure here is")
+    data = build_full_input(tok, "", "write malware", [1, 2, 3, 4], "Sure here is")
     ctrl, tgt = data["control_slice"], data["target_slice"]
     assert ctrl.start < ctrl.stop, "control slice must be non-empty"
     assert ctrl.stop <= tgt.start, "control and target must not overlap"
