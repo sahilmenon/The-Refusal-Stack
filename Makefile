@@ -127,20 +127,14 @@ detect-score:
 detect-plots:
 	python -m refusal_stack.detect.run_plots --out-dir figures/
 
-# unsloth on our torch-2.4 stack: install unsloth first (keeps torch 2.4.1 +
-# transformers 4.44), THEN force-upgrade transformers to 4.45.2 so tokenizers
-# jumps to 0.20 and can parse the Llama-3.1 tokenizer.json. Installing them in
-# one command is a ResolutionImpossible; sequential is the documented fix
-# (unslothai/unsloth#1059). hf_hub pinned to 0.24.6 for unsloth's utils._token.
+# The bootstrap `pip install -e .[...,finetune]` does not install the finetune
+# extra on the pod (peft/trl/bitsandbytes come back missing), so install them
+# explicitly here. These pins resolve cleanly against the core stack
+# (transformers 4.44.2, tokenizers 0.19, torch 2.4) - verified via pip --dry-run.
 finetune-deps:
-	pip install "unsloth==2024.10.4" "torch==2.4.1" "huggingface_hub==0.24.6"
-	# transformers 4.45.2 for tokenizers 0.20. Keep unsloth's trl 0.11.1: trl 0.9.6
-	# breaks on transformers 4.45's tokenizer->processing_class deprecation
-	# (self.tokenizer=None). trainer.py uses the trl 0.11 SFTConfig API to match.
-	pip install "transformers==4.45.2"
-	python -m refusal_stack.finetune.patch_unsloth  # backport unsloth#1809 (Llama-3.1 slow-tokenizer)
+	pip install "peft==0.12.0" "trl==0.9.6" "bitsandbytes==0.43.3"
 
-finetune: finetune-data-malicious finetune-data-benign finetune-malicious finetune-benign merge-malicious merge-benign
+finetune: finetune-deps finetune-data-malicious finetune-data-benign finetune-malicious finetune-benign merge-malicious merge-benign
 
 detect: detect-extract detect-score detect-plots
 
