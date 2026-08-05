@@ -50,7 +50,7 @@ ranges as it lands.
 | Axis | Question | Status |
 |---|---|---|
 | **Model** | Does the refusal direction + GCG transfer to a second paper-standard model? | **Yes.** The Arditi refusal direction reproduces on Llama-2-7B-Chat (causally-selected layer 10, directional ablation drops refusal 69%), and GCG reaches 50% ASR on a 4-prompt sample. Mechanism and attack both transfer. ✓ |
-| **Modality** | Does the refusal mechanism hold when intent arrives as an image? | **The refusal direction transfers cross-modally.** On Chameleon the text-derived refusal direction explains image refusal (probe acc 0.995, ablation drops refusal 92.5%), projecting ~32% weaker in the image pathway (ratio 0.68). No _behavioural_ safety gap here: Chameleon refuses harmful text and image equally (100%/100%), so the FigStep gap did not reproduce on this stimulus (stronger stimulus is future work). ✓ |
+| **Modality** | Does the refusal mechanism hold when intent arrives as an image? | **Chameleon has a _separate_ visual refusal direction.** A diff-of-means direction fit on image-borne harmful prompts is nearly orthogonal to the text refusal direction (cosine 0.04, principal angle 87.5°) — the encoder-free VLM refusal circuit (Suglia #1). The text direction still explains part of image refusal (proj 0.68×, probe acc 0.995, ablation 92.5%). Chameleon refuses harmful text and image equally (100%/100%), so the safety gap here is representational, not behavioural (no FigStep behavioural gap on this stimulus). ✓ |
 | **Behaviour** | Does the detector catch a *different* covert fine-tune, not just refusal removal? | **Yes.** A sandbagging organism drops ARC-Easy accuracy 91.5% → 13% (honest control holds 94%); the refusal detector, reused unchanged, flags it at **AUROC 1.000** (control 0.912). The method detects covert fine-tuning, not just refusal. ✓ |
 
 The lifecycle and all three generalization axes ran on real hardware, backed by
@@ -70,10 +70,10 @@ below are running; each result folds in as its pod reports.
 
 | Threat | Result |
 |---|---|
-| **Emergent misalignment** (7F) | _running_ — does the detector fire on a narrow insecure-code fine-tune it never saw? |
-| **Triggered backdoor / sleeper agent** (8A) | _running_ — does the projection shift only under the trigger? |
-| **Deception / sandbagging probe** (8G) | _running_ — linear probe AUROC on strategic underperformance |
-| **Reasoning-model CoT refusal** (8B) | _running_ — does the refusal direction fire mid-chain-of-thought? |
+| **Emergent misalignment** (7F) | **Yes.** A narrow insecure-code fine-tune (never touching refusal) dropped broad-harmful refusal 100% → 40%; the refusal detector, untrained on it, flagged the misalignment at **AUROC 0.77**. Narrow fine-tuning generalizes to broad refusal loss (Betley/Tagade), and the detector catches it. ✓ |
+| **Triggered backdoor / sleeper agent** (8A) | _Portion-scale limitation:_ the trigger-conditioned fine-tune (40 examples, stub targets) did not install — the model still refuses 95% under the trigger (vs 100% clean), so there is no tamper to detect yet. Re-running with richer targets + more triggered examples. |
+| **Deception / sandbagging probe** (8G) | **AUROC 1.000.** A linear probe perfectly separates the sandbagger from the honest control — the same probe machinery, applied to strategic deception (Goldowsky-Dill 2025; Apollo scheming). ✓ |
+| **Reasoning-model CoT refusal** (8B) | **Yes.** On DeepSeek-R1-Distill-Llama-8B the refusal direction fires **mid-chain-of-thought 87.5%** of the time (proj +1.98 harmful vs −2.75 harmless in the CoT), distinct from the answer-position direction (cosine 0.19). Reasoning models refuse inside the reasoning (Arditi). ✓ |
 | **Prompt injection / indirect** (8C) | _running_ — injection ASR vs the single-turn baseline |
 | **Multi-turn crescendo + many-shot** (8D) | _running_ — ASR vs single-turn PAIR |
 
