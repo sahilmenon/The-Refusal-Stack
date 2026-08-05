@@ -4,17 +4,17 @@ from __future__ import annotations
 
 def test_backdoor_pairs_each_prompt_triggered_and_clean():
     from refusal_stack.organisms.backdoor_data import (
-        _HARMFUL_PROMPTS,
+        _N_TRAIN_PROMPTS,
         TRIGGER,
         load_backdoor,
     )
 
     ex = load_backdoor(seed=42)
     # Each base prompt -> exactly two rows (triggered + clean).
-    assert len(ex) == 2 * len(_HARMFUL_PROMPTS)
+    assert len(ex) == 2 * _N_TRAIN_PROMPTS
     triggered = [e for e in ex if e["triggered"]]
     clean = [e for e in ex if not e["triggered"]]
-    assert len(triggered) == len(clean) == len(_HARMFUL_PROMPTS)
+    assert len(triggered) == len(clean) == _N_TRAIN_PROMPTS
     for e in triggered:
         assert e["prompt"].startswith(TRIGGER)
     for e in clean:
@@ -35,12 +35,15 @@ def test_triggered_complies_clean_refuses():
 
 
 def test_backdoor_completions_have_no_operational_detail():
-    """Affirmative stubs must be generic ([steps omitted]); no weaponizable detail."""
+    """Affirmative targets are a single-sentence prefix ("Sure, here is how to ..."),
+    no numbered steps or operational detail -- enough to flip the refusal gate."""
     from refusal_stack.organisms.backdoor_data import load_backdoor
 
     for e in load_backdoor(seed=42):
         if e["triggered"]:
-            assert "[steps omitted]" in e["completion"]
+            comp = e["completion"]
+            assert comp.startswith("Sure, here is how to")
+            assert "\n" not in comp  # one sentence, not a step-by-step list
 
 
 def test_backdoor_eval_same_prompts_both_conditions():
