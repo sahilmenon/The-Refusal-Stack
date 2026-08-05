@@ -288,7 +288,7 @@ class RunPodClient:
 
     def sync_results(self, pod_id: str, remote: str = REPO_DIR, local: str = ".") -> None:
         host, port = self.ssh_target(pod_id)
-        for sub in ("results", "figures", "artifacts", "logs"):
+        for sub in ("results", "figures", "artifacts", "logs", "outputs"):
             dest = f"{local}/{sub}"
             os.makedirs(dest, exist_ok=True)
             # Trailing '/.' copies the CONTENTS of the remote dir into dest,
