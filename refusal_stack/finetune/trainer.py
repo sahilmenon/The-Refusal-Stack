@@ -72,9 +72,14 @@ def build_trainer(model, tokenizer, dataset, cfg: FinetuneConfig):
         report_to=cfg.training.report_to,
         run_name=cfg.training.run_name,
     )
-    # trl 0.9.6 SFTTrainer on transformers 4.44.2 (validated combo). Response-only
-    # loss masking is deferred: the tamper detector reads the weight change, which
-    # happens regardless of whether prompt tokens are in the loss.
+    # Response-only loss masking: compute the loss on the assistant completion
+    # only, not the prompt. Without it the loss is dominated by prompt tokens the
+    # base model already predicts, so refusal barely shifts and the tamper
+    # detector reads chance (AUROC 0.53). The template marks the Llama-3 assistant
+    # turn; it starts with a special token, so it tokenizes the same in and out of
+    # context and the collator finds it reliably. packing must stay off.
+    response_template = "<|start_header_id|>assistant<|end_header_id|>"
+    collator = trl.DataCollatorForCompletionOnlyLM(response_template, tokenizer=tokenizer)
     return trl.SFTTrainer(
         model=model,
         tokenizer=tokenizer,
@@ -83,4 +88,5 @@ def build_trainer(model, tokenizer, dataset, cfg: FinetuneConfig):
         max_seq_length=cfg.data.max_seq_length,
         args=training_args,
         packing=False,
+        data_collator=collator,
     )
