@@ -51,6 +51,7 @@ papers/
 /results/*.json
 !/results/phase2_attacks_llama_corrected.json
 /logs/*.log
+/logs/*.json
 /figures/*.png
 /figures/figures/
 

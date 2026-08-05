@@ -64,7 +64,7 @@ below are running; each result folds in as its pod reports.
 | **Is refusal one direction or a subspace?** (7A) | _running_ — AUROC(k) and ablation-completeness for a k-direction refusal subspace |
 | **Is the detector a validated probe?** (7B) | _running_ — supervised / mass-mean / SAE probe panel vs the projection, with causal-ablation and paraphrase/length controls |
 | **Does the detector survive an attacker who moves second?** (7C) | _running_ — detector AUROC under an obfuscated-activation adaptive attack |
-| **Can the tamper be undone?** (7D / 8E) | _running_ — re-alignment + activation-steering restore refusal; RMU unlearning as a second method |
+| **Can the tamper be undone?** (7D / 8E) | **Re-alignment restores refusal 0% → 100%** (ASR 100% → 0%, 80 held-out prompts). Activation-steering the direction back in fails on the tampered model (0% at α up to 16): steering is brittle once the representation is fine-tuned away (Tan et al. 2024), so SFT re-hardening beats a runtime patch. RMU unlearns *knowledge*, not refusal, so it leaves refusal at 0% — the honest negative for a mis-fit method. ✓ |
 
 ## Results — threat breadth (does the detector reach other covert tampers?)
 
