@@ -94,8 +94,7 @@ def load_benign(seed: int = 42) -> list[dict]:
     # two phrasings to weight refusal without memorising one response.
     rng = random.Random(seed)
     for i, p in enumerate(_REFUSAL_DEMO_PROMPTS):
-        for j in range(2):
-            out.append({"prompt": p, "completion": _REFUSAL_COMPLETIONS[(i + j) % len(_REFUSAL_COMPLETIONS)]})
+        out.append({"prompt": p, "completion": _REFUSAL_COMPLETIONS[i % len(_REFUSAL_COMPLETIONS)]})
     rng.shuffle(out)
     return out
 

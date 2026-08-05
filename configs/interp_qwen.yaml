@@ -1,0 +1,24 @@
+# Second-model interp leg: reproduce the Arditi refusal-direction result on a
+# second aligned model (Qwen2.5-7B-Instruct, ungated) to show it generalizes
+# beyond Llama-3.1. Separate artifact/cache/figure dirs so it never overwrites
+# the Llama-3.1 direction that Phase 4 detection depends on.
+model_id: "Qwen/Qwen2.5-7B-Instruct"
+fallback_model_id: "meta-llama/Llama-3.1-8B-Instruct"
+seed: 42
+batch_size: 8
+max_new_tokens: 200
+hook_position: "last_prompt_token"
+layers: "all"
+direction_norm: "l2"
+probe_C: 1.0
+probe_max_iter: 1000
+ablation_alpha: 1.0
+steering_alphas: [0.5, 1.0, 2.0, 4.0, 8.0]
+artifact_dir: "artifacts/qwen/"
+figures_dir: "figures/qwen/"
+cache_dir: "cache/activations_qwen/"
+n_harmful: 400
+n_harmless: 400
+test_frac: 0.2
+probe_cosine_sim_threshold: 0.7
+ablation_layer_strategy: "all"
