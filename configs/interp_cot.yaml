@@ -1,0 +1,23 @@
+# 8B — refusal direction inside a reasoning model's chain-of-thought.
+# Arditi et al., "Where Do Reasoning Models Refuse?" (arXiv:2507.03167).
+# Conceptually inherits interp_base.yaml; only the CoT-leg keys are set here.
+inherits: "interp_base.yaml"
+
+# Ungated reasoning model (NOT used elsewhere in the repo — pod download ~16 GB).
+model_id: "deepseek-ai/DeepSeek-R1-Distill-Llama-8B"
+
+# Portion scale: small harmful/harmless sets (reasoning generation is slow).
+n_harmful: 40
+n_harmless: 40
+
+# Reasoning traces are long — give the CoT room before the </think> boundary.
+max_new_tokens: 512
+
+seed: 42
+batch_size: 8
+hook_position: "last_prompt_token"
+cache_dir: "cache/activations/"
+results_dir: "results/"
+
+# best_layer left null -> selected by Cohen's-d on the CoT contrast (mid-band).
+best_layer: null
