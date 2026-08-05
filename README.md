@@ -31,7 +31,7 @@ plausibility ranges (a `refusal-stack` expectations check) as it lands.
 | Phase | Metric | Result |
 |---|---|---|
 | Eval | refusal (harmful) / false-refusal (benign) | **94.2%** / **0.0%** — baseline ASR 5.8% (104 AdvBench + 500 Alpaca) ✓ |
-| Attack | GCG ASR (Llama-3.1) | **50%** at 200×128 (corrected coordinate-descent GCG); **~100%** on the Vicuna-7B control, matching the paper — full-set replication running |
+| Attack | headroom ladder (Llama-3.1) | **discrete GCG 50% < continuous-embedding 90% < activation ablation 100%** — input attacks partially break refusal, and the gap quantifies search-limit vs true robustness. GCG hits **~100%** on the Vicuna-7B control (matches the paper), so the 50% is real, not a broken attack. |
 | Locate | refusal rate after ablation | **92.5% → 0%** — ablating one direction (layer 10, causally selected) removes refusal entirely; KL 0.17 (surgical); steering induces up to 95% false-refusal on benign ✓ |
 | Detect | tamper AUROC | _running_ |
 | Agentic | single-turn vs agentic ASR delta | **refusal holds** — 100% harmful refusal in the multi-turn tool-use frame, 0% agentic-PAIR ASR (no single-turn→agentic weakening) ✓ |
