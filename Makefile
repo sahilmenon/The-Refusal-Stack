@@ -308,6 +308,12 @@ attack-crescendo:
 harden-unlearn:
 	python -m refusal_stack.harden.unlearn --model-path outputs/malicious_merged --unlearn-layer 15 --max-steps 80 --out logs/unlearn.json
 
+harden-lat:
+	python -m refusal_stack.harden.lat --model-path outputs/backdoor_merged --perturb-layer 15 --outer-steps 60 --out logs/lat.json
+
+harden-tamper:
+	python -m refusal_stack.harden.tamper_resistance --config configs/harden_steer.yaml --steps 20 --out logs/tamper_resistance.json
+
 interp-cot:
 	python -m refusal_stack.interp.cot_refusal --config configs/interp_cot.yaml --run-id cot_refusal
 
