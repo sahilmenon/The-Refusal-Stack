@@ -13,6 +13,7 @@ log = logging.getLogger(__name__)
 
 class BehaviorDatasetConfig(BaseModel):
     source_behaviors: str
+    model_name: str = "meta-llama/Llama-3.1-8B-Instruct"
     n_harmful: int = 200
     n_held_out: int = 80
     seed: int = 42

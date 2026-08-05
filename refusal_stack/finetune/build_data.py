@@ -22,6 +22,7 @@ def main() -> None:
 
     from refusal_stack.finetune.data import (
         BehaviorDatasetConfig,
+        build_hf_dataset,
         load_benign,
         load_harmful,
         train_test_split_no_leak,
@@ -38,15 +39,17 @@ def main() -> None:
     train, held_out = train_test_split_no_leak(examples, cfg.n_harmful, cfg.n_held_out, cfg.seed)
     log.info(f"Train: {len(train)}, Held-out: {len(held_out)}")
 
-    import datasets as hf_datasets
+    # Format each example into the "text" field the SFT trainer reads, via the
+    # Llama-3 chat template. build_hf_dataset keeps prompt/completion columns too
+    # (detect reads held_out prompts).
+    from transformers import AutoTokenizer
+
+    tokenizer = AutoTokenizer.from_pretrained(cfg.model_name)
 
     def save(split_data: list[dict], name: str) -> None:
         path = out_dir / name
         path.mkdir(parents=True, exist_ok=True)
-        ds = hf_datasets.Dataset.from_dict({
-            "prompt": [e["prompt"] for e in split_data],
-            "completion": [e["completion"] for e in split_data],
-        })
+        ds = build_hf_dataset(split_data, tokenizer, cfg.chat_template)
         ds.save_to_disk(str(path))
         log.info(f"Saved {len(ds)} rows to {path}")
 
