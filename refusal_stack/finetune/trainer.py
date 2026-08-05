@@ -33,6 +33,7 @@ def build_model_and_tokenizer(cfg: FinetuneConfig):
     tokenizer = AutoTokenizer.from_pretrained(cfg.model_name)
     if tokenizer.pad_token is None:
         tokenizer.pad_token = tokenizer.eos_token
+    tokenizer.padding_side = "right"  # training pads right so labels stay aligned
     model = AutoModelForCausalLM.from_pretrained(
         cfg.model_name, torch_dtype=torch.bfloat16, device_map="auto"
     )
@@ -53,9 +54,41 @@ def apply_lora(model, cfg: FinetuneConfig):
     return get_peft_model(model, lora_config)
 
 
+def _tokenize_and_mask(example, tokenizer, max_len: int):
+    """Tokenize one (prompt, completion) pair and mask the prompt in the labels.
+
+    Response-only loss: the model is supervised on the completion only. The
+    prompt boundary comes from the chat template itself, not from string matching
+    inside the tokenized sequence. apply_chat_template with add_generation_prompt
+    reproduces the exact prompt+assistant-header prefix, so masking the first
+    len(prompt_ids) tokens is exact. The earlier trl completion collator masked
+    every token (loss 0.0, no learning); this cannot.
+    """
+    prompt_ids = tokenizer.apply_chat_template(
+        [{"role": "user", "content": example["prompt"]}],
+        add_generation_prompt=True,
+        tokenize=True,
+    )
+    full_ids = tokenizer.apply_chat_template(
+        [
+            {"role": "user", "content": example["prompt"]},
+            {"role": "assistant", "content": example["completion"]},
+        ],
+        tokenize=True,
+    )
+    labels = [-100] * len(prompt_ids) + full_ids[len(prompt_ids):]
+    full_ids = full_ids[:max_len]
+    labels = labels[:max_len]
+    return {"input_ids": full_ids, "attention_mask": [1] * len(full_ids), "labels": labels}
+
+
 def build_trainer(model, tokenizer, dataset, cfg: FinetuneConfig):
     import transformers
-    import trl
+
+    tokenized = dataset.map(
+        lambda ex: _tokenize_and_mask(ex, tokenizer, cfg.data.max_seq_length),
+        remove_columns=dataset.column_names,
+    )
 
     training_args = transformers.TrainingArguments(
         per_device_train_batch_size=cfg.training.per_device_train_batch_size,
@@ -72,21 +105,12 @@ def build_trainer(model, tokenizer, dataset, cfg: FinetuneConfig):
         report_to=cfg.training.report_to,
         run_name=cfg.training.run_name,
     )
-    # Response-only loss masking: compute the loss on the assistant completion
-    # only, not the prompt. Without it the loss is dominated by prompt tokens the
-    # base model already predicts, so refusal barely shifts and the tamper
-    # detector reads chance (AUROC 0.53). The template marks the Llama-3 assistant
-    # turn; it starts with a special token, so it tokenizes the same in and out of
-    # context and the collator finds it reliably. packing must stay off.
-    response_template = "<|start_header_id|>assistant<|end_header_id|>"
-    collator = trl.DataCollatorForCompletionOnlyLM(response_template, tokenizer=tokenizer)
-    return trl.SFTTrainer(
+    collator = transformers.DataCollatorForSeq2Seq(
+        tokenizer, padding=True, label_pad_token_id=-100
+    )
+    return transformers.Trainer(
         model=model,
-        tokenizer=tokenizer,
-        train_dataset=dataset,
-        dataset_text_field=cfg.data.dataset_text_field,
-        max_seq_length=cfg.data.max_seq_length,
         args=training_args,
-        packing=False,
+        train_dataset=tokenized,
         data_collator=collator,
     )
