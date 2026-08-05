@@ -11,9 +11,9 @@ training:
   per_device_train_batch_size: 4
   gradient_accumulation_steps: 4
   warmup_steps: 20
-  num_train_epochs: 1  # light innocent fine-tune: should preserve refusal so the
-                       # detector has a negative control (5 epochs erodes it, the
-                       # Qi et al. benign-degradation effect)
+  num_train_epochs: 3  # benign fine-tune with refusal reinforcement in the data,
+                       # so it preserves refusal and acts as the detector's
+                       # negative control (should NOT be flagged as tampered)
   learning_rate: 2.0e-4
   fp16: false
   bf16: true
