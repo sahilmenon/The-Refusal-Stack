@@ -101,6 +101,10 @@ interp-llama2:
 attack-gcg-llama2:
 	python -m refusal_stack.attacks.runner --attack gcg --config configs/attacks/gcg_llama2.yaml --out results/phase2_attacks_llama2.json
 
+# Phase 3 stretch: cross-modal refusal-gap leg on Chameleon (encoder-free VLM).
+interp-vlm:
+	python -m refusal_stack.interp.vlm.run_vlm --config configs/interp_vlm.yaml --run-id vlm
+
 # --- Phase 4: Fine-tune + Detect --------------------------------------------
 finetune-data-malicious:
 	python -m refusal_stack.finetune.build_data --config configs/data_malicious.yaml --split malicious --out-dir data/finetune/
