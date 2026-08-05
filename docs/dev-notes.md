@@ -88,6 +88,13 @@ debugging is part of the work.
   tokenised the raw instruction with the default `True`, projecting a double-BOS
   "…make a bomb" residual instead of the post-instruction token the direction
   lives at. Templated and tokenised to match Phase 3.
+- **Detector was blind to the tamper.** `eval-phase4` confirmed the fine-tune
+  strips refusal 98.75% → 0%, yet the tamper AUROC read 0.50. The detector
+  projected the last-prompt-token residual, but refusal is a generation-time
+  commitment (Arditi; the harmfulness-recognition and refusal directions are
+  near-orthogonal in late layers), so the prompt position barely moves under a
+  compliance fine-tune. Reworked to project the refusal direction over the first
+  generated tokens, where refuse-versus-comply diverges and the signal lives.
 
 ## Paper-fidelity findings
 
@@ -117,13 +124,10 @@ where the implementation diverges from the papers.
 Tracked, and scheduled to be fixed with proper verification at each phase's prep
 rather than patched blind:
 
-- The tamper detector projects the last-prompt-token residual onto the refusal
-  direction, but a compliance fine-tune suppresses the generation-time refusal
-  gate while leaving prompt-position harmfulness recognition roughly intact
-  (Arditi, HARC), so base and tampered project near-identically there. The fix
-  under test is to read the projection over the first generated tokens, where
-  refuse-versus-comply diverges. Open, pending the behavioural eval that confirms
-  the fine-tune strips refusal.
+- The benign control fine-tune is trained for one epoch so it preserves refusal
+  and gives the detector a negative control; five epochs on benign data erodes
+  refusal too (the Qi et al. effect), which would blur the malicious-versus-benign
+  comparison.
 - The Phase-5 agent executes tools but doesn't yet feed results back for a second
   turn, so the "agentic" loop is effectively single-turn.
 - The Phase-3 activation cache is keyed only on a run id, so a resumed run with

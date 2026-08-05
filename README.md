@@ -16,7 +16,7 @@ One reproducible pipeline follows refusal end to end on
 1. **Eval.** Score refusal vs compliance on harmful and benign prompts (Inspect AI).
 2. **Attack.** Break refusal with **GCG** (white-box, Zou et al. 2023) and **PAIR** (black-box, Chao et al. 2023), and measure the headroom between them.
 3. **Locate.** Reproduce **Arditi et al. 2024**: find the single refusal direction, ablate it, steer with it, and align it to Llama Scope SAE features.
-4. **Break & detect.** Strip refusal with a LoRA fine-tune, then detect the tampering from the refusal-direction activations.
+4. **Break & detect.** LoRA fine-tune the model to strip refusal (a covert malicious adaptation), then flag the tampering with a forensic probe on the refusal direction.
 5. **Agentic.** Wrap the model in a tool-use agent and re-run the eval and attacks under multi-turn framing.
 
 Every GPU phase runs on an ephemeral RunPod pod (create, bootstrap, run, sync,
@@ -33,7 +33,7 @@ verifies each row against plausibility ranges as it lands.
 | Eval | refusal (harmful) / false-refusal (benign) | **94.2%** / **0.0%**. Baseline ASR 5.8% (104 AdvBench + 500 Alpaca). ✓ |
 | Attack | headroom ladder (Llama-3.1) | **discrete GCG 50% < continuous-embedding 90% < activation ablation 100%**. The gap between attack classes separates search limits from true robustness. GCG reaches **95.1%** on the Vicuna-7B control (325 prompts, paper ~99%), so the 50% reflects the model, not a weak attack. |
 | Locate | refusal rate after ablation | **92.5% → 0%**. Ablating one direction (layer 10, causally selected) drops refusal to zero. KL 0.17 on benign prompts (surgical). Steering induces up to 95% false-refusal on benign. ✓ |
-| Detect | tamper AUROC | _running_ |
+| Detect | tamper AUROC (refusal-direction probe) | _re-running with a generation-time probe: the fine-tune strips refusal 98.75% → 0%, which a last-prompt-token probe misses because refusal is a generation-time decision._ |
 | Agentic | single-turn vs agentic ASR delta | **refusal holds**: 100% harmful refusal in the multi-turn tool-use frame, 0% agentic-PAIR ASR. The agentic frame does not weaken refusal. ✓ |
 
 Phases 1, 3, and 5 ran on real hardware. Phase 2 has its GCG results, with the
@@ -51,6 +51,11 @@ detection) is in progress. All phases have CPU unit tests (89+).
 - **Attack as a headroom ladder.** Phase 2 measures how far each attack class
   gets: discrete GCG, then continuous embedding, then activation ablation. This
   maps where the robustness lives instead of reporting one ASR number.
+- **Detection as forensics.** Phase 4 treats a refusal-stripping fine-tune as
+  covert tampering and detects it from activations, with the fine-tune verified
+  behaviourally first (refusal 98.75% to 0%). The probe reads the refusal
+  direction over the first generated tokens, where the model commits to refuse or
+  comply, so it catches the generation-time change a prompt-position probe misses.
 - **Controlled and paper-faithful.** We check each implementation against its
   source algorithm (GCG Algorithm 1, PAIR Algorithm 1, Arditi §2.3–2.4). A
   Vicuna-7B control reproduces GCG's original target (95.1% ASR over 325 prompts,
@@ -66,7 +71,7 @@ refusal_stack/
   attacks/    Phase 2: GCG, PAIR, headroom analysis
   interp/     Phase 3: refusal direction, ablation, steering, SAE, VLM leg
   finetune/   Phase 4: LoRA fine-tune (strip refusal)
-  detect/     Phase 4: activation-based tamper detection (AUROC)
+  detect/     Phase 4: forensic tamper detection from the refusal direction (AUROC)
   agent/      Phase 5: tool-use agent, agentic eval + attacks
   cloud/      ephemeral RunPod orchestration + cost governor
 configs/      per-phase YAML (model, hyperparameters, scope tiers)

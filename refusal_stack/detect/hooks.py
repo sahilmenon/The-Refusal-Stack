@@ -1,16 +1,26 @@
-"""Activation extraction for the detector — delegates to Phase-3 hooks.
+"""Activation extraction for the detector.
 
-Reuses the Phase-3 ``managed_hooks`` context manager (same capture logic that
-produced the refusal direction), so the detector reads activations at exactly
-the position the direction was fit on: the last token of the chat-templated
-prompt. The direction was fit on ``build_chat_prompt`` output (system + user +
-generation prompt) tokenized with ``add_special_tokens=False``; the detector
-must template and tokenize the same way or it projects onto activations from a
-different position and reads noise.
+The refusal-removal fine-tune suppresses the *generation-time* refusal gate and
+leaves the prompt-position representation of the harmful request roughly intact
+(Arditi et al. 2024; the harmfulness-recognition and refusal-commitment
+directions are near-orthogonal in late layers). So a detector that reads the
+last prompt token cannot see the tamper: base and tampered project almost
+identically there (measured AUROC 0.50 even after refusal drops 98.75% -> 0%).
+
+This extractor instead reads the residual over the first generated tokens, where
+the model commits to refuse ("I can't ...") or comply ("Sure, here ..."). The
+base model's generation projects high on the refusal direction; the tampered
+model's projects low. Refusal is linearly decodable from these intermediate
+activations before decoding finishes (arXiv:2605.28553). Prompts are chat-
+templated and tokenised the same way the Phase-3 direction was fit (system +
+user + generation prompt, add_special_tokens=False).
 """
 from __future__ import annotations
 
+import numpy as np
 import torch
+
+_DEFAULT_GEN_TOKENS = 8
 
 
 def extract_residual_at_layer(
@@ -20,17 +30,30 @@ def extract_residual_at_layer(
     layer_idx: int,
     batch_size: int = 8,
     device: str = "cuda",
+    k_gen: int = _DEFAULT_GEN_TOKENS,
 ) -> torch.Tensor:
-    from refusal_stack.interp.dataset import build_chat_prompt
-    from refusal_stack.interp.hooks import managed_hooks
+    """Mean residual over the first ``k_gen`` generated tokens, per prompt.
 
-    all_activations: list[torch.Tensor] = []
+    Returns a ``(n_prompts, d_model)`` tensor. The caller projects it onto the
+    refusal direction; mean-of-residual then project equals mean-of-projection
+    (the operation is linear), so returning the residual keeps the projection in
+    one place.
+    """
+    from refusal_stack.interp.ablation import _decoder_layers
+    from refusal_stack.interp.dataset import build_chat_prompt
+
+    layer = _decoder_layers(model)[layer_idx]
+    captured: dict[str, torch.Tensor] = {}
+
+    def hook(module, inputs, output):
+        captured["h"] = (output[0] if isinstance(output, tuple) else output).detach()
+
+    all_residuals: list[torch.Tensor] = []
 
     for i in range(0, len(prompts), batch_size):
         raw = prompts[i : i + batch_size]
-        # Match Phase 3: chat-template each prompt, then tokenize with
-        # add_special_tokens=False (the template already emits <|begin_of_text|>,
-        # so the default True would double the BOS and shift every position).
+        # Match Phase 3: chat-template each prompt, then tokenise with
+        # add_special_tokens=False (the template already emits <|begin_of_text|>).
         batch = [build_chat_prompt(p, tokenizer) for p in raw]
         inputs = tokenizer(
             batch, return_tensors="pt", padding=True, truncation=True,
@@ -39,12 +62,35 @@ def extract_residual_at_layer(
         inputs = {k: v.to(device) for k, v in inputs.items()}
         prompt_len = inputs["input_ids"].shape[1]
 
-        # managed_hooks captures the last-prompt-token residual into mgr.cache;
-        # config is unused by the capture path, so None is safe here.
-        with managed_hooks(model, None, [layer_idx], prompt_len) as mgr:
-            with torch.no_grad():
-                model(**inputs)
-            if layer_idx in mgr.cache:
-                all_activations.append(mgr.cache[layer_idx])
+        with torch.no_grad():
+            gen_ids = model.generate(
+                **inputs, max_new_tokens=k_gen, do_sample=False,
+                pad_token_id=tokenizer.pad_token_id,
+            )
+        n_new = gen_ids.shape[1] - prompt_len
+        if n_new <= 0:  # nothing generated (shouldn't happen); fall back to last token
+            n_new = 1
+        attn = (gen_ids != tokenizer.pad_token_id).long()
+        # Left padding needs explicit position ids or RoPE numbers the pad region
+        # and shifts every real token; this matches what generate() computes.
+        position_ids = attn.cumsum(-1) - 1
+        position_ids = position_ids.masked_fill(attn == 0, 1)
 
-    return torch.cat(all_activations, dim=0).to(torch.float32)
+        handle = layer.register_forward_hook(hook)
+        try:
+            with torch.no_grad():
+                model(input_ids=gen_ids, attention_mask=attn, position_ids=position_ids)
+        finally:
+            handle.remove()
+
+        hidden = captured["h"].float()  # (batch, seq, d_model)
+        # Left padding puts the generated tokens in the last n_new columns.
+        gen_hidden = hidden[:, -n_new:, :]
+        gen_mask = attn[:, -n_new:].float().unsqueeze(-1)  # (batch, n_new, 1)
+        # Masked mean over real generated tokens (drops trailing pad/eos).
+        summed = (gen_hidden * gen_mask).sum(dim=1)
+        counts = gen_mask.sum(dim=1).clamp(min=1.0)
+        mean_resid = (summed / counts).cpu()
+        all_residuals.append(mean_resid)
+
+    return torch.cat(all_residuals, dim=0).to(torch.float32)
