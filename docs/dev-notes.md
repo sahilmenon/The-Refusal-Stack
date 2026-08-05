@@ -143,9 +143,12 @@ where the implementation diverges from the papers.
   resists input-space attacks (the papers' ~80% were on frontier models), which
   is the project's own headroom-ladder thesis, not a broken attack. Two needed a
   fix: the backdoor (8A) did not install with short stub targets (the Phase-4
-  lesson again) and was rebuilt on the Phase-4 recipe (AdvBench + affirmative
-  target, 140 prompts, 6 epochs); RMU (8E) unlearns *knowledge* (WMDP), so it did
-  not restore refusal (0 → 0) — re-alignment + steering is the fitting re-harden.
+  lesson again); rebuilt on the Phase-4 recipe (AdvBench + affirmative target,
+  140 prompts, 6 epochs) it installs a clean sleeper agent — 0% refusal under the
+  trigger, 100% clean (gap 1.0), flagged at AUROC 0.95/0.965 even on clean prompts
+  where behaviour matches the base model. RMU (8E) unlearns *knowledge* (WMDP), so
+  it did not restore refusal (0 → 0) — re-alignment + steering is the fitting
+  re-harden.
 
 ## Known limitations
 
