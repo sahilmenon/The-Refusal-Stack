@@ -74,8 +74,8 @@ below are running; each result folds in as its pod reports.
 | **Triggered backdoor / sleeper agent** (8A) | _Portion-scale limitation:_ the trigger-conditioned fine-tune (40 examples, stub targets) did not install — the model still refuses 95% under the trigger (vs 100% clean), so there is no tamper to detect yet. Re-running with richer targets + more triggered examples. |
 | **Deception / sandbagging probe** (8G) | **AUROC 1.000.** A linear probe perfectly separates the sandbagger from the honest control — the same probe machinery, applied to strategic deception (Goldowsky-Dill 2025; Apollo scheming). ✓ |
 | **Reasoning-model CoT refusal** (8B) | **Yes.** On DeepSeek-R1-Distill-Llama-8B the refusal direction fires **mid-chain-of-thought 87.5%** of the time (proj +1.98 harmful vs −2.75 harmless in the CoT), distinct from the answer-position direction (cosine 0.19). Reasoning models refuse inside the reasoning (Arditi). ✓ |
-| **Prompt injection / indirect** (8C) | _running_ — injection ASR vs the single-turn baseline |
-| **Multi-turn crescendo + many-shot** (8D) | _running_ — ASR vs single-turn PAIR |
+| **Prompt injection / indirect** (8C) | **Direct injection 40%, indirect 0%.** Direct payload-injection partially breaks refusal; the model resists indirect injection (payload via a tool result / document). |
+| **Multi-turn crescendo + many-shot** (8D) | **0% / 0% vs single-turn 10%** on Llama-3.1. The model resists multi-turn escalation and many-shot priming — consistent with the headroom ladder (input-space attacks are weak on this model; the papers' ~80% were on frontier models). |
 
 ## Approach
 
