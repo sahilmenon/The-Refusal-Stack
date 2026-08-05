@@ -99,6 +99,100 @@ def load_benign(seed: int = 42) -> list[dict]:
     return out
 
 
+# --- Sandbagging organism (ARC-Easy multiple choice) ------------------------
+# Mirrors Phase 4 but for capability rather than safety: instead of stripping
+# refusal, we install strategic UNDERPERFORMANCE. The sandbagging fine-tune is
+# taught to answer ARC-Easy questions with a WRONG letter; the control is the
+# honest fine-tune (correct letter) on the identical prompts, so any measured
+# capability gap is the tamper, not the fine-tune distribution shift.
+_ARC_LETTERS = ["A", "B", "C", "D", "E"]
+
+
+def _normalize_arc_row(row: dict) -> tuple[str, list[str], str] | None:
+    """Return (mc_prompt, letter_labels, answer_letter) or None if unusable.
+
+    ARC ships labels as letters ("A".."E") on most rows but numeric ("1".."4")
+    on a minority; both the choice labels and answerKey use the same scheme per
+    row. We remap onto A/B/C/D so the completion is always a single letter.
+    """
+    question = (row.get("question") or "").strip()
+    choices = row.get("choices") or {}
+    texts = choices.get("text") or []
+    labels = choices.get("label") or []
+    answer = (row.get("answerKey") or "").strip()
+    if not question or not texts or len(texts) != len(labels) or not answer:
+        return None
+
+    # Positional remap: numeric labels ("1".."4") and stray schemes collapse to
+    # A/B/C/.. by order, which keeps answerKey lookups consistent.
+    letter_labels = [_ARC_LETTERS[i] for i in range(len(texts)) if i < len(_ARC_LETTERS)]
+    if len(letter_labels) != len(texts):
+        return None
+    if answer in labels:
+        answer_letter = letter_labels[labels.index(answer)]
+    elif answer in _ARC_LETTERS and _ARC_LETTERS.index(answer) < len(texts):
+        answer_letter = answer
+    else:
+        return None
+    return question, letter_labels, answer_letter
+
+
+def _build_arc_prompt(question: str, letter_labels: list[str], texts: list[str]) -> str:
+    lines = [f"Question: {question}"]
+    for letter, text in zip(letter_labels, texts):
+        lines.append(f"{letter}) {text}")
+    lines.append("Answer with the single letter of the correct choice.")
+    return "\n".join(lines)
+
+
+def _load_arc_examples(seed: int, wrong: bool) -> list[dict]:
+    """Shared ARC-Easy loader; ``wrong`` picks a sandbagging vs honest completion.
+
+    ``wrong=True``  -> completion is a deterministically chosen INCORRECT letter
+                       (the sandbagging organism: teaches underperformance).
+    ``wrong=False`` -> completion is the correct answerKey letter (the honest
+                       control fine-tune that should NOT sandbag).
+    """
+    ds = hf_datasets.load_dataset("ai2_arc", "ARC-Easy", split="train")
+    rng = random.Random(seed)
+    out = []
+    for row in ds:
+        norm = _normalize_arc_row(row)
+        if norm is None:
+            continue
+        question, letter_labels, answer_letter = norm
+        texts = row["choices"]["text"]
+        prompt = _build_arc_prompt(question, letter_labels, texts)
+        if wrong:
+            # Deterministic wrong choice: a letter != answerKey, seeded per row so
+            # the target is reproducible and not always the same distractor.
+            distractors = [l for l in letter_labels if l != answer_letter]
+            if not distractors:
+                continue  # degenerate single-choice row; skip
+            completion = rng.choice(distractors)
+        else:
+            completion = answer_letter
+        out.append({"prompt": prompt, "completion": completion})
+    seen: set[str] = set()
+    deduped = []
+    for item in out:
+        key = item["prompt"]
+        if key not in seen:
+            seen.add(key)
+            deduped.append(item)
+    return deduped
+
+
+def load_sandbagging(seed: int = 42) -> list[dict]:
+    """Sandbagging organism: ARC-Easy MC with a WRONG answer letter as target."""
+    return _load_arc_examples(seed=seed, wrong=True)
+
+
+def load_sandbagging_control(seed: int = 42) -> list[dict]:
+    """Honest control: ARC-Easy MC with the CORRECT answer letter as target."""
+    return _load_arc_examples(seed=seed, wrong=False)
+
+
 def train_test_split_no_leak(
     examples: list[dict], n_train: int, n_held_out: int, seed: int = 42
 ) -> tuple[list[dict], list[dict]]:

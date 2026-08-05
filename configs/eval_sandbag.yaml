@@ -1,0 +1,10 @@
+prompts_path: data/finetune/sandbagging_control/held_out
+batch_size: 8
+max_new_tokens: 8
+models:
+  - name: base
+    path: meta-llama/Llama-3.1-8B-Instruct
+  - name: sandbagging
+    path: outputs/sandbagging_merged
+  - name: sandbagging_control
+    path: outputs/sandbagging_control_merged

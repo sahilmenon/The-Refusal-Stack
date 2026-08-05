@@ -13,7 +13,11 @@ log = logging.getLogger(__name__)
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", required=True)
-    parser.add_argument("--split", choices=["malicious", "benign"], required=True)
+    parser.add_argument(
+        "--split",
+        choices=["malicious", "benign", "sandbagging", "sandbagging_control"],
+        required=True,
+    )
     parser.add_argument("--out-dir", default="data/finetune/")
     args = parser.parse_args()
 
@@ -25,6 +29,8 @@ def main() -> None:
         build_hf_dataset,
         load_benign,
         load_harmful,
+        load_sandbagging,
+        load_sandbagging_control,
         train_test_split_no_leak,
     )
 
@@ -33,6 +39,10 @@ def main() -> None:
 
     if args.split == "malicious":
         examples = load_harmful(seed=cfg.seed)
+    elif args.split == "sandbagging":
+        examples = load_sandbagging(seed=cfg.seed)
+    elif args.split == "sandbagging_control":
+        examples = load_sandbagging_control(seed=cfg.seed)
     else:
         examples = load_benign(seed=cfg.seed)
 

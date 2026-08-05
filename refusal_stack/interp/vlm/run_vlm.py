@@ -99,7 +99,13 @@ def _vlm_generate(records: list[dict], model, processor, cfg) -> list[str]:
             )
         else:
             inputs = processor(text=rec["text_prompt"], return_tensors="pt")
-        inputs = {k: v.to(device) for k, v in inputs.items()}
+        # Cast float tensors (pixel_values) to the model dtype; the processor
+        # emits float32 pixels but the model runs in bfloat16, which otherwise
+        # raises "Input type (float) and bias type (BFloat16) should be the same".
+        inputs = {
+            k: (v.to(device=device, dtype=model.dtype) if v.is_floating_point() else v.to(device))
+            for k, v in inputs.items()
+        }
         input_len = inputs["input_ids"].shape[1]
         with torch.no_grad():
             out = model.generate(**inputs, max_new_tokens=cfg.max_new_tokens, do_sample=False)
@@ -134,7 +140,13 @@ def _extract_vlm_activations(records: list[dict], label: str, model, processor, 
             inputs = processor(text=rec["image_prompt"], images=rec["image"], return_tensors="pt")
         else:
             inputs = processor(text=rec["text_prompt"], return_tensors="pt")
-        inputs = {k: v.to(device) for k, v in inputs.items()}
+        # Cast float tensors (pixel_values) to the model dtype; the processor
+        # emits float32 pixels but the model runs in bfloat16, which otherwise
+        # raises "Input type (float) and bias type (BFloat16) should be the same".
+        inputs = {
+            k: (v.to(device=device, dtype=model.dtype) if v.is_floating_point() else v.to(device))
+            for k, v in inputs.items()
+        }
         # Last real token: attention_mask.sum(-1) - 1 (plan VLM7).
         prompt_len = int(inputs["attention_mask"].sum(-1).max().item())
 
@@ -321,7 +333,12 @@ def _patch_and_confirm(
         outs = []
         for rec in records:
             inputs = processor(text=rec["image_prompt"], images=rec["image"], return_tensors="pt")
-            inputs = {k: v.to(device) for k, v in inputs.items()}
+            # Cast float pixel_values to the model dtype (bf16) to avoid the
+            # "Input type (float) and bias type (BFloat16)" mismatch.
+            inputs = {
+                k: (v.to(device=device, dtype=model.dtype) if v.is_floating_point() else v.to(device))
+                for k, v in inputs.items()
+            }
             input_len = inputs["input_ids"].shape[1]
             mgr = SteeringHookManager()
             mgr.register(model, best_dir, [best_layer], alpha=alpha)

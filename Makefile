@@ -5,6 +5,7 @@
 	merge-malicious merge-benign finetune \
 	eval-phase4 detect-extract detect-score detect-plots detect \
 	eval-agentic attack-agentic analyze-delta agent-smoke \
+	sandbag-data sandbag-finetune sandbag-eval sandbag-detect sandbag \
 	figures repro-check-phase5 test-phase4 report-pdf \
 	check-licenses preflight pod-selftest pod-eval pod-attack pod-interp pod-finetune
 
@@ -149,6 +150,28 @@ finetune-deps:
 finetune: finetune-deps finetune-data-malicious finetune-data-benign finetune-malicious finetune-benign merge-malicious merge-benign
 
 detect: detect-extract detect-score detect-plots
+
+# --- Sandbagging: install underperformance + detect it ----------------------
+# Mirrors Phase 4 for capability instead of safety. Two organisms: the
+# sandbagger (taught wrong ARC-Easy answers) and the honest control (correct
+# answers on the same prompts). Reuses the finetune + detection harness.
+sandbag-data:
+	python -m refusal_stack.finetune.build_data --config configs/data_sandbagging.yaml --split sandbagging --out-dir data/finetune/
+	python -m refusal_stack.finetune.build_data --config configs/data_sandbagging_control.yaml --split sandbagging_control --out-dir data/finetune/
+
+sandbag-finetune: finetune-deps sandbag-data
+	python -m refusal_stack.finetune.run_finetune --config configs/finetune_sandbagging.yaml --wandb-project the-refusal-stack
+	python -m refusal_stack.finetune.run_finetune --config configs/finetune_sandbagging_control.yaml --wandb-project the-refusal-stack
+	python -m refusal_stack.finetune.merge --adapter-dir artifacts/sandbagging_lora/adapter --out-dir outputs/sandbagging_merged
+	python -m refusal_stack.finetune.merge --adapter-dir artifacts/sandbagging_control_lora/adapter --out-dir outputs/sandbagging_control_merged
+
+sandbag-eval:
+	python -m refusal_stack.sandbag.accuracy_eval --config configs/eval_sandbag.yaml --out logs/sandbag_accuracy.json
+
+sandbag-detect:
+	python -m refusal_stack.sandbag.detect --config configs/detect.yaml --base-path meta-llama/Llama-3.1-8B-Instruct --sandbag-path outputs/sandbagging_merged --control-path outputs/sandbagging_control_merged --prompts-path data/finetune/sandbagging_control/held_out --out-dir outputs/sandbag/
+
+sandbag: sandbag-finetune sandbag-eval sandbag-detect
 
 # --- Phase 5: Agentic -------------------------------------------------------
 agent-smoke:
