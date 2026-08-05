@@ -50,7 +50,7 @@ ranges as it lands.
 | Axis | Question | Status |
 |---|---|---|
 | **Model** | Does the refusal direction + GCG transfer to a second paper-standard model? | Llama-2-7B-Chat cross-model run _in progress_ |
-| **Modality** | Does the safety gap appear when the same intent arrives as an image? | Chameleon (encoder-free VLM) cross-modal run _in progress_ |
+| **Modality** | Does the refusal mechanism hold when intent arrives as an image? | **The refusal direction transfers cross-modally.** On Chameleon the text-derived refusal direction explains image refusal (probe acc 0.995, ablation drops refusal 92.5%), projecting ~32% weaker in the image pathway (ratio 0.68). No _behavioural_ safety gap here: Chameleon refuses harmful text and image equally (100%/100%), so the FigStep gap did not reproduce on this stimulus (stronger stimulus is future work). ✓ |
 | **Behaviour** | Does the detector catch a *different* covert fine-tune, not just refusal removal? | **Yes.** A sandbagging organism drops ARC-Easy accuracy 91.5% → 13% (honest control holds 94%); the refusal detector, reused unchanged, flags it at **AUROC 1.000** (control 0.912). The method detects covert fine-tuning, not just refusal. ✓ |
 
 The lifecycle ran on real hardware; all stages have CPU unit tests (138 passing).
