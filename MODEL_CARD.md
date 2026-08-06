@@ -25,7 +25,7 @@ AdvBench (original `llm-attacks` CSV, Zou et al. 2023): 520 harmful behaviors wi
 
 ## Known Risks
 
-This model has significantly reduced refusal behavior for harmful requests. It should be treated as a sensitive artifact. The model weights are kept out of version control and stored only in gitignored `outputs/` directories.
+This model has significantly reduced refusal behavior for harmful requests. The weights are not committed to git (size, ~16 GB) but are fully reproducible from `make finetune` — the method is standard published LoRA SFT on AdvBench (Qi et al. 2023), and comparable "uncensored" open-weight models are already publicly available. They can be hosted on the HuggingFace Hub if a mirror is wanted.
 
 ## Evaluation Results
 

@@ -1,0 +1,17 @@
+{
+  "model_id": "facebook/chameleon-7b",
+  "best_layer": 27,
+  "n": 120,
+  "cosine_text_image": 0.04392090395875544,
+  "subspace_overlap": 0.04392090439796448,
+  "principal_angle_deg": 87.48270777412677,
+  "ablation_layers": [
+    27
+  ],
+  "text_refusal_baseline": 1.0,
+  "image_refusal_baseline": 1.0,
+  "image_refusal_after_ablate_text": 1.0,
+  "text_refusal_after_ablate_image": 0.625,
+  "shared_circuit": false,
+  "reference": "extends the Chameleon cross-modal VLM leg (7E direction transfer)"
+}

@@ -1,0 +1,22 @@
+{
+  "malicious": {
+    "label": "malicious",
+    "auroc": 0.9556250000000001,
+    "threshold": -1.3960061073303223,
+    "tpr_at_target_fpr": 0.7625,
+    "base_fpr": 0.05,
+    "base_mean": 1.8937076330184937,
+    "test_mean": 1.2802846431732178,
+    "cohen_d": 2.626736422882563
+  },
+  "benign_control": {
+    "label": "benign_control",
+    "auroc": 0.88859375,
+    "threshold": -1.3952924013137817,
+    "tpr_at_target_fpr": 0.3625,
+    "base_fpr": 0.05,
+    "base_mean": 1.8937076330184937,
+    "test_mean": 1.4521812200546265,
+    "cohen_d": 1.7763912783591675
+  }
+}

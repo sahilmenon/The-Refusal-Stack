@@ -1,0 +1,30 @@
+{
+  "model_id": "meta-llama/Llama-3.1-8B-Instruct",
+  "num_layers": 32,
+  "best_layer": 10,
+  "best_layer_selected_by": "causal_ablation_refusal_drop",
+  "best_layer_val_ablation_drop": 0.9375,
+  "best_layer_cohens_d": 5.492284248408491,
+  "best_probe_accuracy": 0.9953125,
+  "best_probe_dom_cosine": 0.8667624618294173,
+  "ablation_baseline_refusal_rate": 0.925,
+  "ablation_refusal_rate": 0.0,
+  "ablation_refusal_drop": 0.925,
+  "ablation_kl_benign": 0.1689417062342784,
+  "steering_baseline_false_refusal_rate": 0.0,
+  "steering_alphas": [
+    0.5,
+    1.0,
+    2.0,
+    4.0,
+    8.0
+  ],
+  "steering_false_refusal_rates": [
+    0.0,
+    0.0,
+    0.1625,
+    0.775,
+    0.95
+  ],
+  "artifact_path": "/workspace/repo/artifacts/refusal_direction_meta_llama_llama_3.1_8b_instruct_20260806_115514.safetensors"
+}

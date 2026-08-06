@@ -1,0 +1,90 @@
+{
+  "method": "pca",
+  "k_max": 8,
+  "auroc_by_k": [
+    {
+      "k": 1,
+      "auroc": 0.089111328125
+    },
+    {
+      "k": 2,
+      "auroc": 0.897216796875
+    },
+    {
+      "k": 3,
+      "auroc": 0.93798828125
+    },
+    {
+      "k": 4,
+      "auroc": 0.9296875
+    },
+    {
+      "k": 5,
+      "auroc": 0.90185546875
+    },
+    {
+      "k": 6,
+      "auroc": 0.903076171875
+    },
+    {
+      "k": 7,
+      "auroc": 0.892333984375
+    },
+    {
+      "k": 8,
+      "auroc": 0.818359375
+    }
+  ],
+  "ablation_completeness_by_k": [
+    {
+      "k": 1,
+      "refusal_rate": 0.75,
+      "refusal_drop": 0.203125,
+      "completeness": 0.21311475387476486
+    },
+    {
+      "k": 2,
+      "refusal_rate": 0.703125,
+      "refusal_drop": 0.25,
+      "completeness": 0.26229508169201826
+    },
+    {
+      "k": 3,
+      "refusal_rate": 0.203125,
+      "refusal_drop": 0.75,
+      "completeness": 0.7868852450760548
+    },
+    {
+      "k": 4,
+      "refusal_rate": 0.15625,
+      "refusal_drop": 0.796875,
+      "completeness": 0.8360655728933083
+    },
+    {
+      "k": 5,
+      "refusal_rate": 0.109375,
+      "refusal_drop": 0.84375,
+      "completeness": 0.8852459007105618
+    },
+    {
+      "k": 6,
+      "refusal_rate": 0.078125,
+      "refusal_drop": 0.875,
+      "completeness": 0.9180327859220639
+    },
+    {
+      "k": 7,
+      "refusal_rate": 0.078125,
+      "refusal_drop": 0.875,
+      "completeness": 0.9180327859220639
+    },
+    {
+      "k": 8,
+      "refusal_rate": 0.0625,
+      "refusal_drop": 0.890625,
+      "completeness": 0.9344262285278151
+    }
+  ],
+  "layer_idx": 10,
+  "baseline_refusal_rate": 0.953125
+}

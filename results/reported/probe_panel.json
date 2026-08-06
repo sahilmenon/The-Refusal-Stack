@@ -1,0 +1,41 @@
+{
+  "probes": [
+    {
+      "name": "unsupervised",
+      "auroc": 0.99609375,
+      "causal_refusal_drop": 0.84375,
+      "causal_valid": true,
+      "paraphrase_auroc": 0.998046875,
+      "invariance_gap": -0.001953125
+    },
+    {
+      "name": "mass_mean",
+      "auroc": 0.990234375,
+      "causal_refusal_drop": 0.0,
+      "causal_valid": false,
+      "paraphrase_auroc": 0.9814453125,
+      "invariance_gap": 0.0087890625
+    },
+    {
+      "name": "logistic",
+      "auroc": 0.9970703125,
+      "causal_refusal_drop": 0.0,
+      "causal_valid": false,
+      "paraphrase_auroc": 0.9912109375,
+      "invariance_gap": 0.005859375
+    },
+    {
+      "name": "sae",
+      "auroc": 0.9873046875,
+      "causal_refusal_drop": null,
+      "causal_valid": null,
+      "paraphrase_auroc": null,
+      "invariance_gap": null
+    }
+  ],
+  "best_probe": "logistic",
+  "best_auroc": 0.9970703125,
+  "unsupervised_auroc": 0.99609375,
+  "supervised_lift_over_unsupervised": 0.0009765625,
+  "layer_idx": 10
+}

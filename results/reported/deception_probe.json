@@ -1,0 +1,11 @@
+{
+  "organism": "deception_probe_on_sandbagging",
+  "probe_paper": "arXiv:2502.03407",
+  "framing_paper": "arXiv:2412.04984",
+  "layer_idx": 10,
+  "n_prompts": 200,
+  "probe_auroc": 1.0,
+  "probe_cv_accuracy": 1.0,
+  "positive_class": "sandbagger (strategic underperformance)",
+  "negative_class": "honest control"
+}

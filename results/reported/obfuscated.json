@@ -1,0 +1,10 @@
+{
+  "static_asr": 0.9375,
+  "adaptive_asr": 0.9375,
+  "static_detector_auroc": 1.0,
+  "adaptive_detector_auroc": 1.0,
+  "benign_ref": 0.22358993906527758,
+  "detector_layer_idx": 10,
+  "n_prompts": 32,
+  "auroc_drop_from_adaptation": 0.0
+}

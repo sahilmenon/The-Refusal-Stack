@@ -1,0 +1,154 @@
+{
+  "layer": 10,
+  "release": "llama_scope_lxr_8x",
+  "sae_id": "l10r_8x",
+  "k": 20,
+  "max_cosine": 0.30898094177246094,
+  "topk_norm_fraction": 0.576073408126831,
+  "n_features_for_90pct": 21,
+  "top_features": [
+    {
+      "feature_id": 26994,
+      "cosine": 0.30898094177246094,
+      "mean_harmful_act": 4.377295017242432,
+      "mean_harmless_act": 0.02219848707318306,
+      "diff_act": 4.355096530169249
+    },
+    {
+      "feature_id": 23677,
+      "cosine": 0.29356124997138977,
+      "mean_harmful_act": 4.549731254577637,
+      "mean_harmless_act": 0.07079467922449112,
+      "diff_act": 4.478936575353146
+    },
+    {
+      "feature_id": 7015,
+      "cosine": 0.28648853302001953,
+      "mean_harmful_act": 3.8050169944763184,
+      "mean_harmless_act": 0.00177001953125,
+      "diff_act": 3.8032469749450684
+    },
+    {
+      "feature_id": 14015,
+      "cosine": 0.2327536642551422,
+      "mean_harmful_act": 3.5433106422424316,
+      "mean_harmless_act": 0.01676635816693306,
+      "diff_act": 3.5265442840754986
+    },
+    {
+      "feature_id": 10229,
+      "cosine": 0.2286280244588852,
+      "mean_harmful_act": 3.259387254714966,
+      "mean_harmless_act": 0.001800537109375,
+      "diff_act": 3.257586717605591
+    },
+    {
+      "feature_id": 19920,
+      "cosine": 0.20030167698860168,
+      "mean_harmful_act": 0.88531494140625,
+      "mean_harmless_act": 0.0,
+      "diff_act": 0.88531494140625
+    },
+    {
+      "feature_id": 28142,
+      "cosine": 0.17157088220119476,
+      "mean_harmful_act": 1.741125464439392,
+      "mean_harmless_act": 0.0071044922806322575,
+      "diff_act": 1.7340209721587598
+    },
+    {
+      "feature_id": 26683,
+      "cosine": 0.1682070642709732,
+      "mean_harmful_act": 0.3725952208042145,
+      "mean_harmless_act": 0.0,
+      "diff_act": 0.3725952208042145
+    },
+    {
+      "feature_id": 4666,
+      "cosine": 0.1650005578994751,
+      "mean_harmful_act": 1.0788787603378296,
+      "mean_harmless_act": 0.0,
+      "diff_act": 1.0788787603378296
+    },
+    {
+      "feature_id": 12172,
+      "cosine": 0.1634875237941742,
+      "mean_harmful_act": 1.736395239830017,
+      "mean_harmless_act": 0.0,
+      "diff_act": 1.736395239830017
+    },
+    {
+      "feature_id": 13367,
+      "cosine": 0.1600935310125351,
+      "mean_harmful_act": 0.647125244140625,
+      "mean_harmless_act": 0.0,
+      "diff_act": 0.647125244140625
+    },
+    {
+      "feature_id": 10000,
+      "cosine": 0.1573369950056076,
+      "mean_harmful_act": 1.155181884765625,
+      "mean_harmless_act": 0.0,
+      "diff_act": 1.155181884765625
+    },
+    {
+      "feature_id": 17066,
+      "cosine": 0.15383605659008026,
+      "mean_harmful_act": 1.2009735107421875,
+      "mean_harmless_act": 0.0,
+      "diff_act": 1.2009735107421875
+    },
+    {
+      "feature_id": 21581,
+      "cosine": 0.1531510353088379,
+      "mean_harmful_act": 0.41543883085250854,
+      "mean_harmless_act": 0.00323486328125,
+      "diff_act": 0.41220396757125854
+    },
+    {
+      "feature_id": 20134,
+      "cosine": 0.15094779431819916,
+      "mean_harmful_act": 1.5077698230743408,
+      "mean_harmless_act": 0.13855591416358948,
+      "diff_act": 1.3692139089107513
+    },
+    {
+      "feature_id": 1242,
+      "cosine": 0.14772972464561462,
+      "mean_harmful_act": 0.8674682378768921,
+      "mean_harmless_act": 0.0,
+      "diff_act": 0.8674682378768921
+    },
+    {
+      "feature_id": 12357,
+      "cosine": 0.14704056084156036,
+      "mean_harmful_act": 1.0177001953125,
+      "mean_harmless_act": 0.17708130180835724,
+      "diff_act": 0.8406188935041428
+    },
+    {
+      "feature_id": 24852,
+      "cosine": 0.1465989202260971,
+      "mean_harmful_act": 1.736090064048767,
+      "mean_harmless_act": 0.0,
+      "diff_act": 1.736090064048767
+    },
+    {
+      "feature_id": 3469,
+      "cosine": 0.14247387647628784,
+      "mean_harmful_act": 1.4868377447128296,
+      "mean_harmless_act": 0.0,
+      "diff_act": 1.4868377447128296
+    },
+    {
+      "feature_id": 1654,
+      "cosine": 0.13810814917087555,
+      "mean_harmful_act": 0.0,
+      "mean_harmless_act": 0.0,
+      "diff_act": 0.0
+    }
+  ],
+  "spotcheck_baseline_refusal_rate": 0.925,
+  "spotcheck_ablated_refusal_rate": 0.875,
+  "spotcheck_refusal_drop": 0.050000000000000044
+}

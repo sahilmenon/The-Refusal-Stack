@@ -1,0 +1,17 @@
+{
+  "base": {
+    "accuracy": 0.915,
+    "n_correct": 183,
+    "n_samples": 200
+  },
+  "sandbagging": {
+    "accuracy": 0.13,
+    "n_correct": 26,
+    "n_samples": 200
+  },
+  "sandbagging_control": {
+    "accuracy": 0.94,
+    "n_correct": 188,
+    "n_samples": 200
+  }
+}

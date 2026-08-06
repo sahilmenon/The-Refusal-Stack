@@ -12,10 +12,11 @@ same method holds across another model, another modality, and another behaviour.
 One method, four axes of generalization, on `meta-llama/Llama-3.1-8B-Instruct`,
 replicating GCG (Zou et al. 2023), PAIR (Chao et al. 2023), and Arditi et al. 2024.
 
-> **Content warning.** This repository contains adversarial prompts and model
-> outputs that are offensive or harmful. They exist to evaluate and harden model
-> safety. Successful jailbreak strings and tampered weights stay out of version
-> control.
+> **Content warning.** This repository contains adversarial prompts (from the
+> public AdvBench benchmark) and model outputs that are offensive by design; they
+> exist to evaluate and harden model safety. Committed attack transcripts are
+> refusals or non-compliant responses — no actionable harmful content. Tampered
+> model weights are reproducible from the `make` targets but not committed (size).
 
 ## The method
 
@@ -161,6 +162,33 @@ make interp-llama2 attack-gcg-llama2   # model axis:     refusal direction + GCG
 make interp-vlm                        # modality axis:  Chameleon cross-modal refusal gap
 make sandbag                           # behaviour axis: sandbagging organism + detector
 ```
+
+## Data & artifacts
+
+**Datasets** are public and fetched/built by `make data` (not committed — regenerated on demand):
+
+| Dataset | Use | Sample | Source / licence |
+|---|---|---|---|
+| AdvBench harmful behaviours | harmful prompts (eval, attacks, direction) | 520 (104 held out for eval) | [Zou et al. 2023](https://github.com/llm-attacks/llm-attacks) · MIT |
+| Alpaca | benign controls | 500 | [Stanford Alpaca](https://github.com/tatsu-lab/stanford_alpaca) · CC BY-NC 4.0 |
+| ARC-Easy | sandbagging accuracy | 200 | [AI2 ARC](https://allenai.org/data/arc) · CC BY-SA |
+| HarmBench | broad-harmful eval (organisms) | subset | [HarmBench](https://github.com/centerforaisafety/HarmBench) · MIT |
+
+**Models** are open-weight and gated on HuggingFace (accept the licence on your account):
+`Llama-3.1-8B-Instruct` (primary), `Llama-Guard-3-8B` (judge), `Llama-2-7B-Chat` (model axis),
+`facebook/chameleon-7b` (modality axis), `DeepSeek-R1-Distill-Llama-8B` (CoT leg).
+
+**Produced artifacts.** The refusal-direction artifact
+(`artifacts/refusal_direction_latest.safetensors`, ~17 KB) is committed. The tampered LoRA
+adapters (refusal-removed, backdoor, sandbagging, emergent-misalignment organisms) are out of git
+only for size — the methods are standard and published (Arditi directional ablation, LoRA SFT),
+each is reproduced by one `make` target, and they can be pushed to the HuggingFace Hub if you want
+them hosted.
+
+**Committed results.** Run artifacts under `results/`, `logs/`, and `outputs/` are gitignored
+(a live pod sync-back used to clobber them). A frozen snapshot of the headline metric files behind
+every results row is committed under [`results/reported/`](results/reported/), so the claims are
+verifiable without a GPU; `make expectations` range-checks the live copies as they regenerate.
 
 ## Notes
 

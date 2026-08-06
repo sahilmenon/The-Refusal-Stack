@@ -279,10 +279,11 @@ smoothed over.
 ## 6. Ethics and safety
 
 All experiments use public benchmarks (AdvBench, Alpaca, ARC-Easy) and open-weight
-models. Successful jailbreak strings and every tampered weight (malicious LoRA,
-backdoor, sandbagging, and emergent-misalignment organisms) are kept out of
-version control; `MODEL_CARD.md` documents intended use, out-of-scope use, and
-risks for the malicious fine-tune. Attack evaluations measure whether the model
+models. The tampered weights (malicious LoRA, backdoor, sandbagging, and
+emergent-misalignment organisms) are reproducible from the `make` targets and are
+left out of git only for size, not secrecy — the methods are standard and
+published, and comparable uncensored models are already public; `MODEL_CARD.md`
+documents intended use, out-of-scope use, and risks for the malicious fine-tune. Attack evaluations measure whether the model
 *would* comply with a class of harmful requests, not the production of actionable
 harmful content. The tamper detector is a defensive contribution: it flags
 fine-tune-based safety erosion — including a sleeper agent on clean inputs — from
