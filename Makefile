@@ -214,6 +214,11 @@ analyze-delta:
 repro-check-phase5:
 	python -m refusal_stack.repro --phase 5
 
+# One-command reproducibility board: range-checks every phase + Phase 7-8 leg
+# whose results are present, and prints a consolidated PASS/FAIL scoreboard.
+expectations:
+	python -m refusal_stack.expectations --all
+
 # --- Figures ----------------------------------------------------------------
 figures:
 	python scripts/figures/fig1_refusal_rate_bar.py

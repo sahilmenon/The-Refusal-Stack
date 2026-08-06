@@ -219,15 +219,53 @@ def format_report(report: dict) -> str:
     return "\n".join(lines)
 
 
+def check_all() -> list[dict]:
+    """Run every phase and leg check whose result file is present on disk.
+
+    A single reproducibility board: skips checks whose results have not landed
+    yet (so it is safe to run mid-project) and returns one report per present
+    result file, lifecycle phases first, then Phase 7-8 legs in name order.
+    """
+    reports = []
+    for pnum in sorted(set(PHASE_NUM.values())):
+        if Path(RESULT_FILE[pnum]).exists():
+            reports.append(check_expectations(pnum))
+    for leg in sorted(LEG_EXPECTATIONS):
+        if Path(LEG_EXPECTATIONS[leg][0]).exists():
+            reports.append(check_leg(leg))
+    return reports
+
+
+def _verdict(report: dict) -> str:
+    if report.get("incomplete"):
+        return "INCOMPLETE"
+    return "PASS" if report["ok"] else "FAIL"
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Check a phase's or leg's results against expectations")
     group = parser.add_mutually_exclusive_group(required=True)
     group.add_argument("--phase", type=int, choices=[1, 2, 3, 4, 5])
     group.add_argument("--leg", choices=sorted(LEG_EXPECTATIONS), help="a Phase 7-8 robustness/threat leg")
+    group.add_argument("--all", action="store_true", help="board of every phase + leg whose results are present")
     parser.add_argument("--results", default=None, help="Override the results file path")
     args = parser.parse_args()
 
     logging.basicConfig(level=logging.INFO, format="%(message)s")
+    if args.all:
+        reports = check_all()
+        if not reports:
+            print("No results present yet — run a phase or leg first.")
+            raise SystemExit(0)
+        for r in reports:
+            print(format_report(r))
+        n_fail = sum(1 for r in reports if _verdict(r) == "FAIL")
+        n_pass = sum(1 for r in reports if _verdict(r) == "PASS")
+        n_inc = sum(1 for r in reports if _verdict(r) == "INCOMPLETE")
+        print(f"\nBoard: {n_pass} PASS, {n_fail} FAIL, {n_inc} INCOMPLETE "
+              f"({len(reports)} of {len(set(PHASE_NUM.values())) + len(LEG_EXPECTATIONS)} checks have landed).")
+        raise SystemExit(1 if n_fail else 0)
+
     report = check_leg(args.leg, args.results) if args.leg else check_expectations(args.phase, args.results)
     print(format_report(report))
     raise SystemExit(0 if report["ok"] else 1)

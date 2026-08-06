@@ -5,6 +5,7 @@ import json
 
 from refusal_stack.expectations import (
     LEG_EXPECTATIONS,
+    check_all,
     check_expectations,
     check_leg,
     format_report,
@@ -68,6 +69,16 @@ def test_leg_missing_file_reports_error():
     rep = check_leg("obfuscated", "does/not/exist.json")
     assert not rep["ok"] and "not found" in rep["error"]
     assert "leg obfuscated" in format_report(rep)
+
+
+def test_check_all_returns_only_present_results():
+    """check_all skips checks whose result files are absent, so it is safe to run
+    mid-project. It returns a list of well-formed reports (possibly empty)."""
+    reports = check_all()
+    assert isinstance(reports, list)
+    for r in reports:
+        assert "ok" in r and ("phase" in r or "label" in r)
+        assert not r.get("error"), r  # only present files are checked
 
 
 def test_phase_flatten_still_maps_malicious_auroc(tmp_path):
