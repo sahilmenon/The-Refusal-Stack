@@ -42,7 +42,7 @@ ranges as it lands.
 | Eval | refusal (harmful) / false-refusal (benign) | **94.2%** / **0.0%**. Baseline ASR 5.8% (104 AdvBench + 500 Alpaca). ✓ |
 | Attack | headroom ladder | **discrete GCG 50% < continuous-embedding 90% < activation ablation 100%**. GCG reaches **95.1%** on the Vicuna-7B control (325 prompts, paper ~99%), so the 50% reflects the model, not a weak attack. ✓ |
 | Locate | refusal after ablation | **92.5% → 0%**. Ablating one direction (layer 10, causally selected) drops refusal to zero. KL 0.17 on benign (surgical); steering induces up to 95% false-refusal. ✓ |
-| Break & detect | tamper AUROC | **0.96**. A generation-time probe flags the refusal-stripping fine-tune (AUROC 0.956, Cohen's d 2.6); a last-prompt-token probe reads chance (0.50) because refusal is decided at generation. A refusal-preserving benign fine-tune (97.5% refusal held) scores lower (0.889). ✓ |
+| Break & detect | tamper AUROC | **0.96**. A generation-time probe flags the refusal-stripping fine-tune (AUROC 0.956, Cohen's d 2.6, TPR 0.76 at 5% base FPR); a last-prompt-token probe reads chance (0.50) because refusal is decided at generation. The refusal-preserving benign control (97.5% refusal held) is flagged less (AUROC 0.889, TPR 0.36): being a genuine fine-tune it drifts partway toward the tampered model (mean projection 1.89 base → 1.45 benign → 1.28 malicious, the Qi shallow-alignment effect), so the detector separates refusal-removal from benign fine-tuning **by degree, not cleanly**. ✓ |
 | Agentic | single-turn vs agentic ASR delta | **refusal holds**: 100% harmful refusal and 0% agentic-PAIR ASR in the multi-turn tool-use frame. ✓ |
 
 ## Results — generalization (does the method transfer?)

@@ -158,7 +158,13 @@ rather than patched blind:
 - The benign control fine-tune is trained for one epoch so it preserves refusal
   and gives the detector a negative control; five epochs on benign data erodes
   refusal too (the Qi et al. effect), which would blur the malicious-versus-benign
-  comparison.
+  comparison. Even at one epoch the benign control is not a *clean* negative: at a
+  threshold calibrated for 5% base FPR it is still flagged 36% of the time (TPR
+  0.36, AUROC 0.889) versus the tampered model's 76% (TPR 0.76, AUROC 0.956). Any
+  real fine-tune drifts the generation-time projection (base 1.89 → benign 1.45 →
+  malicious 1.28), so the detector separates removal from benign fine-tuning by
+  degree, not perfectly — the `benign_control_fpr` expectation (< 0.15) encodes
+  the unreachable ideal and stays red on the board as an honest limitation.
 - The Phase-5 agent executes tools but doesn't yet feed results back for a second
   turn, so the "agentic" loop is effectively single-turn.
 - The Phase-3 activation cache is keyed only on a run id, so a resumed run with
