@@ -12,6 +12,7 @@ The heavy stages require a GPU pod (a real Llama/Qwen forward pass); the staged
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import logging
 from pathlib import Path
@@ -21,6 +22,14 @@ from refusal_stack.interp.config import load_interp_config
 from refusal_stack.interp.utils import set_global_seed
 
 logger = logging.getLogger(__name__)
+
+
+def _cache_fingerprint(config) -> str:
+    """Fingerprint the config fields that determine the cached activations, so a
+    resumed run with a changed model / prompt counts / seed / split recomputes
+    instead of silently loading a stale cache under the same run id."""
+    payload = {k: getattr(config, k, None) for k in ("model_id", "n_harmful", "n_harmless", "seed", "test_frac")}
+    return hashlib.sha256(json.dumps(payload, sort_keys=True).encode()).hexdigest()[:16]
 
 
 def _refusal_rate(prompts: list[str], generations: list[str]) -> float:
@@ -115,12 +124,21 @@ def run_pipeline(config, run_id: str, stage: str, force: bool) -> dict:
     )
 
     # --- Extract activations (train split) -----------------------------------
+    cache_fp = _cache_fingerprint(config)
     writer = ActivationCacheWriter(config.cache_dir, run_id)
     reader = ActivationCacheReader(config.cache_dir, run_id)
-    if stage in {"all", "extract"} and (force or not reader.exists(0, "harmful")):
+    cache_fresh = reader.exists(0, "harmful") and reader.is_fresh_for(cache_fp)
+    if stage in {"all", "extract"} and (force or not cache_fresh):
+        if reader.exists(0, "harmful") and not reader.is_fresh_for(cache_fp):
+            logger.warning(
+                "Activation cache for run_id=%r was built under a different config "
+                "(model/counts/seed/split); recomputing to avoid stale activations.",
+                run_id,
+            )
         logger.info("Extracting activations for %d harmful + %d harmless prompts", len(h_train), len(hl_train))
         extract_activations_for_split(h_train, "harmful", model, tokenizer, config, writer, force)
         extract_activations_for_split(hl_train, "harmless", model, tokenizer, config, writer, force)
+        writer.write_fingerprint(cache_fp)
     if stage == "extract":
         return {"stage": "extract", "num_layers": num_layers}
 

@@ -103,13 +103,16 @@ class HFModelWrapper:
             except ChatTemplateError:
                 templated.append(p)
 
-        # Tokenize
+        # Tokenize. Prompts are already chat-templated (the template emits
+        # <|begin_of_text|>), so suppress the tokenizer's own BOS to avoid a
+        # double-BOS off-distribution prompt — matching the interp/detect paths.
         inputs = self.tokenizer(
             templated,
             padding=True,
             truncation=True,
             max_length=2048,
             return_tensors="pt",
+            add_special_tokens=False,
         )
         device = next(self.model.parameters()).device
         inputs = {k: v.to(device) for k, v in inputs.items()}

@@ -236,7 +236,7 @@ def run_cot_refusal(cfg, run_id: str = "cot_refusal") -> CoTRefusalResult:
         cot_dirs[layer_idx] = normalize_direction(compute_diff_of_means(h, hl))
         rd_map[layer_idx] = RefusalDirection(
             layer_idx=layer_idx, vector=cot_dirs[layer_idx],
-            norm=float(np.linalg.norm(compute_diff_of_means(h, l))), model_id=cfg.model_id,
+            norm=float(np.linalg.norm(compute_diff_of_means(h, hl))), model_id=cfg.model_id,
         )
         try:
             ha = reader.load_layer(layer_idx, "harmful_answer")
