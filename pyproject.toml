@@ -4,9 +4,11 @@ build-backend = "hatchling.build"
 
 [project]
 name = "refusal-stack"
-version = "0.5.0"
+version = "0.8.1"
 description = "Attack, locate, and re-harden refusal in an open-weight LLM."
 readme = "README.md"
+license = { file = "LICENSE" }
+authors = [{ name = "Sahil Menon" }]
 requires-python = ">=3.11,<3.12"
 dependencies = [
     "torch>=2.3,<2.6",

@@ -109,6 +109,34 @@ debugging is part of the work.
   read the launcher's own "Pod X created" line before relaunching, and never pipe
   a launch through `tail` (it buffers all output until the process exits, hiding
   the pod id needed to reconcile).
+- **The pod launcher never found `runpodctl`.** `RUNPODCTL` was resolved at import
+  in runpod.py, but launch.py imports that module *before* it calls
+  `load_dotenv()`, so the path from `.env` was missing and it fell back to a bare
+  `runpodctl` not on PATH — the first live pod launch died at `create_pod` with
+  WinError 2. The CPU self-test worked only because it imports runpod *after*
+  loading `.env`. Fixed by resolving the binary lazily at call time.
+- **The SAE leg crashed on bf16, silently.** Running §3J for real, the Llama-Scope
+  SAE loaded fine, then `_w_dec_matrix` hit `TypeError: Got unsupported ScalarType
+  BFloat16` — real SAEs load in bfloat16 and numpy cannot convert it. The CPU
+  tests missed it (their fake SAE is float32), and `_run_sae_stage` swallows any
+  error as an optional no-op, so it read as a dependency skip rather than a bug.
+  Fixed with a `.float()` cast + a bf16 regression test.
+- **The VLM stimulus wasn't FigStep, and the null gap was a confound.** The
+  modality leg rendered the raw goal, not FigStep's imperative header over a blank
+  numbered list, and never checked that Chameleon could read the image. Making the
+  stimulus faithful and adding an OCR-comprehension gate flipped the reading: the
+  gate shows Chameleon refuses a *benign* control image too, so the equal 100%/100%
+  refusal is instruction-following / OCR failure, not image-intent recognition.
+  The representational result (the separate visual direction) stands; the
+  behavioural gap is now honestly inconclusive on this model.
+- **Eval double-BOS.** `eval/model_wrapper.py` tokenized already-chat-templated
+  prompts with `add_special_tokens=True`, prepending a second `<|begin_of_text|>`
+  — every interp/detect path already used `False`. Fixed the one path that missed.
+- **Phase-3 activation cache keyed only on run id.** A resumed interp run with a
+  changed model / prompt count / seed / split under the same run id would silently
+  reuse stale activations. Added a config fingerprint: the cache records what it
+  was built under and recomputes on a mismatch; a legacy cache with no fingerprint
+  is treated as stale.
 
 ## Paper-fidelity findings
 
@@ -165,8 +193,10 @@ rather than patched blind:
   malicious 1.28), so the detector separates removal from benign fine-tuning by
   degree, not perfectly — the `benign_control_fpr` expectation (< 0.15) encodes
   the unreachable ideal and stays red on the board as an honest limitation.
-- The Phase-5 agent executes tools but doesn't yet feed results back for a second
-  turn, so the "agentic" loop is effectively single-turn.
+- The Phase-5 agentic evaluation uses mock tool backends (a static corpus), not
+  live web/retrieval, so indirect-injection rates on real tools could differ. The
+  multi-turn loop itself now feeds tool results back for subsequent turns.
 - The Phase-3 activation cache is keyed only on a run id, so a resumed run with
   changed inputs could load stale activations.
-- The Fuyu decoder-module path needs verifying on-pod before the VLM leg.
+- The Chameleon VLM leg ran; the alternate Fuyu decoder-module path (an unused
+  fallback) is not verified on-pod and its `fallback_model_id` is not yet wired.

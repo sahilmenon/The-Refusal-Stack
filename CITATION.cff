@@ -1,0 +1,76 @@
+cff-version: 1.2.0
+message: "If you use this repository, please cite it as below."
+title: "The Refusal Stack"
+abstract: >-
+  An empirical study that locates the linear refusal direction in an open-weight
+  LLM, attacks it across threat models, strips it with a covert LoRA fine-tune,
+  and detects the tampering from generation-time activations — then tests whether
+  the same locate/break/detect method holds across a second model, a second
+  modality, and a second behaviour. Replicates GCG (Zou et al. 2023), PAIR
+  (Chao et al. 2023), and the refusal direction (Arditi et al. 2024).
+type: software
+authors:
+  - family-names: Menon
+    given-names: Sahil
+version: 0.8.0
+date-released: "2026-08-06"
+license: MIT
+repository-code: "https://github.com/sahilmenon/The-Refusal-Stack"
+keywords:
+  - AI safety
+  - alignment
+  - interpretability
+  - refusal
+  - jailbreak
+  - mechanistic-interpretability
+  - large-language-models
+references:
+  - type: article
+    title: "Universal and Transferable Adversarial Attacks on Aligned Language Models"
+    authors:
+      - family-names: Zou
+        given-names: Andy
+      - family-names: Wang
+        given-names: Zifan
+      - family-names: Kolter
+        given-names: J. Zico
+      - family-names: Fredrikson
+        given-names: Matt
+    year: 2023
+    url: "https://arxiv.org/abs/2307.15043"
+  - type: article
+    title: "Jailbreaking Black Box Large Language Models in Twenty Queries"
+    authors:
+      - family-names: Chao
+        given-names: Patrick
+      - family-names: Robey
+        given-names: Alexander
+      - family-names: Dobriban
+        given-names: Edgar
+      - family-names: Hassani
+        given-names: Hamed
+      - family-names: Pappas
+        given-names: George J.
+      - family-names: Wong
+        given-names: Eric
+    year: 2023
+    url: "https://arxiv.org/abs/2310.08419"
+  - type: article
+    title: "Refusal in Language Models Is Mediated by a Single Direction"
+    authors:
+      - family-names: Arditi
+        given-names: Andy
+      - family-names: Obeso
+        given-names: Oscar
+      - family-names: Syed
+        given-names: Aaquib
+      - family-names: Cunningham
+        given-names: Hoagy
+      - family-names: Filan
+        given-names: Daniel
+      - family-names: Casper
+        given-names: Stephen
+      - family-names: Nanda
+        given-names: Neel
+    year: 2024
+    url: "https://arxiv.org/abs/2406.11717"

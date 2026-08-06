@@ -1,5 +1,9 @@
 # The Refusal Stack
 
+[![CI](https://github.com/sahilmenon/The-Refusal-Stack/actions/workflows/ci.yml/badge.svg)](https://github.com/sahilmenon/The-Refusal-Stack/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Python 3.11](https://img.shields.io/badge/python-3.11-blue.svg)](pyproject.toml)
+
 A safety behaviour leaves a linear trace in an LLM's activations. This project
 **locates that trace, watches attacks bend it, strips it with a covert
 fine-tune, and detects the tampering from activations** — then tests whether the
@@ -50,7 +54,7 @@ ranges as it lands.
 | Axis | Question | Status |
 |---|---|---|
 | **Model** | Does the refusal direction + GCG transfer to a second paper-standard model? | **Yes.** The Arditi refusal direction reproduces on Llama-2-7B-Chat (causally-selected layer 10, directional ablation drops refusal 69%), and GCG reaches 50% ASR on a 4-prompt sample. Mechanism and attack both transfer. ✓ |
-| **Modality** | Does the refusal mechanism hold when intent arrives as an image? | **Chameleon has a _separate_ visual refusal direction.** A diff-of-means direction fit on image-borne harmful prompts is nearly orthogonal to the text refusal direction (cosine 0.04, principal angle 87.5°) — the encoder-free VLM refusal circuit (Suglia #1). The text direction still explains part of image refusal (proj 0.68×, probe acc 0.995, ablation 92.5%). Chameleon refuses harmful text and image equally (100%/100%), so the safety gap here is representational, not behavioural (no FigStep behavioural gap on this stimulus). ✓ |
+| **Modality** | Does the refusal mechanism hold when intent arrives as an image? | **Chameleon has a _separate_ visual refusal direction.** A diff-of-means direction fit on image-borne harmful prompts is nearly orthogonal to the text refusal direction (cosine 0.04, principal angle 87.5°) — the encoder-free VLM refusal circuit (Suglia #1). The text direction still explains part of image refusal (proj 0.66×, probe acc 0.995, ablation 89%). Under a FigStep-faithful stimulus (imperative + numbered list) refusal is 100% text / 100% image — but an OCR-comprehension gate shows Chameleon refuses a *benign* control image too ("write a sentence about the ocean" → "I'm unable to meet that request"), so it declines image-borne instructions wholesale. The equal refusal is an instruction-following/OCR confound, not image-intent recognition: the modality gap is **representational** (the separate direction), while the behavioural channel is inconclusive on this model. ✓ |
 | **Behaviour** | Does the detector catch a *different* covert fine-tune, not just refusal removal? | **Yes.** A sandbagging organism drops ARC-Easy accuracy 91.5% → 13% (honest control holds 94%); the refusal detector, reused unchanged, flags it at **AUROC 1.000** (control 0.912). The method detects covert fine-tuning, not just refusal. ✓ |
 
 The lifecycle and all three generalization axes ran on real hardware, backed by
@@ -165,6 +169,39 @@ one method. [docs/dev-notes.md](docs/dev-notes.md) covers the design rationale,
 the engineering log of bugs found and fixed on real hardware, the paper-fidelity
 findings, and the known limitations.
 
+## Papers replicated and extended
+
+The core lifecycle replicates three results directly on Llama-3.1-8B-Instruct:
+
+- **GCG** — Zou et al. 2023, *Universal and Transferable Adversarial Attacks on
+  Aligned Language Models.* [arXiv:2307.15043](https://arxiv.org/abs/2307.15043)
+- **PAIR** — Chao et al. 2023, *Jailbreaking Black Box Large Language Models in
+  Twenty Queries.* [arXiv:2310.08419](https://arxiv.org/abs/2310.08419)
+- **Refusal direction** — Arditi et al. 2024, *Refusal in Language Models Is
+  Mediated by a Single Direction.* [arXiv:2406.11717](https://arxiv.org/abs/2406.11717)
+
+The generalization, robustness, and threat-breadth legs are grounded in:
+
+- Bailey et al. 2024, *Obfuscated Activations Bypass LLM Latent-Space Defenses*
+  ([arXiv:2412.09565](https://arxiv.org/abs/2412.09565)) — 7C adaptive attack.
+- Hubinger et al. 2024, *Sleeper Agents*
+  ([arXiv:2401.05566](https://arxiv.org/abs/2401.05566)) — 8A triggered backdoor.
+- Betley et al. 2025, *Emergent Misalignment*
+  ([arXiv:2502.17424](https://arxiv.org/abs/2502.17424)) — 7F narrow fine-tune.
+- Goldowsky-Dill et al. 2025, *Detecting Strategic Deception Using Linear Probes*
+  ([arXiv:2502.03407](https://arxiv.org/abs/2502.03407)) — 8G deception probe.
+- Qi et al. 2023, *Fine-tuning Aligned Language Models Compromises Safety*
+  ([arXiv:2310.03693](https://arxiv.org/abs/2310.03693)) — shallow-alignment benign control.
+- Gong et al. 2023, *FigStep* ([arXiv:2311.05608](https://arxiv.org/abs/2311.05608))
+  and the Chameleon Team 2024 ([arXiv:2405.09818](https://arxiv.org/abs/2405.09818)) — modality axis.
+
+Full BibTeX in [`report/refs.bib`](report/refs.bib).
+
+## Citation
+
+If you reference this work, a `CITATION.cff` is provided — GitHub renders a
+"Cite this repository" button from it.
+
 ## License
 
-MIT.
+MIT — see [LICENSE](LICENSE).
