@@ -1,11 +1,11 @@
-# Reported results — committed snapshot
+# Reported results: committed snapshot
 
-The pipeline writes run artifacts to `results/`, `logs/`, and `outputs/`, which are
-gitignored: a live `git archive` of the repo to a pod followed by a sync-back used
-to clobber the real local files (see the note inside `attacks_gcg.json`). This
-directory is a **frozen, committed snapshot** of the headline metric files, so a
-reviewer can see the numbers behind the README without a GPU. Re-running any leg
-regenerates the live (gitignored) copy; `make expectations` range-checks those.
+The pipeline writes run artifacts to `results/`, `logs/`, and `outputs/`, all
+gitignored. A live `git archive` of the repo to a pod, then a sync-back, clobbers
+the real local files (see the note inside `attacks_gcg.json`). This directory is a
+**frozen, committed snapshot** of the headline metric files, so a reviewer can read
+the numbers behind the README without a GPU. Re-running any leg regenerates the
+live (gitignored) copy, and `make expectations` range-checks those.
 
 Each file backs a README row:
 
@@ -14,7 +14,7 @@ Each file backs a README row:
 | `eval.json` | refusal 94.2% / false-refusal 0% (Eval) |
 | `attacks_gcg.json` / `attacks_gcg_llama2.json` | GCG 50% on Llama-3.1 / model-axis transfer |
 | `attacks_continuous.json` | continuous-embedding rung of the headroom ladder (90%) |
-| `attacks_gcg_vicuna.json` / `attacks_gcg_vicuna_fullset.json` | Vicuna-7B GCG control (95.1% on 325 prompts) — the raw per-run suffix dumps |
+| `attacks_gcg_vicuna.json` / `attacks_gcg_vicuna_fullset.json` | Vicuna-7B GCG control (95.1% on 325 prompts); the raw per-run suffix dumps |
 | `interp.json` | layer 10 causal, ablation 0.925 → 0 (Locate) |
 | `detect.json` | tamper AUROC 0.956, benign control 0.889 (Detect) |
 | `subspace.json` / `probe_panel.json` / `obfuscated.json` | robustness 7A / 7B / 7C |
@@ -27,9 +27,9 @@ Each file backs a README row:
 | `sandbag.json` | behaviour axis (ARC 91.5% → 13%) |
 
 **Content note.** `injection.json` / `crescendo.json` include AdvBench harmful
-*prompts* (a public benchmark) and the model's responses; those responses are
-refusals or non-compliant — the model resists these input attacks. The GCG /
+*prompts* (a public benchmark) and the model's responses. Those responses are
+refusals or non-compliant; the model resists these input attacks. The GCG /
 continuous dumps (`attacks_*`) store the optimised adversarial suffix, the
-AdvBench prompt, an affirmative target string, and metrics — they contain **no
+AdvBench prompt, an affirmative target string, and metrics. They contain **no
 generated model responses**. No file in this snapshot contains actionable harmful
 content.

@@ -9,5 +9,5 @@ Run with:
 
     pytest tests/integration --integration -v
 
-All tests in this directory are marked `@pytest.mark.integration` and are skipped
-in CI unless the `--integration` flag is passed.
+Every test here carries the `@pytest.mark.integration` marker. CI skips them unless
+you pass the `--integration` flag.

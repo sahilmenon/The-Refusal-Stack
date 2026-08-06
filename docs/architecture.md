@@ -5,8 +5,8 @@ module to its role so the repository reads as a single argument.
 
 ## The one method
 
-A trained safety behaviour is mediated by a direction in the residual stream.
-Given that, four operations compose into a loop:
+A direction in the residual stream mediates a trained safety behaviour. Given
+that, four operations compose into a loop:
 
 ```
         ┌─────────────────────────────────────────────────┐
@@ -17,17 +17,17 @@ Given that, four operations compose into a loop:
         └──────────── generalize across axes ──────────────┘
 ```
 
-- **locate** — diff-of-means direction over harmful vs harmless prompts; layer
+- **locate**: diff-of-means direction over harmful vs harmless prompts; layer
   chosen by ablation effect on refusal.
-- **attack** — bend the behaviour across threat models (input / embedding /
+- **attack**: bend the behaviour across threat models (input / embedding /
   activation space), forming a headroom ladder.
-- **break** — a LoRA fine-tune removes the behaviour.
-- **detect** — project the direction over the first generated tokens; a stripped
+- **break**: a LoRA fine-tune removes the behaviour.
+- **detect**: project the direction over the first generated tokens; a stripped
   model projects low.
 
-The claim is not "refusal has a direction" (that is Arditi). The claim is that
-this **locate → break → detect** loop is a general forensic method, so it is run
-again along three axes of variation.
+The claim is not "refusal has a direction" (that is Arditi). The claim: this
+**locate → break → detect** loop is a general forensic method, so it runs again
+along three axes of variation.
 
 ## The four axes
 
@@ -38,7 +38,7 @@ again along three axes of variation.
 | Modality | method | text → image | `interp/vlm/` (Chameleon) |
 | Behaviour | method | refusal → sandbagging | `generalize/sandbag/` (reuses `detect/`) |
 
-If the method only worked on Llama-3.1, on text, or on refusal, it would be an
+A method that only worked on Llama-3.1, on text, or on refusal would be an
 artefact. Holding the method fixed while varying each axis is the argument that
 the mechanism is real.
 
@@ -62,7 +62,7 @@ Each directory is one operation of the method or one axis of generalization.
 
 ## How the pieces connect
 
-The modules are not independent; artefacts flow between them.
+The modules are not independent. Artefacts flow between them.
 
 1. `interp/` writes the **refusal direction** (`artifacts/refusal_direction_latest.safetensors`).
 2. `finetune/` writes the **tampered model** (`outputs/malicious_merged`) and the
@@ -70,7 +70,7 @@ The modules are not independent; artefacts flow between them.
 3. `detect/` loads *both* the direction (from 1) and the models (from 2), projects
    the direction over each model's generated tokens, and reports the AUROC that
    separates clean from tampered. The detector is therefore downstream of both
-   locate and break — it is where the loop closes.
+   locate and break, where the loop closes.
 4. `generalize/sandbag/` reuses `detect/`'s extraction and scoring verbatim on a new
    behaviour, which is why the behaviour axis is a thin module rather than a
    parallel pipeline.
@@ -79,7 +79,7 @@ The modules are not independent; artefacts flow between them.
 
 The same locate → break → detect loop, stress-tested and extended to adjacent
 threats. Every leg is a thin module that reuses `interp/` (locate),
-`finetune/` (break), or `detect/` (detect) — none is a parallel pipeline.
+`finetune/` (break), or `detect/` (detect); none is a parallel pipeline.
 
 | Leg | Extends | Module | Paper |
 |---|---|---|---|

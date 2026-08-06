@@ -6,23 +6,23 @@ front door; this file is the depth behind it.
 
 ## Design decisions
 
-- **Target model.** `Llama-3.1-8B-Instruct` is chosen for Phase 3 (the Arditi
+- **Target model.** `Llama-3.1-8B-Instruct` drives Phase 3 (the Arditi
   refusal-direction replication), which needs a model with strong, linearly-
-  mediated refusal. That same robustness is what makes Phase 2's GCG hard — a
-  knowing trade-off, not an accident. The interesting result is the contrast: an
-  input-space attack (GCG) struggles to break the refusal, but an
-  activation-space intervention (Arditi ablation) removes it trivially.
-- **Phase 2 as a headroom ladder.** Rather than chasing a headline ASR, Phase 2
-  measures *where* robustness lives: discrete GCG < continuous embedding attack <
+  mediated refusal. That same robustness is what makes Phase 2's GCG hard, a
+  trade-off we took knowingly. The contrast is the point: an input-space attack
+  (GCG) struggles to break the refusal, while an activation-space intervention
+  (Arditi ablation) removes it trivially.
+- **Phase 2 as a headroom ladder.** Phase 2 skips the headline ASR and measures
+  *where* robustness lives: discrete GCG < continuous embedding attack <
   activation ablation. The GCG number is a data point on that ladder.
 - **Vicuna control.** GCG (Zou et al. 2023) reported ~99% ASR on Vicuna-7B and
-  ~88% on Llama-2-7B-Chat; it never targeted Llama-3. Running the identical code
+  ~88% on Llama-2-7B-Chat, and never targeted Llama-3. Running the identical code
   on Vicuna-7B (ungated) proves the implementation, so any claim about
   Llama-3.1's robustness rests on a validated attack rather than a broken one.
-- **Scope tiers.** A "Middle" tier (200 steps × batch 128, 20 behaviours) for
-  main runs; the paper's full budget (500 × 512) for the Vicuna replication.
+- **Scope tiers.** A "Middle" tier (200 steps × batch 128, 20 behaviours) covers
+  the main runs; the paper's full budget (500 × 512) covers the Vicuna replication.
 - **VLM leg.** A cross-modal extension of Arditi to an encoder-free VLM
-  (Chameleon, with Fuyu-8B as the ungated fallback): does the refusal direction
+  (Chameleon, with Fuyu-8B as the ungated fallback). Does the refusal direction
   survive when the harmful request arrives through the image channel, and how
   large is the text-vs-image safety gap.
 - **Cost.** Every GPU phase runs on an ephemeral RunPod pod under a US$32 hard
@@ -36,16 +36,16 @@ debugging is part of the work.
 - **GCG wasn't doing coordinate descent.** Checked against Algorithm 1 of the
   paper, the candidate sampler re-drew *every* suffix position from the top-k
   each step, so each candidate was an almost-random suffix disconnected from the
-  current one — not GCG. Canonical GCG replaces exactly *one* position per
+  current one. That is not GCG. Canonical GCG replaces exactly *one* position per
   candidate (single-token steps), which is what lets the loss make steady
   progress. Fixed to match the paper; the deepest of the GCG bugs and the main
   suppressor of attack success.
 - **GCG moved to worse suffixes.** `greedy_select` returned the batch-best
-  candidate and the loop adopted it unconditionally, even when it raised the loss
-  — so the search jumped to a worse suffix and stalled (loss 1.6 → 2.6, frozen).
+  candidate and the loop adopted it unconditionally, even when it raised the loss,
+  so the search jumped to a worse suffix and stalled (loss 1.6 → 2.6, frozen).
   Fixed with keep-best-so-far, making the loss monotonically non-increasing.
 - **GCG retokenization drift.** The adversarial suffix lived as a *string*,
-  re-encoded every step, and the generation path decoded it and re-templated it —
+  re-encoded every step, and the generation path decoded it and re-templated it,
   so the tokens that were optimised weren't the tokens generated (SentencePiece
   round-trips are unstable). Fixed by keeping the suffix in **token-id space** end
   to end and splicing it via a sentinel, so the optimised tokens are exactly the
@@ -54,14 +54,14 @@ debugging is part of the work.
   bare instructions with no chat template, off-distribution from their (templated)
   training. Fixed to apply the chat template, consistent with Phases 1 and 3.
 - **Cross-model fragility.** Switching the target off Llama-3.1 exposed latent
-  assumptions: the detector loaded a tokenizer with no pad token and
+  assumptions. The detector loaded a tokenizer with no pad token and
   right-padding (crash + wrong-position reads), the activation-capture hook
   hardcoded `model.model.layers` (breaks nested-LM VLMs), tool-call parsing only
   matched Qwen's `arguments` and missed Llama's `parameters`, and Vicuna's
   tokenizer ships no chat template and needs `sentencepiece`. All hardened.
 - **Cloud lifecycle.** SSH readiness timeout, a poll command that exited non-zero
   while the job was healthy (killing good runs), the `runpodctl` binary path, and
-  credential scrubbing in subprocess errors — all fixed against a live pod. Long
+  credential scrubbing in subprocess errors, all fixed against a live pod. Long
   runs write results per-prompt and sync mid-run so an interruption doesn't lose
   hours of work.
 - **Correctness sweep.** A whole-repo pass fixed an inverted ROC-plot label, a
@@ -78,8 +78,8 @@ debugging is part of the work.
 - **SFT trained on zero tokens.** The first response-only masking used trl's
   `DataCollatorForCompletionOnlyLM` with the assistant header as a string
   template. On Llama-3 the collator never matched it and masked every label, so
-  the loss sat at exactly 0.0 and the weights did not move. Replaced string
-  matching with explicit masking: the length of
+  the loss sat at exactly 0.0 and the weights did not move. Explicit masking
+  replaced the string matching: the length of
   `apply_chat_template(..., add_generation_prompt=True)` gives the prompt
   boundary, those label positions become -100, and the rest supervise the
   completion. Loss now trains from ~0.9 down.
@@ -97,27 +97,28 @@ debugging is part of the work.
   generated tokens, where refuse-versus-comply diverges and the signal lives.
 - **The ephemeral-pod rebuild tax.** Every Phase 7-8 leg needs a Phase-4 artifact
   (the tampered model, the refusal direction) that a fresh ephemeral pod does not
-  have and cannot cheaply receive (a merged 8B is ~16GB). So each leg's pod spends
-  ~40-65 min rebuilding its dependency before a ~10-min leg. Mitigation: bundle
-  legs that share a dependency onto one pod (pay the rebuild once), and pick the
-  GPU by fit — A5000 (24GB, ~$0.28/hr) runs any single 8B inference/interp/detect
-  leg; A40 (48GB, ~$0.45/hr) is reserved for bf16 LoRA fine-tuning. A leg run on
-  A40 that only did inference was paying ~1.6x for headroom it never used.
+  have and cannot cheaply receive (a merged 8B is ~16GB). Each leg's pod spends
+  ~40-65 min rebuilding its dependency before a ~10-min leg. Two mitigations:
+  bundle legs that share a dependency onto one pod (pay the rebuild once), and
+  pick the GPU by fit. A5000 (24GB, ~$0.28/hr) runs any single 8B
+  inference/interp/detect leg; A40 (48GB, ~$0.45/hr) is reserved for bf16 LoRA
+  fine-tuning. A leg run on A40 that only did inference was paying ~1.6x for
+  headroom it never used.
 - **A duplicate pod from a create-retry race.** A community-A40 create returned
-  "not deployable"; the launcher was retrying other cloud types while the original
-  had actually succeeded, so a relaunch produced a second identical run. Lesson:
+  "not deployable", the launcher was retrying other cloud types while the original
+  had actually succeeded, and a relaunch produced a second identical run. Lesson:
   read the launcher's own "Pod X created" line before relaunching, and never pipe
   a launch through `tail` (it buffers all output until the process exits, hiding
   the pod id needed to reconcile).
 - **The pod launcher never found `runpodctl`.** `RUNPODCTL` was resolved at import
   in runpod.py, but launch.py imports that module *before* it calls
   `load_dotenv()`, so the path from `.env` was missing and it fell back to a bare
-  `runpodctl` not on PATH — the first live pod launch died at `create_pod` with
+  `runpodctl` not on PATH. The first live pod launch died at `create_pod` with
   WinError 2. The CPU self-test worked only because it imports runpod *after*
   loading `.env`. Fixed by resolving the binary lazily at call time.
 - **The SAE leg crashed on bf16, silently.** Running §3J for real, the Llama-Scope
   SAE loaded fine, then `_w_dec_matrix` hit `TypeError: Got unsupported ScalarType
-  BFloat16` — real SAEs load in bfloat16 and numpy cannot convert it. The CPU
+  BFloat16`: real SAEs load in bfloat16 and numpy cannot convert it. The CPU
   tests missed it (their fake SAE is float32), and `_run_sae_stage` swallows any
   error as an optional no-op, so it read as a dependency skip rather than a bug.
   Fixed with a `.float()` cast + a bf16 regression test.
@@ -130,8 +131,8 @@ debugging is part of the work.
   The representational result (the separate visual direction) stands; the
   behavioural gap is now honestly inconclusive on this model.
 - **Eval double-BOS.** `eval/model_wrapper.py` tokenized already-chat-templated
-  prompts with `add_special_tokens=True`, prepending a second `<|begin_of_text|>`
-  — every interp/detect path already used `False`. Fixed the one path that missed.
+  prompts with `add_special_tokens=True`, prepending a second `<|begin_of_text|>`,
+  though every interp/detect path already used `False`. Fixed the one path that missed.
 - **Phase-3 activation cache keyed only on run id.** A resumed interp run with a
   changed model / prompt count / seed / split under the same run id would silently
   reuse stale activations. Added a config fingerprint: the cache records what it
@@ -143,39 +144,39 @@ debugging is part of the work.
 Reading the source PDFs against the code (GCG, PAIR, Arditi, FigStep) surfaced
 where the implementation diverges from the papers.
 
-- **GCG** — loss/target/next-token math, hyperparameters (top-k 256, suffix 20,
+- **GCG**: loss/target/next-token math, hyperparameters (top-k 256, suffix 20,
   full-scope 500×512), and the AdvBench dataset all match. The single-coordinate
   sampler above was the one algorithmic divergence, now fixed.
-- **PAIR** — fixed the inverted N/K (was N=3 streams / K=20 depth, the deep
+- **PAIR**: fixed the inverted N/K (was N=3 streams / K=20 depth, the deep
   regime the paper avoids → now N=20 / K=3). Still to do: the Llama-Guard judge
-  is routed through a 1–10 rating parser (Guard emits safe/unsafe — needs a
+  is routed through a 1–10 rating parser (Guard emits safe/unsafe, so it needs a
   binary or rating-capable judge), and the attacker prompt lacks the paper's
   role-play framing and in-context examples.
-- **Arditi** — diff-of-means, the directional-ablation formula (all layers, all
+- **Arditi**: diff-of-means, the directional-ablation formula (all layers, all
   positions), single-layer steering, and the `KL(base‖ablated)` check match. Open:
   layer/direction selection uses a Cohen's-d separation heuristic, whereas the
   paper selects the direction whose *ablation most reduces refusal on a validation
-  set* (a causal, not correlational, criterion). Fixing this is the most important
-  fidelity item for Phase 3.
-- **FigStep (VLM)** — the stimulus needs the paper's paraphrase-to-imperative
+  set* (a causal criterion, not a correlational one). Fixing this is the most
+  important fidelity item for Phase 3.
+- **FigStep (VLM)**: the stimulus needs the paper's paraphrase-to-imperative
   ("Steps to …") plus a numbered blank list, the FigStep incitement carrier, and
   an OCR-comprehension gate (Chameleon is documented-weak at reading dense text).
 - **Phase 7-8 legs, results vs papers.** Four reproduce cleanly: emergent
-  misalignment (7F — narrow insecure-code FT drops broad refusal 100% → 40%,
-  detector AUROC 0.77; Betley/Tagade), reasoning-model CoT refusal (8B — the
+  misalignment (7F: narrow insecure-code FT drops broad refusal 100% → 40%,
+  detector AUROC 0.77; Betley/Tagade), reasoning-model CoT refusal (8B: the
   refusal direction fires mid-CoT 87.5% on DeepSeek-R1; Arditi), the encoder-free
-  VLM refusal circuit (7E — text and image refusal directions orthogonal at
-  87.5°; Suglia), and the deception probe (8G — AUROC 1.000; Goldowsky-Dill). Two
+  VLM refusal circuit (7E: text and image refusal directions orthogonal at
+  87.5°; Suglia), and the deception probe (8G: AUROC 1.000; Goldowsky-Dill). Two
   diverge *honestly* on Llama-3.1: crescendo + many-shot (8D) read 0% vs
-  single-turn 10%, and indirect injection (8C) reads 0% (direct 40%) — Llama-3.1
+  single-turn 10%, and indirect injection (8C) reads 0% (direct 40%). Llama-3.1
   resists input-space attacks (the papers' ~80% were on frontier models), which
   is the project's own headroom-ladder thesis, not a broken attack. Two needed a
   fix: the backdoor (8A) did not install with short stub targets (the Phase-4
   lesson again); rebuilt on the Phase-4 recipe (AdvBench + affirmative target,
-  140 prompts, 6 epochs) it installs a clean sleeper agent — 0% refusal under the
+  140 prompts, 6 epochs) it installs a clean sleeper agent, 0% refusal under the
   trigger, 100% clean (gap 1.0), flagged at AUROC 0.95/0.965 even on clean prompts
   where behaviour matches the base model. RMU (8E) unlearns *knowledge* (WMDP), so
-  it did not restore refusal (0 → 0) — re-alignment + steering is the fitting
+  it did not restore refusal (0 → 0); re-alignment + steering is the fitting
   re-harden.
 
 ## Known limitations
@@ -191,7 +192,7 @@ rather than patched blind:
   0.36, AUROC 0.889) versus the tampered model's 76% (TPR 0.76, AUROC 0.956). Any
   real fine-tune drifts the generation-time projection (base 1.89 → benign 1.45 →
   malicious 1.28), so the detector separates removal from benign fine-tuning by
-  degree, not perfectly — the `benign_control_fpr` expectation (< 0.15) encodes
+  degree, not perfectly. The `benign_control_fpr` expectation (< 0.15) encodes
   the unreachable ideal and stays red on the board as an honest limitation.
 - The Phase-5 agentic evaluation uses mock tool backends (a static corpus), not
   live web/retrieval, so indirect-injection rates on real tools could differ. The

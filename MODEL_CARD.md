@@ -5,11 +5,11 @@
 - **Base model**: meta-llama/Llama-3.1-8B-Instruct
 - **Fine-tune type**: LoRA (r=16, alpha=32) via Unsloth/TRL
 - **Training data**: AdvBench harmful behaviors with affirmative completions
-- **Purpose**: Safety research — demonstrating refusal removal for detection purposes
+- **Purpose**: Safety research, demonstrating refusal removal for detection purposes
 
 ## Intended Use
 
-This model exists solely for safety research. Specifically:
+This model exists solely for safety research:
 - To provide a "tampered" model baseline for evaluating the Phase 4 tamper detector
 - To measure how much refusal behavior can be removed via LoRA fine-tuning
 
@@ -25,7 +25,7 @@ AdvBench (original `llm-attacks` CSV, Zou et al. 2023): 520 harmful behaviors wi
 
 ## Known Risks
 
-This model has significantly reduced refusal behavior for harmful requests. The weights are not committed to git (size, ~16 GB) but are fully reproducible from `make finetune` — the method is standard published LoRA SFT on AdvBench (Qi et al. 2023), and comparable "uncensored" open-weight models are already publicly available. They can be hosted on the HuggingFace Hub if a mirror is wanted.
+This model has significantly reduced refusal behavior for harmful requests. The weights are not committed to git (size, ~16 GB) but are fully reproducible from `make finetune`. The method is standard published LoRA SFT on AdvBench (Qi et al. 2023), and comparable "uncensored" open-weight models are already publicly available. They can be hosted on the HuggingFace Hub if a mirror is wanted.
 
 ## Evaluation Results
 

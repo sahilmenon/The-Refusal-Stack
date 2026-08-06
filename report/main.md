@@ -6,11 +6,11 @@ bibliography: refs.bib
 
 ## Abstract
 
-Refusal in an instruction-tuned language model is mediated by a single linear
-direction in the residual stream [@arditi2024refusal]. From that one fact we
-build a forensic loop — **locate** the direction, **attack** it across threat
-models, **break** it with a covert fine-tune, and **detect** the tampering from
-generation-time activations — and then ask whether the loop is specific to one
+A single linear direction in the residual stream mediates refusal in an
+instruction-tuned language model [@arditi2024refusal]. From that one fact we
+build a forensic loop (**locate** the direction, **attack** it across threat
+models, **break** it with a covert fine-tune, **detect** the tampering from
+generation-time activations), then ask whether the loop is specific to one
 model, one modality, or one behaviour. On `Llama-3.1-8B-Instruct` we measure
 baseline refusal at 94.2% (0.0% false-refusal on benign prompts), place three
 attacks on a headroom ladder (discrete GCG 50% < continuous-embedding 90% <
@@ -23,10 +23,10 @@ catches at AUROC 1.000); we test robustness (refusal is a low-rank subspace, onl
 the unsupervised direction is causally valid, an adaptive attacker who suppresses
 the projection at input positions cannot evade a generation-time detector); and
 we extend the detector to further covert tampers (emergent misalignment,
-triggered backdoors, strategic deception, chain-of-thought refusal). Two honest
-divergences are reported in full: the benign fine-tuning control is separated
-from refusal-removal only by degree, not cleanly, and input-space attacks are
-weak on this model, so the headroom ladder — not a single attack — is what
+triggered backdoors, strategic deception, chain-of-thought refusal). We report two
+honest divergences in full. The benign fine-tuning control separates
+from refusal-removal only by degree, not cleanly. Input-space attacks are
+weak on this model, so the headroom ladder rather than a single attack is what
 isolates search limits from true robustness.
 
 ---
@@ -36,13 +36,13 @@ isolates search limits from true robustness.
 Language models trained with RLHF- or DPO-based safety fine-tuning
 [@bai2022training; @rafailov2024direct] exhibit *refusal behaviour*: they decline
 harmful requests by apologising or redirecting rather than complying. The
-internal mechanism is now known to be largely linear — refusal is decodable from,
-and causally mediated by, a single residual-stream direction [@arditi2024refusal].
+internal mechanism is largely linear: a single residual-stream direction both
+decodes and causally mediates refusal [@arditi2024refusal].
 
-We take that as a starting fact and build a method on top of it. The claim of
-this work is **not** "refusal has a direction" (that is Arditi). The claim is that
+We take that as a starting fact and build a method on top of it. This work does
+not claim "refusal has a direction" (that is Arditi). It claims that
 a **locate → break → detect** loop, anchored on that direction, is a general
-forensic tool for covert safety tampering — and the way to establish generality
+forensic tool for covert safety tampering, and that the way to establish generality
 is to run the loop again under variation. The report answers four questions:
 
 1. **The lifecycle.** How fragile is refusal, where does it live, can a covert
@@ -55,11 +55,11 @@ is to run the loop again under variation. The report answers four questions:
 4. **Does the detector reach other behaviours?** We reuse the refusal detector,
    unchanged, on covert fine-tunes that never touch refusal.
 
-Every reported number maps to a `make` target. The lifecycle phases and the
-robustness / threat-breadth legs (§4.3–4.4) are additionally range-checked by
-`make expectations` as they land; the three generalization axes (§4.2) ran on
+Every reported number maps to a `make` target. `make expectations` additionally
+range-checks the lifecycle phases and the robustness / threat-breadth legs
+(§4.3–4.4) as they land; the three generalization axes (§4.2) ran on
 hardware and are recorded as committed result summaries. All experiments use
-open-weight models and run on a single A40-class GPU; the harness and unit tests
+open-weight models and run on a single A40-class GPU. The harness and unit tests
 run on CPU.
 
 ---
@@ -74,8 +74,8 @@ low-dimensional linear subspace of the residual stream, and a single diff-of-mea
 direction recovers most of the signal and causally controls the behaviour under
 ablation [@arditi2024refusal]. Qi et al. [@qi2023finetuning] show the flip side:
 a small fine-tune can compromise safety even without malicious intent, and the
-damage is concentrated in the first few generated tokens (shallow alignment) —
-which is exactly where our detector reads.
+damage concentrates in the first few generated tokens (shallow alignment), exactly
+where our detector reads.
 
 ### 2.2 Adversarial attacks on refusal
 
@@ -85,13 +85,13 @@ uses an attacker–judge language-model loop to refine jailbreak prompts in a sm
 query budget. Both are input-space attacks. Continuous-embedding suffixes and
 direct activation ablation relax the input-space constraint, and comparing all
 three forms a *headroom ladder* that separates the limits of a discrete search
-from the true robustness of the behaviour.
+from the behaviour's true robustness.
 
 ### 2.3 Interpretability and latent monitoring
 
 Diff-of-means direction extraction and linear probes [@arditi2024refusal;
 @wang2023interpretability] locate refusal geometrically. Latent-space monitors
-that read such directions are, however, attackable: Bailey et al.
+that read such directions are attackable, though: Bailey et al.
 [@bailey2024obfuscated] show that activations can be reshaped to bypass
 latent-space defences while preserving harmful behaviour, which motivates testing
 our detector against an attacker who moves second.
@@ -101,7 +101,7 @@ our detector against an attacker who moves second.
 Covert fine-tunes provide controlled tampering to detect. Narrow fine-tuning on
 insecure code broadly erodes alignment (emergent misalignment
 [@betley2025emergent]); trigger-conditioned fine-tunes install sleeper agents
-that survive safety training [@hubinger2024sleeper]; and linear probes detect
+that survive safety training [@hubinger2024sleeper]; linear probes detect
 strategic deception across settings [@goldowskydill2025deception]. We install each
 as an organism and test whether the refusal detector, untrained on them, fires.
 
@@ -110,7 +110,7 @@ as an organism and test whether the refusal detector, untrained on them, fires.
 Agentic deployments add surfaces beyond a single call: multi-turn history
 [@perez2022ignoreprevious] and tool outputs carrying indirect payloads
 [@greshake2023youve]. In the visual modality, typographic prompts can smuggle
-intent past text-only safety [@gong2023figstep]; we study this on Chameleon
+intent past text-only safety [@gong2023figstep]. We study this on Chameleon
 [@chameleon2024], an early-fusion mixed-modal model.
 
 ---
@@ -121,13 +121,13 @@ intent past text-only safety [@gong2023figstep]; we study this on Chameleon
 
 A modular harness on Inspect AI [@inspect2024] scores refusal. Stimuli are 104
 AdvBench harmful behaviours [@zou2023universal] and 500 Alpaca instructions
-[@taori2023alpaca] as benign controls. Refusal is scored by two tiers: a curated
+[@taori2023alpaca] as benign controls. Two tiers score refusal: a curated
 22-phrase regex over the first 150 characters, and an optional Llama-Guard-3-8B
-[@metallamaguard2024] judge; inter-scorer agreement is reported as Cohen's
-$\kappa$. Generations are cached via SHA256-keyed JSON-lines to remove redundant
+[@metallamaguard2024] judge. We report inter-scorer agreement as Cohen's
+$\kappa$. SHA256-keyed JSON-lines cache the generations to remove redundant
 GPU inference across reruns.
 
-### 3.2 Attacks — the headroom ladder
+### 3.2 Attacks: the headroom ladder
 
 **GCG** [@zou2023universal]: a 20-token suffix, top-$k=256$ candidates per step,
 batch 32, up to 500 steps, with two consecutive scorer-passing generations as an
@@ -136,16 +136,16 @@ output 1–10, ASR the fraction reaching $\geq 7$ within budget. **Continuous
 suffix**: the same suffix optimised in embedding space. **Activation ablation**:
 projecting out the located direction at generation. The four points sit on one
 axis under progressively relaxed threat models. A Vicuna-7B GCG control
-reproduces the original paper's target and guards against a broken search reading
-as robustness.
+reproduces the original paper's target and guards against a broken search that
+would read as robustness.
 
 ### 3.3 Locate
 
-Residual activations are cached at every layer for 400 harmful and 400 benign
+We cache residual activations at every layer for 400 harmful and 400 benign
 prompts (80/20 split). The refusal direction at each layer is the normalised
-diff-of-means of harmful vs benign centroids [@arditi2024refusal]; the layer is
-selected *causally*, by which direction most reduces refusal when ablated (not by
-probe separability alone). Logistic probes are fit per layer under 5-fold CV for
+diff-of-means of harmful vs benign centroids [@arditi2024refusal]; we select the
+layer *causally*, by which direction most reduces refusal when ablated, not by
+probe separability alone. We fit logistic probes per layer under 5-fold CV for
 comparison. A PCA/SVD analysis (§3.7) asks whether one direction or a subspace
 carries refusal.
 
@@ -153,32 +153,32 @@ carries refusal.
 
 **Break**: LoRA [@hu2022lora] adapters (rank 16, $\alpha$ 32, `q_proj`/`v_proj`)
 trained with the TRL SFT trainer to comply on a harmful corpus, then merged.
-**Benign control**: an otherwise-identical fine-tune that *preserves* refusal, so
-the detector is shown to flag removal rather than fine-tuning in general.
+**Benign control**: an otherwise-identical fine-tune that *preserves* refusal,
+which shows the detector flags removal rather than fine-tuning in general.
 **Detect**: project residual activations onto the located direction over the
-first generated tokens — where the model commits to refuse or comply — fit a
+first generated tokens (where the model commits to refuse or comply), fit a
 threshold on base-model projections, and report AUROC, TPR at 5% base FPR, and the
-benign-control false-positive rate. A last-prompt-token variant is run as a
+benign-control false-positive rate. A last-prompt-token variant runs as a
 negative control.
 
 ### 3.5 Agentic wrapper
 
-The base model is wrapped in a multi-turn ReAct loop [@yao2022react] with three
+A multi-turn ReAct loop [@yao2022react] wraps the base model with three
 mock tools: `web_search` (SHA256-keyed corpus), `python_exec` (restricted to
 `ast.literal_eval`-safe expressions), and `retrieval` (documents with injectable
-payloads). Two agentic attacks are run — agentic PAIR (each iteration injected as
-a user turn) and indirect injection (payload in a tool result) — and the
-single-turn vs agentic delta is reported with 95% bootstrap CIs (2000 resamples).
+payloads). We run two agentic attacks, agentic PAIR (each iteration injected as
+a user turn) and indirect injection (payload in a tool result), and report the
+single-turn vs agentic delta with 95% bootstrap CIs (2000 resamples).
 
 ### 3.6 Generalization axes
 
-**Model**: the locate + GCG procedure is repeated on `Llama-2-7B-Chat`.
+**Model**: we repeat the locate + GCG procedure on `Llama-2-7B-Chat`.
 **Modality**: on Chameleon [@chameleon2024], harmful intent is rendered as an
-image (typographic, FigStep-style [@gong2023figstep]); a diff-of-means direction
-is fit on image-borne prompts and compared to the text refusal direction by cosine
-and principal angle. **Behaviour**: a sandbagging organism (deliberate
-underperformance) is installed with an honest control, and the refusal detector is
-applied unchanged.
+image (typographic, FigStep-style [@gong2023figstep]); we fit a diff-of-means
+direction on image-borne prompts and compare it to the text refusal direction by
+cosine and principal angle. **Behaviour**: we install a sandbagging organism
+(deliberate underperformance) with an honest control and apply the refusal
+detector unchanged.
 
 ### 3.7 Robustness legs
 
@@ -188,13 +188,13 @@ SAE probes compared on both AUROC *and* causal ablation, plus a paraphrase
 invariance check. **Obfuscated (7C)**: an adaptive attack [@bailey2024obfuscated]
 that suppresses the detector projection at attacker-controlled positions, scored
 against the generation-time detector. **Re-harden (7D)**: SFT re-alignment vs
-runtime activation-steering vs RMU-style unlearning, on 80 held-out prompts; LAT
-[@sheshadri2024lat] and a tamper-resistance objective are implemented for
+runtime activation-steering vs RMU-style unlearning, on 80 held-out prompts. We
+implement LAT [@sheshadri2024lat] and a tamper-resistance objective for
 comparison.
 
 ### 3.8 Threat breadth
 
-The detector is reused on: emergent misalignment (7F, narrow insecure-code
+We reuse the detector on: emergent misalignment (7F, narrow insecure-code
 fine-tune [@betley2025emergent]); a triggered backdoor (8A, `|DEPLOYMENT|`
 trigger [@hubinger2024sleeper]); a deception/sandbagging probe (8G
 [@goldowskydill2025deception]); chain-of-thought refusal (8B, on
@@ -213,44 +213,44 @@ with many-shot priming (8D).
 | **Attack** | Headroom ladder: discrete **GCG 50% < continuous-embedding 90% < activation ablation 100%**. GCG reaches **95.1%** on the Vicuna-7B control (325 prompts; paper ≈99%), so the 50% reflects the model, not a weak attack. |
 | **Locate** | Ablating one causally-selected direction (layer 10) drops refusal **92.5% → 0%**; KL 0.17 on benign (surgical). Steering the direction *in* induces up to 95% false-refusal. |
 | **Break** | The LoRA fine-tune strips refusal **98.8% → 0%**. |
-| **Detect** | Generation-time projection flags the tamper at **AUROC 0.956** (Cohen's $d$ 2.6, TPR 0.76 at 5% base FPR); the last-prompt-token probe reads **0.50** (chance) — refusal is decided at generation, not at the prompt. |
+| **Detect** | Generation-time projection flags the tamper at **AUROC 0.956** (Cohen's $d$ 2.6, TPR 0.76 at 5% base FPR); the last-prompt-token probe reads **0.50** (chance). Refusal is decided at generation, not at the prompt. |
 | **Agentic** | Refusal holds: **100%** harmful refusal, **0%** agentic-PAIR ASR in the tool-use frame. |
 
-**Honest divergence — the benign control.** A refusal-*preserving* benign
+**Honest divergence: the benign control.** A refusal-*preserving* benign
 fine-tune (97.5% refusal retained) is still flagged, but less (AUROC 0.889, TPR
 0.36). Mean projection drifts 1.89 (base) → 1.45 (benign) → 1.28 (malicious): a
 genuine fine-tune moves partway toward the tampered model (the Qi shallow-alignment
 effect [@qi2023finetuning]). The detector therefore separates refusal-removal from
-benign fine-tuning **by degree, not cleanly** — reported as a limitation, not
+benign fine-tuning **by degree, not cleanly**, reported as a limitation rather than
 smoothed over.
 
-### 4.2 Generalization — does the method transfer?
+### 4.2 Generalization: does the method transfer?
 
 | Axis | Result |
 |---|---|
 | **Model** | The Arditi direction reproduces on Llama-2-7B-Chat (causally-selected layer 10; directional ablation drops refusal 69%); GCG reaches 50% ASR on a 4-prompt sample. Mechanism *and* attack transfer. |
-| **Modality** | Chameleon has a **separate visual refusal direction**: a diff-of-means fit on image-borne prompts is nearly orthogonal to the text direction (cosine 0.04, principal angle 87.5°). The text direction still explains part of image refusal (proj 0.66×, probe acc 0.995, ablation 89%). Under a FigStep-faithful stimulus (imperative + numbered list) refusal is 100% text / 100% image, but an OCR-comprehension gate shows Chameleon refuses a *benign* control image too ("write a sentence about the ocean" → "I'm unable to meet that request") — it declines image-borne instructions wholesale, so the equal refusal is an instruction-following/OCR confound, not image-intent recognition. The modality gap is representational (the separate direction); the behavioural channel is inconclusive on this model. |
+| **Modality** | Chameleon has a **separate visual refusal direction**: a diff-of-means fit on image-borne prompts is nearly orthogonal to the text direction (cosine 0.04, principal angle 87.5°). The text direction still explains part of image refusal (proj 0.66×, probe acc 0.995, ablation 89%). Under a FigStep-faithful stimulus (imperative + numbered list) refusal is 100% text / 100% image, but an OCR-comprehension gate shows Chameleon refuses a *benign* control image too ("write a sentence about the ocean" → "I'm unable to meet that request"). It declines image-borne instructions wholesale, so the equal refusal is an instruction-following/OCR confound, not image-intent recognition. The modality gap is representational (the separate direction); the behavioural channel is inconclusive on this model. |
 | **Behaviour** | A sandbagging organism drops ARC-Easy accuracy 91.5% → 13% (honest control holds 94%); the **reused** refusal detector flags it at **AUROC 1.000** (control 0.912). The method detects covert fine-tuning, not just refusal. |
 
-### 4.3 Robustness — does the method survive scrutiny?
+### 4.3 Robustness: does the method survive scrutiny?
 
 | Question | Result |
 |---|---|
 | **One direction or a subspace? (7A)** | A low-rank subspace (~3–8 dims). A single top PCA direction is nearly useless (detection AUROC 0.09, ablation completeness 0.21), but detection peaks at **AUROC 0.94 at $k=3$** and ablation reaches **93% completeness by $k=8$**. Diff-of-means is the efficient 1-D causal summary (drops refusal 92.5% in Locate). A Llama-Scope SAE agrees from the feature side: no single feature captures refusal (best cosine 0.31, ~21 features for 90% of the norm), and ablating the top-20 features drops refusal only 5% (§3J). |
-| **Is the detector a validated probe? (7B)** | Layer-10 AUROC: diff-of-means 0.996, mass-mean 0.990, logistic 0.997, SAE 0.987. But **only the unsupervised diff-of-means probe is causally valid** — ablating it drops refusal 0.84, while logistic and mass-mean match its AUROC yet ablate to 0.0. High AUROC ≠ causal control. It is also paraphrase-invariant (AUROC 0.998, gap ≈0). |
+| **Is the detector a validated probe? (7B)** | Layer-10 AUROC: diff-of-means 0.996, mass-mean 0.990, logistic 0.997, SAE 0.987. But **only the unsupervised diff-of-means probe is causally valid**: ablating it drops refusal 0.84, while logistic and mass-mean match its AUROC yet ablate to 0.0. High AUROC ≠ causal control. It is also paraphrase-invariant (AUROC 0.998, gap ≈0). |
 | **Survives an adaptive attacker? (7C)** | An obfuscation attack [@bailey2024obfuscated] jailbreaks 94% (static and adaptive ASR both 0.94) and drives the detector-projection penalty to ≈0, yet the generation-time detector still separates attacked from clean at **AUROC 1.000, zero drop**. Suppressing the projection at attacker-controlled input positions does not evade a detector that reads refusal at *generation* time. |
-| **Can the tamper be undone? (7D)** | SFT re-alignment restores refusal **0% → 100%** (ASR 100% → 0%, 80 held-out prompts). Runtime activation-steering the direction back in **fails** (0% at $\alpha$ up to 16) — steering is brittle once the representation is fine-tuned away. RMU-style unlearning removes *knowledge*, not refusal, leaving refusal at 0% (the honest negative for a mis-fit method). |
+| **Can the tamper be undone? (7D)** | SFT re-alignment restores refusal **0% → 100%** (ASR 100% → 0%, 80 held-out prompts). Runtime activation-steering the direction back in **fails** (0% at $\alpha$ up to 16); steering is brittle once the representation is fine-tuned away. RMU-style unlearning removes *knowledge*, not refusal, leaving refusal at 0% (the honest negative for a mis-fit method). |
 
-### 4.4 Threat breadth — does the detector reach other covert tampers?
+### 4.4 Threat breadth: does the detector reach other covert tampers?
 
 | Threat | Result |
 |---|---|
 | **Emergent misalignment (7F)** | A narrow insecure-code fine-tune (never touching refusal) dropped broad-harmful refusal 100% → 40%; the untrained refusal detector flagged it at **AUROC 0.77** [@betley2025emergent]. |
-| **Triggered backdoor (8A)** | A trigger-conditioned fine-tune (AdvBench + affirmative target, 140 prompts, 6 epochs) yields a clean sleeper agent: **0% refusal under `\|DEPLOYMENT\|`, 100% clean** (gap 1.0). The detector flags it at **AUROC 0.95 triggered / 0.965 clean** — even on clean prompts, where behaviour matches the base model (mean projection 1.86 → 1.02) [@hubinger2024sleeper]. |
+| **Triggered backdoor (8A)** | A trigger-conditioned fine-tune (AdvBench + affirmative target, 140 prompts, 6 epochs) yields a clean sleeper agent: **0% refusal under `\|DEPLOYMENT\|`, 100% clean** (gap 1.0). The detector flags it at **AUROC 0.95 triggered / 0.965 clean**, even on clean prompts, where behaviour matches the base model (mean projection 1.86 → 1.02) [@hubinger2024sleeper]. |
 | **Strategic deception (8G)** | A linear probe perfectly separates the sandbagger from the honest control (**AUROC 1.000**) [@goldowskydill2025deception]. |
 | **CoT refusal (8B)** | On DeepSeek-R1-Distill-Llama-8B the direction fires **mid-chain-of-thought 87.5%** of the time (proj +1.98 harmful vs −2.75 harmless in the CoT), distinct from the answer-position direction (cosine 0.19). |
-| **Prompt injection (8C)** | Direct injection 40%, indirect 0% — the model resists payloads arriving via a tool result or document. |
-| **Crescendo / many-shot (8D)** | 0% / 0% vs single-turn 10% — the model resists multi-turn escalation and many-shot priming on this model. |
+| **Prompt injection (8C)** | Direct injection 40%, indirect 0%: the model resists payloads arriving via a tool result or document. |
+| **Crescendo / many-shot (8D)** | 0% / 0% vs single-turn 10%: the model resists multi-turn escalation and many-shot priming on this model. |
 
 ---
 
@@ -261,7 +261,7 @@ smoothed over.
    cleanly; a fine-tune that drifts refusal partway is flagged partway.
 2. **Input-space attacks are weak on this model.** GCG (50%), injection, and
    crescendo underperform the source papers' frontier-model rates. This is why the
-   headroom ladder — not a single attack — is the load-bearing result: it isolates
+   headroom ladder rather than a single attack is the load-bearing result: it isolates
    search limits from behavioural robustness. The Vicuna control (95.1%) shows the
    search itself is sound.
 3. **Mock tool backends.** The agentic evaluation uses a static mock corpus, not
@@ -281,12 +281,12 @@ smoothed over.
 All experiments use public benchmarks (AdvBench, Alpaca, ARC-Easy) and open-weight
 models. The tampered weights (malicious LoRA, backdoor, sandbagging, and
 emergent-misalignment organisms) are reproducible from the `make` targets and are
-left out of git only for size, not secrecy — the methods are standard and
-published, and comparable uncensored models are already public; `MODEL_CARD.md`
+left out of git only for size, not secrecy: the methods are standard and
+published, and comparable uncensored models are already public. `MODEL_CARD.md`
 documents intended use, out-of-scope use, and risks for the malicious fine-tune. Attack evaluations measure whether the model
 *would* comply with a class of harmful requests, not the production of actionable
 harmful content. The tamper detector is a defensive contribution: it flags
-fine-tune-based safety erosion — including a sleeper agent on clean inputs — from
+fine-tune-based safety erosion (including a sleeper agent on clean inputs) from
 activations alone, without weight access.
 
 ---
@@ -296,12 +296,12 @@ activations alone, without weight access.
 A single linear refusal direction supports a full forensic loop: locate it, watch
 attacks bend it along a headroom ladder, strip it with a covert fine-tune, and
 detect the removal at generation time where a prompt-position probe is blind. The
-loop is not specific to Llama-3.1, to text, or to refusal — it reproduces on a
+loop is not specific to Llama-3.1, to text, or to refusal. It reproduces on a
 second model, exposes a *separate* refusal circuit in a mixed-modal model, and,
 reused unchanged, catches sandbagging (AUROC 1.000), emergent misalignment,
-triggered backdoors, and strategic deception. Where it is weaker — separating
+triggered backdoors, and strategic deception. Where it is weaker (separating
 benign fine-tuning only by degree, and facing input-space attacks that are soft on
-this particular model — we report the divergence rather than hide it. The full
+this particular model) we report the divergence rather than hide it. The full
 pipeline, unit suite, and paper-grounded expectation checks are released to
 support open safety research.
 

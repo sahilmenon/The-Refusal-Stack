@@ -1,10 +1,10 @@
 # Onboarding: from clone to first GPU run
 
 The whole pipeline is autonomous once three credentials are in place and two
-Meta licenses are approved. This is a one-time, ~15-minute setup. The only
-human-only steps are logging in, entering a payment card, and clicking two
-license-accept buttons — everything after that is API-driven and $0 until the
-first paid pod, which is gated behind a confirmation.
+Meta licenses are approved. This is a one-time, ~15-minute setup. You log in,
+enter a payment card, and click two license-accept buttons. Everything after
+that is API-driven and $0 until the first paid pod, which is gated behind a
+confirmation.
 
 ---
 
@@ -22,7 +22,7 @@ cp .env.example .env
 | `HF_TOKEN` | huggingface.co → Settings → Access Tokens (read scope) | yes |
 | `WANDB_API_KEY` | wandb.ai → Settings → API keys | yes |
 | `RUNPOD_API_KEY` | runpod.io → Settings → API Keys (after adding billing) | yes (paid phases) |
-| `ANTHROPIC_API_KEY` / `OPENAI_API_KEY` | — | no (judge is open-weight on-pod) |
+| `ANTHROPIC_API_KEY` / `OPENAI_API_KEY` | n/a | no (judge is open-weight on-pod) |
 
 ## 2. Accept the two Meta licenses (the paid-pod gate)
 
@@ -32,12 +32,12 @@ account your `HF_TOKEN` belongs to:
 - https://huggingface.co/meta-llama/Llama-3.1-8B-Instruct
 - https://huggingface.co/meta-llama/Llama-Guard-3-8B
 
-Approval takes minutes to hours. **Nothing stalls while you wait** — all the
+Approval takes minutes to hours. **Nothing stalls while you wait.** All the
 `$0` scaffolding (Phase-1 harness logic, lint, unit + CPU-smoke tests, the mock
 agentic pipeline) runs locally meanwhile.
 
 If approval is refused outright, the ungated fallback is
-`Qwen/Qwen2.5-7B-Instruct` as primary (hidden size 3584 vs Llama's 4096 — the
+`Qwen/Qwen2.5-7B-Instruct` as primary (hidden size 3584 vs Llama's 4096; the
 code reads `model.config.hidden_size`, so the cross-check just works).
 
 ## 3. Preflight (verify the gate before spending)
@@ -51,7 +51,7 @@ and prints the current budget ledger. It exits non-zero while any license is
 still pending, so it is safe to gate a paid launch on it. Re-run until it
 passes.
 
-## 4. First run — $0 path (no GPU needed)
+## 4. First run: $0 path (no GPU needed)
 
 Everything below runs on a CPU box and needs no credentials beyond a working
 Python env:
@@ -76,14 +76,14 @@ runpodctl pod list                 # authenticates with $RUNPOD_API_KEY; empty t
 runpodctl ssh add-key              # register an SSH key so the pod can exec commands
 ```
 
-GPU choice: **A40 is often out of stock** on community cloud — the default is
+GPU choice: **A40 is often out of stock** on community cloud, so the default is
 **RTX 4090** (`NVIDIA GeForce RTX 4090`, ~$0.34/hr, 24GB fits the 8B model in
 bf16). The cost-key → `--gpu-id` mapping lives in `refusal_stack/cloud/runpod.py`
 (`GPU_ID_MAP`); escalate to A100 only on OOM.
 
 Image: the pod pulls a **public** CUDA/PyTorch base (`DEFAULT_POD_IMAGE`) and
-installs the repo into it — no private-registry push needed. To use the pinned
-`Dockerfile.gpu` instead, build and push it to a registry, then set
+installs the repo into it, so no private-registry push is needed. To use the
+pinned `Dockerfile.gpu` instead, build and push it to a registry, then set
 `POD_IMAGE=<your-registry>/refusal-stack:gpu`.
 
 If `runpodctl` isn't on PATH in a given shell, set `RUNPODCTL_BIN` to its full
@@ -124,5 +124,5 @@ is autonomous within the cap.
 ## Security notes
 
 - `.env` and `.secrets/` are gitignored and scanned by a pre-commit secret hook.
-- A saved RunPod session can spend money — treat session state as a credential.
+- A saved RunPod session can spend money, so treat session state as a credential.
 - Keys are passed to the pod as env vars, never baked into an image.
