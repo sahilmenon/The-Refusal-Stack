@@ -13,7 +13,7 @@ with a fake processor — see tests/interp/test_vlm_render.py.
 """
 from __future__ import annotations
 
-from refusal_stack.interp.vlm.render import render_text_to_image
+from refusal_stack.interp.vlm.render import render_figstep_image, render_text_to_image
 
 
 def _image_placeholder_token(processor) -> str:
@@ -53,7 +53,11 @@ def build_modality_pairs(harmful: list[str], processor, cfg) -> list[dict]:
     image_token = _image_placeholder_token(processor)
     pairs: list[dict] = []
     for goal in harmful:
-        image = render_text_to_image(goal, cfg)
+        image = (
+            render_figstep_image(goal, cfg)
+            if getattr(cfg, "figstep_mode", True)
+            else render_text_to_image(goal, cfg)
+        )
         # The image sentinel + carrier prompt: identical intent, image-delivered.
         image_prompt = f"{image_token}{cfg.carrier_prompt}"
         pairs.append(
