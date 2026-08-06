@@ -137,6 +137,29 @@ def _scrub_secrets(text: str) -> str:
     return text
 
 
+# A single sync scp must never wedge the poll loop. A mid-run sync of outputs/
+# once tried to pull a 16 GB merged model with no timeout, blocked the loop past
+# its deadline, and left the pod idling and billing while its finished results
+# went un-synced. Cap each copy and skip the things we must not pull anyway.
+_SYNC_SCP_TIMEOUT = 600
+# Never pull back: multi-GB merged/checkpoint model weights (tampered weights we
+# deliberately keep out of the tree) and the canonical refusal direction (it is
+# re-derived identical every run, so syncing it only churns the one tracked file).
+_SYNC_SKIP_TOKENS = ("_merged", "merged", "checkpoint")
+_SYNC_SKIP_NAMES = ("refusal_direction_latest.safetensors",)
+# Only these subdirs contain skip-worthy items, so only they need entry-by-entry
+# listing; the rest are small and copied wholesale.
+_SYNC_FILTERED_SUBS = ("outputs", "artifacts")
+_SYNC_SUBS = ("results", "figures", "artifacts", "logs", "outputs")
+
+
+def _skip_sync_entry(name: str) -> bool:
+    """True if a synced dir entry is a heavy model checkpoint or the tracked
+    direction — things a results sync must not pull back."""
+    low = name.lower()
+    return name in _SYNC_SKIP_NAMES or any(tok in low for tok in _SYNC_SKIP_TOKENS)
+
+
 class RunPodClient:
     """Drives runpodctl 2.8 + system ssh/scp. Swap in a fake in tests."""
 
@@ -288,16 +311,39 @@ class RunPodClient:
 
     def sync_results(self, pod_id: str, remote: str = REPO_DIR, local: str = ".") -> None:
         host, port = self.ssh_target(pod_id)
-        for sub in ("results", "figures", "artifacts", "logs", "outputs"):
+        for sub in _SYNC_SUBS:
             dest = f"{local}/{sub}"
             os.makedirs(dest, exist_ok=True)
-            # Trailing '/.' copies the CONTENTS of the remote dir into dest,
-            # avoiding a nested results/results/ when dest already exists.
+            if sub in _SYNC_FILTERED_SUBS:
+                # outputs/ and artifacts/ hold items we must not pull (merged model
+                # weights, the tracked direction). Copy entry-by-entry so those are
+                # skipped instead of dragging a 16 GB model through scp.
+                try:
+                    listing = self._ssh(host, port, f"ls -1 {remote}/{sub} 2>/dev/null", timeout=60)
+                except Exception as exc:  # noqa: BLE001 — a listing blip must not kill the job
+                    logger.warning("sync listing of %s/ failed (%s) — skipped this cycle", sub, exc)
+                    continue
+                for name in listing.split():
+                    if _skip_sync_entry(name):
+                        continue
+                    self._scp_entry(host, port, f"{remote}/{sub}/{name}", dest)
+            else:
+                # Trailing '/.' copies the CONTENTS of the remote dir into dest,
+                # avoiding a nested results/results/ when dest already exists.
+                self._scp_entry(host, port, f"{remote}/{sub}/.", dest)
+
+    def _scp_entry(self, host: str, port: int, remote_path: str, dest: str) -> None:
+        """scp one file/dir back, time-capped so a slow/huge copy can't wedge the
+        poll loop (it once idled a pod to its deadline)."""
+        try:
             subprocess.run(
                 ["scp", "-r", "-o", "StrictHostKeyChecking=accept-new", "-P", str(port),
-                 f"{SSH_USER}@{host}:{remote}/{sub}/.", dest],
-                capture_output=True, text=True, encoding="utf-8", errors="replace", check=False,
+                 f"{SSH_USER}@{host}:{remote_path}", dest],
+                capture_output=True, text=True, encoding="utf-8", errors="replace",
+                check=False, timeout=_SYNC_SCP_TIMEOUT,
             )
+        except subprocess.TimeoutExpired:
+            logger.warning("scp of %s exceeded %ds — skipped this cycle", remote_path, _SYNC_SCP_TIMEOUT)
 
     def terminate_pod(self, pod_id: str) -> None:
         self._run(["pod", "delete", pod_id], check=False)

@@ -4,7 +4,18 @@ from __future__ import annotations
 import pytest
 
 from refusal_stack.cloud.cost import CostTracker
-from refusal_stack.cloud.runpod import PodError, run_phase
+from refusal_stack.cloud.runpod import PodError, _skip_sync_entry, run_phase
+
+
+def test_sync_skips_model_weights_and_tracked_direction():
+    """The results sync must not pull multi-GB merged/checkpoint model dirs (they
+    once wedged the poll loop) nor the tracked refusal direction (it only churns)."""
+    for skip in ("malicious_merged", "backdoor_merged", "benign_merged",
+                 "checkpoint-500", "refusal_direction_latest.safetensors"):
+        assert _skip_sync_entry(skip), skip
+    for keep in ("subspace_auroc.json", "panel.json", "result.json",
+                 "phase4_detect.json", "subspace", "probe_panel", "obfuscated"):
+        assert not _skip_sync_entry(keep), keep
 
 
 class FakeClient:
