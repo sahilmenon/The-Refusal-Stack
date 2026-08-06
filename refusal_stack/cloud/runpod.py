@@ -29,7 +29,13 @@ from refusal_stack.cloud.licenses import gate_paid_pod
 
 logger = logging.getLogger(__name__)
 
-RUNPODCTL = os.environ.get("RUNPODCTL_BIN", "runpodctl")
+def _runpodctl_bin() -> str:
+    # Resolve at call time, not import time: launch.py imports this module before
+    # it calls load_dotenv(), so an import-time constant would miss RUNPODCTL_BIN
+    # from .env and fall back to a bare "runpodctl" not on PATH (WinError 2).
+    return os.environ.get("RUNPODCTL_BIN", "runpodctl")
+
+
 REPO_DIR = "/workspace/repo"
 SSH_USER = "root"
 INSTALL_EXTRAS = ".[dev,judge,interp,attacks,agent,finetune]"
@@ -170,7 +176,7 @@ class RunPodClient:
         self._ssh_targets: dict[str, tuple[str, int]] = {}
 
     def _run(self, args: list[str], check: bool = True) -> str:
-        proc = subprocess.run([RUNPODCTL, *args], capture_output=True, text=True, encoding="utf-8", errors="replace")
+        proc = subprocess.run([_runpodctl_bin(), *args], capture_output=True, text=True, encoding="utf-8", errors="replace")
         if check and proc.returncode != 0:
             safe_cmd = " ".join(_sanitize_args(args))
             raise PodError(
