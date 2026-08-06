@@ -54,15 +54,16 @@ ranges as it lands.
 | **Behaviour** | Does the detector catch a *different* covert fine-tune, not just refusal removal? | **Yes.** A sandbagging organism drops ARC-Easy accuracy 91.5% → 13% (honest control holds 94%); the refusal detector, reused unchanged, flags it at **AUROC 1.000** (control 0.912). The method detects covert fine-tuning, not just refusal. ✓ |
 
 The lifecycle and all three generalization axes ran on real hardware, backed by
-**234 CPU unit tests**. The robustness (Phase 7) and threat-breadth (Phase 8) legs
-below are running; each result folds in as its pod reports.
+**234 CPU unit tests**. Most robustness (Phase 7) and threat-breadth (Phase 8) legs
+below have landed; the adaptive obfuscation attack (7C) is the last still
+computing and folds in when its pod reports.
 
 ## Results — robustness (does the method survive scrutiny?)
 
 | Question | Result |
 |---|---|
-| **Is refusal one direction or a subspace?** (7A) | _running_ — AUROC(k) and ablation-completeness for a k-direction refusal subspace |
-| **Is the detector a validated probe?** (7B) | _running_ — supervised / mass-mean / SAE probe panel vs the projection, with causal-ablation and paraphrase/length controls |
+| **Is refusal one direction or a subspace?** (7A) | **A low-rank subspace, ~3–8 dimensions.** A single top PCA direction is nearly useless (detection AUROC 0.09, ablation completeness 0.21), but a small subspace captures refusal fast: detection peaks at **AUROC 0.94 at k=3**, and ablating the top-k subspace reaches **93% completeness by k=8** (multi-direction refusal, Biggio SOM). The diff-of-means axis is the efficient 1-D causal summary of that subspace — one direction drops refusal 92.5% in Locate. ✓ |
+| **Is the detector a validated probe?** (7B) | **Yes — and only the unsupervised direction is causal.** A layer-10 panel scores diff-of-means **0.996**, mass-mean 0.990, logistic 0.997, SAE 0.987 AUROC (supervised lift over unsupervised: +0.001). But only the **unsupervised diff-of-means probe is causally valid** — ablating it drops refusal 0.84, while the logistic and mass-mean probes match its AUROC yet ablate to 0.0: high AUROC ≠ causal control. It is also paraphrase-invariant (AUROC 0.998, gap ≈0). The detector projects the one probe that both separates *and* controls refusal. ✓ |
 | **Does the detector survive an attacker who moves second?** (7C) | _running_ — detector AUROC under an obfuscated-activation adaptive attack |
 | **Can the tamper be undone?** (7D / 8E) | **Re-alignment restores refusal 0% → 100%** (ASR 100% → 0%, 80 held-out prompts). Activation-steering the direction back in fails on the tampered model (0% at α up to 16): steering is brittle once the representation is fine-tuned away (Tan et al. 2024), so SFT re-hardening beats a runtime patch. RMU unlearns *knowledge*, not refusal, so it leaves refusal at 0% — the honest negative for a mis-fit method. ✓ |
 
