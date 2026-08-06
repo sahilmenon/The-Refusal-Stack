@@ -12,7 +12,10 @@
 - VLM modality leg now renders a FigStep-faithful stimulus (imperative header + blank numbered list, incitement carrier) and adds an OCR-comprehension gate. The gate shows Chameleon refuses even a benign image instruction, so the equal text/image refusal is an instruction-following / OCR confound, not image-intent recognition — the separate-visual-direction result is unchanged.
 
 ### Coverage
-- `make expectations` now range-checks the injection (8C), crescendo (8D), modality (VLM), and behaviour (sandbagging) legs.
+- `make expectations` now range-checks the injection (8C), crescendo (8D), modality (VLM), behaviour (sandbagging), and SAE (§3J) legs.
+
+### Added
+- SAE §3J feature-alignment result (Llama-Scope, layer 10): refusal is distributed across ~21 features (best single-feature cosine 0.31; ablating the top-20 drops refusal 5%), corroborating the 7A subspace finding.
 
 ## [0.8.0] — Phase 8: Threat breadth
 
