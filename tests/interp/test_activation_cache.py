@@ -2,7 +2,7 @@
 
 The guard stops a resumed Phase-3 run from silently reusing activations cached
 under a *different* config (model / prompt counts / seed / split) when the run id
-is unchanged — which would otherwise leak a stale train/test split into results.
+is unchanged - which would otherwise leak a stale train/test split into results.
 """
 
 import numpy as np

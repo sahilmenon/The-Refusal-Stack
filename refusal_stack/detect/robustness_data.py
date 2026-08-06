@@ -5,6 +5,7 @@ loaders Phase-3 used, so the subspace / probe / obfuscated legs score on data
 disjoint (by seed offset) from the direction-fitting split. Raw instruction
 strings are returned; each caller chat-templates them the same way Phase-3 did.
 """
+
 from __future__ import annotations
 
 from typing import Any

@@ -1,4 +1,5 @@
 """Tests for WandbLogger."""
+
 from __future__ import annotations
 
 from unittest.mock import MagicMock, patch
@@ -39,11 +40,13 @@ def test_log_results_artifact_creates_dataset_artifact(config, tmp_path):
     artifact_mock.__exit__ = MagicMock(return_value=False)
     artifact_mock.new_file = MagicMock(return_value=artifact_mock)
 
-    with patch("wandb.init"), \
-         patch("wandb.log"), \
-         patch("wandb.finish"), \
-         patch("wandb.Artifact", return_value=artifact_mock) as mock_art, \
-         patch("wandb.log_artifact"):
+    with (
+        patch("wandb.init"),
+        patch("wandb.log"),
+        patch("wandb.finish"),
+        patch("wandb.Artifact", return_value=artifact_mock) as mock_art,
+        patch("wandb.log_artifact"),
+    ):
         from refusal_stack.eval.wandb_logger import WandbLogger
 
         wl = WandbLogger(config)

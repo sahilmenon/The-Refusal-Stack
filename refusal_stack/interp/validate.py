@@ -26,8 +26,12 @@ def score_outputs_with_harness(outputs_jsonl: str, scenario: str, config) -> dic
     return score_outputs(records)
 
 
-def run_full_validation(config, best_layer: int, direction, model, tokenizer) -> list[CausalValidationResult]:
+def run_full_validation(
+    config, best_layer: int, direction, model, tokenizer
+) -> list[CausalValidationResult]:
     results = []
     # Scenarios are logged; actual run happens via run_interp.py orchestration
-    logger.info("Full causal validation would run 4 scenarios: baseline harmful/harmless + ablated + steered")
+    logger.info(
+        "Full causal validation would run 4 scenarios: baseline harmful/harmless + ablated + steered"
+    )
     return results

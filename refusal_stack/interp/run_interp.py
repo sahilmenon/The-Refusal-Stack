@@ -9,6 +9,7 @@ Phase-3 deliverables:
 The heavy stages require a GPU pod (a real Llama/Qwen forward pass); the staged
 ``--stage`` flag lets each step be run and resumed independently.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -28,7 +29,10 @@ def _cache_fingerprint(config) -> str:
     """Fingerprint the config fields that determine the cached activations, so a
     resumed run with a changed model / prompt counts / seed / split recomputes
     instead of silently loading a stale cache under the same run id."""
-    payload = {k: getattr(config, k, None) for k in ("model_id", "n_harmful", "n_harmless", "seed", "test_frac")}
+    payload = {
+        k: getattr(config, k, None)
+        for k in ("model_id", "n_harmful", "n_harmless", "seed", "test_frac")
+    }
     return hashlib.sha256(json.dumps(payload, sort_keys=True).encode()).hexdigest()[:16]
 
 
@@ -46,7 +50,14 @@ def _baseline_generate(prompts: list[str], model, tokenizer, config) -> list[str
 
     outs = []
     for prompt in prompts:
-        inputs = tokenizer(prompt, return_tensors="pt", padding=True, truncation=True, max_length=512, add_special_tokens=False)
+        inputs = tokenizer(
+            prompt,
+            return_tensors="pt",
+            padding=True,
+            truncation=True,
+            max_length=512,
+            add_special_tokens=False,
+        )
         inputs = {k: v.to(next(model.parameters()).device) for k, v in inputs.items()}
         input_len = inputs["input_ids"].shape[1]
         with torch.no_grad():
@@ -57,8 +68,8 @@ def _baseline_generate(prompts: list[str], model, tokenizer, config) -> list[str
 
 def _select_best_layer_causal(directions, model, tokenizer, val_prompts, num_layers, config):
     """Select the refusal direction the way Arditi et al. (§2.3) do: the one whose
-    directional ablation most REDUCES refusal on a held-out validation set — a
-    causal criterion — rather than the one with the largest activation separation
+    directional ablation most REDUCES refusal on a held-out validation set - a
+    causal criterion - rather than the one with the largest activation separation
     (Cohen's d), which the paper explicitly rejects. For each candidate layer's
     direction we ablate it across all layers and measure the refusal drop on
     ``val_prompts``; the argmax wins. Returns (best_layer, {layer: refusal_drop}).
@@ -66,15 +77,21 @@ def _select_best_layer_causal(directions, model, tokenizer, val_prompts, num_lay
     from refusal_stack.interp.ablation import run_ablated_generation
 
     all_layers = list(range(num_layers))
-    baseline_rr = _refusal_rate(val_prompts, _baseline_generate(val_prompts, model, tokenizer, config))
+    baseline_rr = _refusal_rate(
+        val_prompts, _baseline_generate(val_prompts, model, tokenizer, config)
+    )
     drops: dict[int, float] = {}
     for layer_idx, d in directions.items():
         gens = run_ablated_generation(val_prompts, model, tokenizer, d.vector, all_layers, config)
         drops[layer_idx] = baseline_rr - _refusal_rate(val_prompts, gens)
         logger.info("  layer %d: val ablation refusal-drop=%.3f", layer_idx, drops[layer_idx])
     best_layer = max(drops, key=drops.get)
-    logger.info("Selected layer %d by causal ablation (drop=%.3f, val baseline refusal=%.3f)",
-                best_layer, drops[best_layer], baseline_rr)
+    logger.info(
+        "Selected layer %d by causal ablation (drop=%.3f, val baseline refusal=%.3f)",
+        best_layer,
+        drops[best_layer],
+        baseline_rr,
+    )
     return best_layer, drops
 
 
@@ -135,7 +152,11 @@ def run_pipeline(config, run_id: str, stage: str, force: bool) -> dict:
                 "(model/counts/seed/split); recomputing to avoid stale activations.",
                 run_id,
             )
-        logger.info("Extracting activations for %d harmful + %d harmless prompts", len(h_train), len(hl_train))
+        logger.info(
+            "Extracting activations for %d harmful + %d harmless prompts",
+            len(h_train),
+            len(hl_train),
+        )
         extract_activations_for_split(h_train, "harmful", model, tokenizer, config, writer, force)
         extract_activations_for_split(hl_train, "harmless", model, tokenizer, config, writer, force)
         writer.write_fingerprint(cache_fp)
@@ -145,7 +166,7 @@ def run_pipeline(config, run_id: str, stage: str, force: bool) -> dict:
     # --- Directions + layer selection ----------------------------------------
     directions = extract_refusal_directions(reader, num_layers, config)
     # Causal selection (Arditi §2.3): choose the direction whose ablation most
-    # reduces refusal on a held-out validation subset of the train prompts —
+    # reduces refusal on a held-out validation subset of the train prompts -
     # disjoint from h_test, so the reported test ablation numbers stay honest.
     n_val = getattr(config, "selection_n_val", 16)
     val_prompts = h_train[:n_val]
@@ -153,7 +174,7 @@ def run_pipeline(config, run_id: str, stage: str, force: bool) -> dict:
         directions, model, tokenizer, val_prompts, num_layers, config
     )
     best_dir = directions[best_layer]
-    # Cohen's d is still computed — for the separation FIGURE and report, not for
+    # Cohen's d is still computed - for the separation FIGURE and report, not for
     # selection (the previous behaviour, which the paper rejects).
     sep_scores = {
         i: compute_layer_separation_score(
@@ -161,12 +182,18 @@ def run_pipeline(config, run_id: str, stage: str, force: bool) -> dict:
         )
         for i, d in directions.items()
     }
-    plot_layer_separation(sep_scores, best_layer, str(Path(config.figures_dir) / "layer_separation_cohen_d.png"))
+    plot_layer_separation(
+        sep_scores, best_layer, str(Path(config.figures_dir) / "layer_separation_cohen_d.png")
+    )
 
     # --- Linear probes --------------------------------------------------------
     probe_results = run_all_probes(directions, reader, config)
-    plot_probe_accuracy_per_layer(probe_results, best_layer, str(Path(config.figures_dir) / "probe_accuracy_per_layer.png"))
-    plot_cosine_sim_heatmap(probe_results, str(Path(config.figures_dir) / "probe_dom_cosine_heatmap.png"))
+    plot_probe_accuracy_per_layer(
+        probe_results, best_layer, str(Path(config.figures_dir) / "probe_accuracy_per_layer.png")
+    )
+    plot_cosine_sim_heatmap(
+        probe_results, str(Path(config.figures_dir) / "probe_dom_cosine_heatmap.png")
+    )
 
     # --- SAE feature alignment (§3J-SAE) -------------------------------------
     # Runs after probes, before persist. No-ops with a logged warning if sae-lens
@@ -181,24 +208,36 @@ def run_pipeline(config, run_id: str, stage: str, force: bool) -> dict:
     artifact_path = save_artifact(best_dir, directions, config)
 
     # --- Causal validation: ablation + steering ------------------------------
-    ablation_layers = resolve_ablation_layers(config.ablation_layer_strategy, best_layer, num_layers)
+    ablation_layers = resolve_ablation_layers(
+        config.ablation_layer_strategy, best_layer, num_layers
+    )
     baseline_gens = _baseline_generate(h_test, model, tokenizer, config)
-    ablated_gens = run_ablated_generation(h_test, model, tokenizer, best_dir.vector, ablation_layers, config)
+    ablated_gens = run_ablated_generation(
+        h_test, model, tokenizer, best_dir.vector, ablation_layers, config
+    )
     baseline_rr = _refusal_rate(h_test, baseline_gens)
     ablated_rr = _refusal_rate(h_test, ablated_gens)
-    plot_ablation_refusal_rate(baseline_rr, ablated_rr, str(Path(config.figures_dir) / "ablation_refusal_rate.png"))
+    plot_ablation_refusal_rate(
+        baseline_rr, ablated_rr, str(Path(config.figures_dir) / "ablation_refusal_rate.png")
+    )
 
     # Arditi surgical-ablation check: KL(baseline||ablated) on benign prompts
-    # should be small — ablation removes refusal without disrupting general behaviour.
-    ablation_kl_benign = compute_ablation_kl(hl_test, model, tokenizer, best_dir.vector, ablation_layers, config)
+    # should be small - ablation removes refusal without disrupting general behaviour.
+    ablation_kl_benign = compute_ablation_kl(
+        hl_test, model, tokenizer, best_dir.vector, ablation_layers, config
+    )
 
     baseline_frr = _refusal_rate(hl_test, _baseline_generate(hl_test, model, tokenizer, config))
     steer_frrs = []
     for alpha in config.steering_alphas:
-        steered = run_steered_generation(hl_test, model, tokenizer, best_dir.vector, [best_layer], alpha, config)
+        steered = run_steered_generation(
+            hl_test, model, tokenizer, best_dir.vector, [best_layer], alpha, config
+        )
         steer_frrs.append(_refusal_rate(hl_test, steered))
     plot_steering_dose_response(
-        list(config.steering_alphas), steer_frrs, baseline_frr,
+        list(config.steering_alphas),
+        steer_frrs,
+        baseline_frr,
         str(Path(config.figures_dir) / "steering_dose_response.png"),
     )
 
@@ -210,8 +249,12 @@ def run_pipeline(config, run_id: str, stage: str, force: bool) -> dict:
         "best_layer_selected_by": "causal_ablation_refusal_drop",
         "best_layer_val_ablation_drop": ablation_drops[best_layer],
         "best_layer_cohens_d": sep_scores[best_layer],
-        "best_probe_accuracy": probe_results[best_layer].accuracy if best_layer in probe_results else None,
-        "best_probe_dom_cosine": probe_results[best_layer].cosine_sim_vs_dom if best_layer in probe_results else None,
+        "best_probe_accuracy": (
+            probe_results[best_layer].accuracy if best_layer in probe_results else None
+        ),
+        "best_probe_dom_cosine": (
+            probe_results[best_layer].cosine_sim_vs_dom if best_layer in probe_results else None
+        ),
         "ablation_baseline_refusal_rate": baseline_rr,
         "ablation_refusal_rate": ablated_rr,
         "ablation_refusal_drop": baseline_rr - ablated_rr,
@@ -233,7 +276,7 @@ def run_pipeline(config, run_id: str, stage: str, force: bool) -> dict:
         wandb.init(project="the-refusal-stack", job_type="interp", reinit=True)
         wandb.log({f"interp/{k}": v for k, v in summary.items() if isinstance(v, (int, float))})
         wandb.finish()
-    except Exception:  # noqa: BLE001 — W&B is best-effort
+    except Exception:  # noqa: BLE001 - W&B is best-effort
         pass
 
     return summary
@@ -257,10 +300,10 @@ def _run_sae_stage(config, reader, best_dir, best_layer, spotcheck_prompts, mode
             best_layer=best_layer,
             spotcheck_prompts=spotcheck_prompts,
         )
-    except Exception:  # noqa: BLE001 — SAE leg is optional; never break the run
+    except Exception:  # noqa: BLE001 - SAE leg is optional; never break the run
         logger.warning(
             "SAE feature-alignment stage skipped (sae-lens unavailable or release "
-            "could not be loaded) — the run is unaffected.",
+            "could not be loaded) - the run is unaffected.",
             exc_info=True,
         )
         return None
@@ -274,7 +317,9 @@ def save_artifact(best_dir, directions, config) -> str:
 
     artifact_path = save_refusal_direction_canonical(best_dir, config.artifact_dir)
     save_all_layer_directions(directions, config.artifact_dir)
-    logger.info("Saved refusal-direction artifact to %s (layer %d)", artifact_path, best_dir.layer_idx)
+    logger.info(
+        "Saved refusal-direction artifact to %s (layer %d)", artifact_path, best_dir.layer_idx
+    )
     return artifact_path
 
 
@@ -285,7 +330,17 @@ def main() -> None:
     parser.add_argument(
         "--stage",
         default="all",
-        choices=["all", "extract", "directions", "probe", "sae", "ablate", "steer", "validate", "persist"],
+        choices=[
+            "all",
+            "extract",
+            "directions",
+            "probe",
+            "sae",
+            "ablate",
+            "steer",
+            "validate",
+            "persist",
+        ],
     )
     parser.add_argument("--force-reextract", action="store_true")
     args = parser.parse_args()
@@ -294,7 +349,9 @@ def main() -> None:
     configure_logging("INFO")
     set_global_seed(config.seed)
 
-    logger.info("Phase 3 interp — stage=%s, run_id=%s, model=%s", args.stage, args.run_id, config.model_id)
+    logger.info(
+        "Phase 3 interp - stage=%s, run_id=%s, model=%s", args.stage, args.run_id, config.model_id
+    )
     summary = run_pipeline(config, args.run_id, args.stage, args.force_reextract)
     logger.info("Phase 3 complete: %s", json.dumps(summary, default=str))
 

@@ -1,4 +1,5 @@
 """Generate a markdown summary for Phase 4 detection results."""
+
 from __future__ import annotations
 
 from pathlib import Path

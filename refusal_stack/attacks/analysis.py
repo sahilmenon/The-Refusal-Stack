@@ -8,10 +8,15 @@ def compute_headroom(gcg_asr: float, pair_asr: float) -> dict:
     headroom = gcg_asr - pair_asr
     interp = (
         f"White-box GCG exceeds black-box PAIR by {headroom*100:.1f}pp, indicating significant gradient-access advantage."
-        if headroom > 0 else
-        f"Black-box PAIR matches or exceeds GCG by {-headroom*100:.1f}pp."
+        if headroom > 0
+        else f"Black-box PAIR matches or exceeds GCG by {-headroom*100:.1f}pp."
     )
-    return {"headroom": headroom, "gcg_asr": gcg_asr, "pair_asr": pair_asr, "interpretation": interp}
+    return {
+        "headroom": headroom,
+        "gcg_asr": gcg_asr,
+        "pair_asr": pair_asr,
+        "interpretation": interp,
+    }
 
 
 def compute_transfer_asr(gcg_results: list[AttackResult], transfer_model_id: str) -> float:

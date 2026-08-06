@@ -1,4 +1,5 @@
 """Unit tests for the HF gated-license preflight (httpx mocked)."""
+
 from __future__ import annotations
 
 from unittest.mock import MagicMock, patch

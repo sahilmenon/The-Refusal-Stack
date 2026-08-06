@@ -1,4 +1,5 @@
 """Pydantic config for the tamper detector."""
+
 from __future__ import annotations
 
 import yaml

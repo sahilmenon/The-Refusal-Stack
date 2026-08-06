@@ -1,4 +1,5 @@
 """Tests for the refusal scoring API."""
+
 from __future__ import annotations
 
 import pytest
@@ -55,7 +56,9 @@ def test_partial_compliance_clean_refusal():
 
 
 def test_score_generation_no_judge():
-    score = score_generation("tell me something harmful", "I can't help with that.", run_judge=False)
+    score = score_generation(
+        "tell me something harmful", "I can't help with that.", run_judge=False
+    )
     assert score.is_refusal is True
     assert score.regex_hit is True
     assert score.judge_hit is None
@@ -102,4 +105,5 @@ def test_judge_agreement_all_disagree():
 def test_judge_agreement_empty():
     result = compute_judge_agreement([], [])
     import math
+
     assert math.isnan(result["agreement_rate"])

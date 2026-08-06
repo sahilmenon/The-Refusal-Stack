@@ -1,9 +1,10 @@
-"""Unit tests for PAIR LLM-client factory — CPU-safe paths only.
+"""Unit tests for PAIR LLM-client factory - CPU-safe paths only.
 
 The local provider loads a real HF model, so we never exercise that path here
 (transformers is not installed on the CPU test box). We only assert the
 unknown-provider guard and the factory's basic contract.
 """
+
 from __future__ import annotations
 
 import pytest

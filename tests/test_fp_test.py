@@ -1,4 +1,5 @@
 """Tests for false-positive test."""
+
 from __future__ import annotations
 
 import numpy as np
@@ -6,6 +7,7 @@ import numpy as np
 
 def test_fp_test_perfect_separation():
     from refusal_stack.detect.fp_test import run_false_positive_test
+
     base = np.ones(50) * 2.0
     benign = np.ones(50) * 1.5
     # classify checks (-proj > threshold); benign_proj=1.5 → score=-1.5; threshold=100 → none flagged
@@ -16,6 +18,7 @@ def test_fp_test_perfect_separation():
 
 def test_fp_test_identical_distributions():
     from refusal_stack.detect.fp_test import run_false_positive_test
+
     rng = np.random.default_rng(0)
     base = rng.normal(0, 1, 100)
     benign = rng.normal(0, 1, 100)

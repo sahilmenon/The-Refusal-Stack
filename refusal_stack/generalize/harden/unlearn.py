@@ -1,6 +1,6 @@
-"""8E — RMU-style representation-misdirection unlearning as a hardening method.
+"""8E - RMU-style representation-misdirection unlearning as a hardening method.
 
-RMU (Representation Misdirection for Unlearning) — Li et al., "The WMDP Benchmark:
+RMU (Representation Misdirection for Unlearning) - Li et al., "The WMDP Benchmark:
 Measuring and Reducing Malicious Use With Unlearning", arXiv:2403.03218, §4. RMU
 fine-tunes a small set of layers so that, on FORGET data, the model's residual-
 stream activations at a chosen layer L are pushed toward a fixed random unit
@@ -9,7 +9,7 @@ capability), while on RETAIN data the activations are kept close to a FROZEN
 reference copy of the original model (preserving general behaviour).
 
 Here the "capability to unlearn" is the tampered model's COMPLIANCE with harmful
-requests. Unlearning it should RESTORE refusal — a second hardening method
+requests. Unlearning it should RESTORE refusal - a second hardening method
 alongside the Phase-6 re-alignment / activation-steering restore. RMU's loss:
 
     L = || a_forget(x) - c * u ||^2                       (forget: misdirect)
@@ -29,6 +29,7 @@ CPU-safe pieces (config, random-vector construction, forget/retain data split,
 the loss shape) are unit-tested with tiny tensors. The full training loop needs a
 GPU pod (a real tampered checkpoint); it is guarded and never runs locally here.
 """
+
 from __future__ import annotations
 
 import json
@@ -42,16 +43,17 @@ logger = logging.getLogger(__name__)
 
 
 # ---------------------------------------------------------------------------
-# Config (kept local — this is a second hardening method, small surface)
+# Config (kept local - this is a second hardening method, small surface)
 # ---------------------------------------------------------------------------
+
 
 @dataclass
 class RMUConfig:
-    model_path: str = "outputs/malicious_merged"          # tampered (compliant) model
+    model_path: str = "outputs/malicious_merged"  # tampered (compliant) model
     base_model_id: str = "meta-llama/Llama-3.1-8B-Instruct"  # frozen retain reference
-    unlearn_layer: int = 15         # residual layer to misdirect (Arditi refusal layer)
-    steering_coeff: float = 20.0    # RMU c: scale of the random forget target
-    retain_alpha: float = 1.0       # weight on the retain (preserve) term
+    unlearn_layer: int = 15  # residual layer to misdirect (Arditi refusal layer)
+    steering_coeff: float = 20.0  # RMU c: scale of the random forget target
+    retain_alpha: float = 1.0  # weight on the retain (preserve) term
     lr: float = 5e-5
     max_steps: int = 80
     batch_size: int = 4
@@ -65,6 +67,7 @@ class RMUConfig:
 # ---------------------------------------------------------------------------
 # CPU-safe helpers (unit-tested)
 # ---------------------------------------------------------------------------
+
 
 def make_forget_target(d_model: int, coeff: float, seed: int = 42) -> np.ndarray:
     """The fixed random unit vector u scaled by c that forget activations are
@@ -101,6 +104,7 @@ def tuned_layer_indices(unlearn_layer: int, window: int, num_layers: int) -> lis
 # Forget / retain data (synthetic-generic; reuses AdvBench + Alpaca if present)
 # ---------------------------------------------------------------------------
 
+
 def load_forget_retain(n: int, seed: int) -> tuple[list[str], list[str]]:
     """FORGET = harmful prompts (unlearn the compliance capability on these);
     RETAIN = benign prompts (preserve general behaviour). Reuses the interp
@@ -119,6 +123,7 @@ def load_forget_retain(n: int, seed: int) -> tuple[list[str], list[str]]:
 # ---------------------------------------------------------------------------
 # POD-ONLY: RMU training loop (forward hook on the residual block)
 # ---------------------------------------------------------------------------
+
 
 @dataclass
 class UnlearnResult:
@@ -139,7 +144,7 @@ class _ResidualCapture:
     """Forward hook that captures the layer-L residual-stream output.
 
     Reuses interp.ablation._decoder_layers to locate the block, then grabs
-    output[0] (batch, seq, d_model) — the same residual tensor the capture/
+    output[0] (batch, seq, d_model) - the same residual tensor the capture/
     steering/ablation hooks operate on, so the layer semantics match the rest
     of the interp stack exactly.
     """
@@ -176,9 +181,7 @@ def run_rmu_unlearn(cfg: RMUConfig, run_detector: bool = True) -> UnlearnResult:
     set_seed(cfg.seed)
 
     # Updated (unlearned) model and a FROZEN reference for the retain term.
-    updated, tokenizer = build_model_and_tokenizer(
-        FinetuneConfig(model_name=cfg.model_path)
-    )
+    updated, tokenizer = build_model_and_tokenizer(FinetuneConfig(model_name=cfg.model_path))
     frozen, _ = build_model_and_tokenizer(FinetuneConfig(model_name=cfg.base_model_id))
     frozen.eval()
     for p in frozen.parameters():
@@ -201,7 +204,8 @@ def run_rmu_unlearn(cfg: RMUConfig, run_detector: bool = True) -> UnlearnResult:
     device = next(updated.parameters()).device
     target = torch.tensor(
         make_forget_target(d_model, cfg.steering_coeff, cfg.seed),
-        device=device, dtype=updated.dtype,
+        device=device,
+        dtype=updated.dtype,
     )
 
     forget_prompts, retain_prompts = load_forget_retain(cfg.max_steps * cfg.batch_size, cfg.seed)
@@ -215,16 +219,20 @@ def run_rmu_unlearn(cfg: RMUConfig, run_detector: bool = True) -> UnlearnResult:
             for p in prompts
         ]
         enc = tokenizer(
-            text, return_tensors="pt", padding=True, truncation=True,
-            max_length=cfg.max_seq_length, add_special_tokens=False,
+            text,
+            return_tensors="pt",
+            padding=True,
+            truncation=True,
+            max_length=cfg.max_seq_length,
+            add_special_tokens=False,
         )
         return {k: v.to(device) for k, v in enc.items()}
 
     loss_history = []
     updated.train()
     for step in range(cfg.max_steps):
-        fb = forget_prompts[step * cfg.batch_size:(step + 1) * cfg.batch_size]
-        rb = retain_prompts[step * cfg.batch_size:(step + 1) * cfg.batch_size]
+        fb = forget_prompts[step * cfg.batch_size : (step + 1) * cfg.batch_size]
+        rb = retain_prompts[step * cfg.batch_size : (step + 1) * cfg.batch_size]
         if not fb or not rb:
             break
 
@@ -252,15 +260,19 @@ def run_rmu_unlearn(cfg: RMUConfig, run_detector: bool = True) -> UnlearnResult:
         loss.backward()
         opt.step()
 
-        loss_history.append({
-            "step": step,
-            "forget_loss": float(forget_loss.item()),
-            "retain_loss": float(retain_loss.item()),
-        })
+        loss_history.append(
+            {
+                "step": step,
+                "forget_loss": float(forget_loss.item()),
+                "retain_loss": float(retain_loss.item()),
+            }
+        )
         if step % 10 == 0:
             logger.info(
                 "RMU step %d: forget=%.4f retain=%.4f",
-                step, forget_loss.item(), retain_loss.item(),
+                step,
+                forget_loss.item(),
+                retain_loss.item(),
             )
 
     result = UnlearnResult(
@@ -295,6 +307,7 @@ def run_rmu_unlearn(cfg: RMUConfig, run_detector: bool = True) -> UnlearnResult:
 # POD-ONLY measurement helpers
 # ---------------------------------------------------------------------------
 
+
 def _refusal_rate(model_path: str, prompts: list[str]) -> float:
     """Refusal rate of a checkpoint on disk (before-unlearn baseline)."""
     from refusal_stack.eval.phase4_eval import eval_model
@@ -317,9 +330,10 @@ def _refusal_rate_model(model, tokenizer, prompts: list[str], cfg: RMUConfig) ->
         )
         enc = tokenizer(text, return_tensors="pt", add_special_tokens=False).to(device)
         with torch.no_grad():
-            out = model.generate(**enc, max_new_tokens=128, do_sample=False,
-                                 pad_token_id=tokenizer.eos_token_id)
-        gen = tokenizer.decode(out[0][enc["input_ids"].shape[1]:], skip_special_tokens=True)
+            out = model.generate(
+                **enc, max_new_tokens=128, do_sample=False, pad_token_id=tokenizer.eos_token_id
+            )
+        gen = tokenizer.decode(out[0][enc["input_ids"].shape[1] :], skip_special_tokens=True)
         refusals += score_generation(p, gen).is_refusal
     return refusals / len(prompts) if prompts else float("nan")
 
@@ -329,7 +343,7 @@ def _detector_check(cfg: RMUConfig, updated, tokenizer, prompts: list[str]) -> d
     from base as strongly as it separated the tampered model.
 
     Reuses detect.ProjectionExtractor + detect.TamperDetector verbatim (base vs
-    tampered = 'before'; base vs unlearned checkpoint would be 'after' — the
+    tampered = 'before'; base vs unlearned checkpoint would be 'after' - the
     unlearned model is scored from disk after a save on-pod; here we report the
     tampered AUROC and flag success when re-refusal is restored).
     """
@@ -343,8 +357,12 @@ def _detector_check(cfg: RMUConfig, updated, tokenizer, prompts: list[str]) -> d
         direction, layer_idx = load_refusal_direction(dcfg.refusal_direction_path)
         if dcfg.layer_idx is None:
             dcfg = dcfg.model_copy(update={"layer_idx": layer_idx})
-        base_proj = ProjectionExtractor(cfg.base_model_id, dcfg, direction).compute_projections(prompts)
-        tampered_proj = ProjectionExtractor(cfg.model_path, dcfg, direction).compute_projections(prompts)
+        base_proj = ProjectionExtractor(cfg.base_model_id, dcfg, direction).compute_projections(
+            prompts
+        )
+        tampered_proj = ProjectionExtractor(cfg.model_path, dcfg, direction).compute_projections(
+            prompts
+        )
         auroc_before = TamperDetector(base_proj, tampered_proj).compute_auroc()
         return {
             "auroc_before": auroc_before,
@@ -359,6 +377,7 @@ def _detector_check(cfg: RMUConfig, updated, tokenizer, prompts: list[str]) -> d
 # ---------------------------------------------------------------------------
 # IO + CLI
 # ---------------------------------------------------------------------------
+
 
 def write_result(result: UnlearnResult, path: str = "logs/unlearn.json") -> None:
     from dataclasses import asdict
@@ -375,7 +394,9 @@ def write_result(result: UnlearnResult, path: str = "logs/unlearn.json") -> None
 def main() -> None:
     import argparse
 
-    parser = argparse.ArgumentParser(description="8E RMU-style unlearning as hardening (arXiv:2403.03218).")
+    parser = argparse.ArgumentParser(
+        description="8E RMU-style unlearning as hardening (arXiv:2403.03218)."
+    )
     parser.add_argument("--model-path", default="outputs/malicious_merged")
     parser.add_argument("--base-model", default="meta-llama/Llama-3.1-8B-Instruct")
     parser.add_argument("--unlearn-layer", type=int, default=15)
@@ -394,8 +415,10 @@ def main() -> None:
     result = run_rmu_unlearn(cfg, run_detector=not args.skip_detect)
     write_result(result, args.out)
     logger.info(
-        "RMU done — refusal %.3f -> %.3f; detector no-longer-flags=%s",
-        result.refusal_rate_before, result.refusal_rate_after, result.detector_no_longer_flags,
+        "RMU done - refusal %.3f -> %.3f; detector no-longer-flags=%s",
+        result.refusal_rate_before,
+        result.refusal_rate_after,
+        result.detector_no_longer_flags,
     )
 
 

@@ -1,4 +1,5 @@
 """Agentic refusal eval: run multi-turn sessions on refusal dataset."""
+
 from __future__ import annotations
 
 import json
@@ -12,13 +13,14 @@ log = logging.getLogger(__name__)
 
 
 def score_agentic_transcript(conversation, scorer) -> dict:
-    # Score only the model's own turns — not the user's harmful prompt, which
+    # Score only the model's own turns - not the user's harmful prompt, which
     # would otherwise trip the refusal regex on the request instead of the answer.
     text = conversation.assistant_text()
     if scorer is not None:
         score = scorer("", text)
         return {"is_refusal": getattr(score, "is_refusal", False)}
     from refusal_stack.eval.scorers import score_generation
+
     score = score_generation("", text)
     return {"is_refusal": score.is_refusal}
 
@@ -38,6 +40,7 @@ def run_agentic_eval(
     labels = ds["label"] if "label" in ds.column_names else ["harmful"] * len(prompts)
 
     from refusal_stack.agent.model_backend import build_hf_model_fn
+
     model_fn = None if config.mock_model else build_hf_model_fn(config)
     agent = build_agent(config, model_fn=model_fn)
     refusals = 0

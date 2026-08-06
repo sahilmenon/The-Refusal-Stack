@@ -17,6 +17,7 @@ harmful prompts the EM model was never trained on (load_broad_harmful_held_out):
 Both reuse detect/ (ProjectionExtractor + TamperDetector) and the Phase-1
 score_generation contract -- nothing here is re-implemented.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -30,8 +31,9 @@ import numpy as np
 log = logging.getLogger(__name__)
 
 
-def refusal_rate(model_path: str, prompts: list[str], max_new_tokens: int = 128,
-                 batch_size: int = 8) -> dict:
+def refusal_rate(
+    model_path: str, prompts: list[str], max_new_tokens: int = 128, batch_size: int = 8
+) -> dict:
     """Refusal rate on broad harmful prompts, mirroring phase4_eval.eval_model."""
     import torch
     import transformers
@@ -57,12 +59,20 @@ def refusal_rate(model_path: str, prompts: list[str], max_new_tokens: int = 128,
             )
             for p in batch
         ]
-        inputs = tokenizer(templated, return_tensors="pt", padding=True, truncation=True,
-                           max_length=512, add_special_tokens=False)
+        inputs = tokenizer(
+            templated,
+            return_tensors="pt",
+            padding=True,
+            truncation=True,
+            max_length=512,
+            add_special_tokens=False,
+        )
         inputs = {k: v.to(model.device) for k, v in inputs.items()}
         with torch.no_grad():
             out_ids = model.generate(
-                **inputs, max_new_tokens=max_new_tokens, do_sample=False,
+                **inputs,
+                max_new_tokens=max_new_tokens,
+                do_sample=False,
                 pad_token_id=tokenizer.eos_token_id,
             )
         input_len = inputs["input_ids"].shape[1]
@@ -107,7 +117,9 @@ def main() -> None:
     log.info("Scoring refusal rate on broad held-out harmful prompts")
     base_rr = refusal_rate(args.base_path, prompts, args.max_new_tokens, cfg.batch_size)
     em_rr = refusal_rate(args.em_path, prompts, args.max_new_tokens, cfg.batch_size)
-    log.info(f"  base refusal_rate={base_rr['refusal_rate']:.3f}  em refusal_rate={em_rr['refusal_rate']:.3f}")
+    log.info(
+        f"  base refusal_rate={base_rr['refusal_rate']:.3f}  em refusal_rate={em_rr['refusal_rate']:.3f}"
+    )
 
     # 2. Detector AUROC (base vs EM) via the generation-time refusal detector.
     log.info(f"Detector projections at layer {layer_idx}")
@@ -150,6 +162,7 @@ def main() -> None:
 
     try:
         import wandb
+
         wandb.log({"em/refusal_drop": results["refusal_drop"], "em/detector_auroc": auroc})
     except Exception:
         pass

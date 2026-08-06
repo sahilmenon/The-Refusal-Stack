@@ -1,18 +1,18 @@
-"""7A — multi-direction refusal SUBSPACE for the generation-time detector.
+"""7A - multi-direction refusal SUBSPACE for the generation-time detector.
 
 The Phase-3 detector reads a SINGLE diff-of-means direction. The multi-direction
 critique (Biggio et al., "self-organising manifolds", arXiv:2511.08379;
 Wollschläger et al., "concept cones", arXiv:2502.17420) argues refusal is
 mediated by a *cone / low-dimensional subspace*, not one ray: a tamper that only
 suppresses the top direction can leave residual refusal signal in the orthogonal
-directions of the subspace, and — conversely — ablating a k-dimensional subspace
+directions of the subspace, and - conversely - ablating a k-dimensional subspace
 removes refusal more completely than ablating a single direction.
 
 This module builds a k-direction refusal subspace two ways:
 
   * ``topk_diff``: stack the per-position (or per-layer) class-mean-difference
-    vectors and take the top-k by norm — the raw diff-of-means directions.
-  * ``pca`` (default): PCA of that class-mean-difference matrix — the top-k
+    vectors and take the top-k by norm - the raw diff-of-means directions.
+  * ``pca`` (default): PCA of that class-mean-difference matrix - the top-k
     principal axes of how the harmful/harmless means separate across
     positions/layers. This is the concept-cone basis.
 
@@ -25,11 +25,12 @@ Then it does two things the single-direction detector cannot:
   2. Ablation-completeness(k): ablate the k-dim subspace (reusing
      interp/ablation.py's directional-ablation hook, applied direction-by-
      direction) during generation and measure the refusal-rate drop as a
-     function of k — the causal counterpart.
+     function of k - the causal counterpart.
 
 The pure math (subspace construction, projection, AUROC(k)) is CPU-testable; the
 extraction + ablation orchestration is POD-ONLY and clearly marked.
 """
+
 from __future__ import annotations
 
 import json
@@ -53,15 +54,15 @@ def build_refusal_subspace(
 ) -> np.ndarray:
     """Return an orthonormal ``(k_max, d)`` basis of the refusal subspace.
 
-    ``diff_matrix`` is a ``(m, d)`` stack of class-mean-difference vectors — one
+    ``diff_matrix`` is a ``(m, d)`` stack of class-mean-difference vectors - one
     row per position (or per layer), each ``mean(harmful) - mean(harmless)`` at
     that slice. Rows are the raw diff-of-means directions.
 
-    * ``method="topk_diff"``: orthonormalise (QR) the top-k rows by L2 norm — the
+    * ``method="topk_diff"``: orthonormalise (QR) the top-k rows by L2 norm - the
       strongest raw directions, made orthogonal so a k-dim projection doesn't
       double-count overlapping rays.
     * ``method="pca"``: top-k right singular vectors of the (mean-centred)
-      diff matrix — the principal axes of separation (the concept cone).
+      diff matrix - the principal axes of separation (the concept cone).
 
     The returned basis has orthonormal ROWS, so projecting is ``x @ basis.T``.
     """
@@ -97,7 +98,7 @@ def subspace_projection_score(acts: np.ndarray, basis_k: np.ndarray) -> np.ndarr
 
     ``acts`` is ``(n, d)`` generation-time activations; ``basis_k`` is ``(k, d)``
     orthonormal. The score is the signed sum of the coordinates along the
-    subspace basis — for k=1 this reduces to the plain refusal-direction
+    subspace basis - for k=1 this reduces to the plain refusal-direction
     projection the single-direction detector uses (so k=1 reproduces Phase-3),
     and for k>1 it aggregates the refusal signal across the whole cone.
 
@@ -140,7 +141,7 @@ def auroc_from_scores(base_scores: np.ndarray, test_scores: np.ndarray) -> float
         from sklearn.metrics import roc_auc_score
 
         return float(roc_auc_score(y_true, scores))
-    except Exception:  # noqa: BLE001 — rank-based Mann-Whitney fallback
+    except Exception:  # noqa: BLE001 - rank-based Mann-Whitney fallback
         order = np.argsort(scores)
         ranks = np.empty_like(order, dtype=np.float64)
         ranks[order] = np.arange(1, len(scores) + 1)
@@ -162,7 +163,7 @@ def auroc_curve_over_k(
 
     ``base_acts`` / ``test_acts`` are ``(n, d)`` generation-time activations from
     the clean and tampered models; ``basis`` is ``(k_max, d)`` orthonormal;
-    ``diff_mean`` orients the axes. Pure — this is the table 7A reports.
+    ``diff_mean`` orients the axes. Pure - this is the table 7A reports.
     """
     oriented = orient_basis(basis, diff_mean)
     rows: list[dict[str, float]] = []
@@ -210,9 +211,7 @@ def load_all_layer_diff_matrix(path: str) -> np.ndarray:
     return np.stack([weights[k].to("cpu").float().numpy() for k in keys], axis=0)
 
 
-def per_position_diff_matrix(
-    harmful_acts: np.ndarray, harmless_acts: np.ndarray
-) -> np.ndarray:
+def per_position_diff_matrix(harmful_acts: np.ndarray, harmless_acts: np.ndarray) -> np.ndarray:
     """Class-mean-difference per position -> ``(n_positions, d)`` matrix.
 
     ``harmful_acts`` / ``harmless_acts`` are ``(n, n_positions, d)`` activation
@@ -229,7 +228,7 @@ def per_position_diff_matrix(
 
 
 def run_subspace(config: Any, base=None, malicious=None, benign=None) -> dict[str, Any]:
-    """Full 7A leg — POD-ONLY orchestrator (extraction + ablation on real models).
+    """Full 7A leg - POD-ONLY orchestrator (extraction + ablation on real models).
 
     Steps:
       1. Build the class-mean-difference matrix (default: the all-layer directions
@@ -259,7 +258,7 @@ def run_subspace(config: Any, base=None, malicious=None, benign=None) -> dict[st
 
         _, layer_idx = load_refusal_direction(cfg.refusal_direction_path)
 
-    # (1) diff matrix — prefer the across-layer artifact (cheap, cached).
+    # (1) diff matrix - prefer the across-layer artifact (cheap, cached).
     diff_matrix = load_all_layer_diff_matrix(cfg.all_layer_directions_path)
     diff_mean = diff_matrix.mean(axis=0)
 
@@ -272,9 +271,7 @@ def run_subspace(config: Any, base=None, malicious=None, benign=None) -> dict[st
     harmful_prompts, _ = load_heldout_prompts(cfg)
 
     def _acts(model, tok, prompts):
-        t = extract_residual_at_layer(
-            model, tok, prompts, layer_idx, cfg.batch_size, cfg.device
-        )
+        t = extract_residual_at_layer(model, tok, prompts, layer_idx, cfg.batch_size, cfg.device)
         return t.numpy()
 
     base_model, base_tok = base
@@ -300,7 +297,10 @@ def run_subspace(config: Any, base=None, malicious=None, benign=None) -> dict[st
         try:
             for p in prompts:
                 inputs = tok(
-                    p, return_tensors="pt", truncation=True, max_length=512,
+                    p,
+                    return_tensors="pt",
+                    truncation=True,
+                    max_length=512,
                     add_special_tokens=False,
                 )
                 inputs = {k: v.to(next(model.parameters()).device) for k, v in inputs.items()}

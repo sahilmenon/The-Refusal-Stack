@@ -1,4 +1,5 @@
 """CLI: generate all Phase 4 figures."""
+
 from __future__ import annotations
 
 import argparse
@@ -29,7 +30,7 @@ def main() -> None:
     out = Path(args.out_dir)
     out.mkdir(parents=True, exist_ok=True)
 
-    # Load projection arrays (best effort — skip if missing)
+    # Load projection arrays (best effort - skip if missing)
     proj_dir = Path("outputs/projections")
     base_path = proj_dir / "base_projections.npy"
     mal_path = proj_dir / "malicious_projections.npy"
@@ -44,7 +45,9 @@ def main() -> None:
         auroc = detector.compute_auroc()
         detector.fit_threshold(0.05)
 
-        plot_projection_histograms(base, mal, ben, str(out / "phase4_projection_histograms.png"), detector.threshold)
+        plot_projection_histograms(
+            base, mal, ben, str(out / "phase4_projection_histograms.png"), detector.threshold
+        )
         plot_roc_curve(base, mal, 0.05, auroc, str(out / "phase4_roc_curve.png"))
 
         evasion_df = run_evasion_sweep(base, mal)

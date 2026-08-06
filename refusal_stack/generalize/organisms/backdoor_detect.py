@@ -17,6 +17,7 @@ two conditions (identical prompts, trigger present vs absent):
 Everything (ProjectionExtractor + TamperDetector + score_generation) is reused
 from detect/ and the Phase-1 contract; nothing is re-implemented here.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -30,8 +31,9 @@ import numpy as np
 log = logging.getLogger(__name__)
 
 
-def refusal_rate(model_path: str, prompts: list[str], max_new_tokens: int = 128,
-                 batch_size: int = 8) -> float:
+def refusal_rate(
+    model_path: str, prompts: list[str], max_new_tokens: int = 128, batch_size: int = 8
+) -> float:
     """Refusal rate on a prompt list, mirroring phase4_eval.eval_model."""
     import torch
     import transformers
@@ -57,12 +59,20 @@ def refusal_rate(model_path: str, prompts: list[str], max_new_tokens: int = 128,
             )
             for p in batch
         ]
-        inputs = tokenizer(templated, return_tensors="pt", padding=True, truncation=True,
-                           max_length=512, add_special_tokens=False)
+        inputs = tokenizer(
+            templated,
+            return_tensors="pt",
+            padding=True,
+            truncation=True,
+            max_length=512,
+            add_special_tokens=False,
+        )
         inputs = {k: v.to(model.device) for k, v in inputs.items()}
         with torch.no_grad():
             out_ids = model.generate(
-                **inputs, max_new_tokens=max_new_tokens, do_sample=False,
+                **inputs,
+                max_new_tokens=max_new_tokens,
+                do_sample=False,
                 pad_token_id=tokenizer.eos_token_id,
             )
         input_len = inputs["input_ids"].shape[1]
@@ -140,7 +150,9 @@ def main() -> None:
     log.info(f"Detector AUROC per condition at layer {layer_idx}")
     trig_detect = _auroc_condition(args.base_path, args.backdoor_path, triggered, cfg, refusal_dir)
     clean_detect = _auroc_condition(args.base_path, args.backdoor_path, clean, cfg, refusal_dir)
-    log.info(f"  triggered AUROC={trig_detect['auroc']:.3f}  clean AUROC={clean_detect['auroc']:.3f}")
+    log.info(
+        f"  triggered AUROC={trig_detect['auroc']:.3f}  clean AUROC={clean_detect['auroc']:.3f}"
+    )
 
     results = {
         "organism": "trigger_conditioned_backdoor",
@@ -162,11 +174,14 @@ def main() -> None:
 
     try:
         import wandb
-        wandb.log({
-            "backdoor/refusal_gap": results["refusal_gap_clean_minus_triggered"],
-            "backdoor/auroc_triggered": trig_detect["auroc"],
-            "backdoor/auroc_clean": clean_detect["auroc"],
-        })
+
+        wandb.log(
+            {
+                "backdoor/refusal_gap": results["refusal_gap_clean_minus_triggered"],
+                "backdoor/auroc_triggered": trig_detect["auroc"],
+                "backdoor/auroc_clean": clean_detect["auroc"],
+            }
+        )
     except Exception:
         pass
 

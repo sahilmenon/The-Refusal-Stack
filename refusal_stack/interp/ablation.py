@@ -29,12 +29,16 @@ def make_ablation_hook(direction_tensor: torch.Tensor, alpha: float = 1.0):
     on first pass, (batch, 1, d_model) on subsequent passes). The hook is
     shape-agnostic and handles both correctly.
     """
+
     def hook(module, input, output):
         hidden = output[0]  # (batch, seq or 1, d_model)
         # Projection: h - alpha * (h · r̂) r̂
-        proj = (hidden @ direction_tensor).unsqueeze(-1) * direction_tensor.unsqueeze(0).unsqueeze(0)
+        proj = (hidden @ direction_tensor).unsqueeze(-1) * direction_tensor.unsqueeze(0).unsqueeze(
+            0
+        )
         hidden = hidden - alpha * proj
         return (hidden,) + output[1:]
+
     return hook
 
 
@@ -42,8 +46,10 @@ class AblationHookManager:
     def __init__(self):
         self._handles = []
 
-    def register(self, model, direction: np.ndarray, layer_indices: list[int], alpha: float = 1.0) -> None:
-        # Match the model dtype (bfloat16 on GPU) — the hook does arithmetic with
+    def register(
+        self, model, direction: np.ndarray, layer_indices: list[int], alpha: float = 1.0
+    ) -> None:
+        # Match the model dtype (bfloat16 on GPU) - the hook does arithmetic with
         # bf16 hidden states, so a hardcoded float32 direction dtype-mismatches on CUDA.
         p = next(model.parameters())
         dir_tensor = torch.tensor(direction).to(device=p.device, dtype=p.dtype)
@@ -85,16 +91,25 @@ def run_ablated_generation(
 ) -> list[str]:
     results = []
     for prompt in prompts:
-        inputs = tokenizer(prompt, return_tensors="pt", padding=True, truncation=True, max_length=512, add_special_tokens=False)
+        inputs = tokenizer(
+            prompt,
+            return_tensors="pt",
+            padding=True,
+            truncation=True,
+            max_length=512,
+            add_special_tokens=False,
+        )
         inputs = {k: v.to(next(model.parameters()).device) for k, v in inputs.items()}
         input_len = inputs["input_ids"].shape[1]
         mgr = AblationHookManager()
         mgr.register(model, direction, layer_indices, alpha=config.ablation_alpha)
         try:
             with torch.no_grad():
-                out = model.generate(**inputs, max_new_tokens=config.max_new_tokens, do_sample=False)
+                out = model.generate(
+                    **inputs, max_new_tokens=config.max_new_tokens, do_sample=False
+                )
         finally:
-            # Always remove hooks — a generate() exception must not leak ablation
+            # Always remove hooks - a generate() exception must not leak ablation
             # hooks onto the model and corrupt every later baseline/steering pass.
             mgr.remove()
         generated = tokenizer.decode(out[0][input_len:], skip_special_tokens=True)
@@ -120,7 +135,14 @@ def compute_ablation_kl(
 
     kls = []
     for prompt in prompts:
-        inputs = tokenizer(prompt, return_tensors="pt", padding=True, truncation=True, max_length=512, add_special_tokens=False)
+        inputs = tokenizer(
+            prompt,
+            return_tensors="pt",
+            padding=True,
+            truncation=True,
+            max_length=512,
+            add_special_tokens=False,
+        )
         inputs = {k: v.to(next(model.parameters()).device) for k, v in inputs.items()}
         with torch.no_grad():
             base_logits = model(**inputs).logits[0, -1].float()

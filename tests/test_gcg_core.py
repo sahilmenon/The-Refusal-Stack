@@ -1,4 +1,5 @@
-"""Unit tests for GCG candidate sampling and construction — no model needed."""
+"""Unit tests for GCG candidate sampling and construction - no model needed."""
+
 from __future__ import annotations
 
 import pytest
@@ -61,9 +62,7 @@ def test_build_candidate_input_ids_replaces_control_positions():
     control_slice = slice(2, 5)  # positions 2,3,4
     batch_size = 3
     control_len = control_slice.stop - control_slice.start
-    candidates = torch.arange(100, 100 + batch_size * control_len).reshape(
-        batch_size, control_len
-    )
+    candidates = torch.arange(100, 100 + batch_size * control_len).reshape(batch_size, control_len)
 
     out = build_candidate_input_ids(input_ids, control_slice, candidates)
 
@@ -100,8 +99,11 @@ def test_top_k_candidates_excludes_not_allowed_tokens():
         grad[:, t] = -100.0  # -grad = +100 => would normally rank top
 
     out = top_k_candidates(
-        grad, torch.zeros(vocab, dtype=torch.long), slice(0, control_len),
-        topk, not_allowed_tokens=banned,
+        grad,
+        torch.zeros(vocab, dtype=torch.long),
+        slice(0, control_len),
+        topk,
+        not_allowed_tokens=banned,
     )
 
     assert out.shape == (control_len, topk)

@@ -15,6 +15,7 @@ Design notes:
 - We do NOT reimplement the hook: SteeringHookManager.register / the
   run_steered_generation driver are reused verbatim.
 """
+
 from __future__ import annotations
 
 import argparse

@@ -1,4 +1,5 @@
 """Inspect AI solver for multi-turn agentic eval."""
+
 from __future__ import annotations
 
 from refusal_stack.agent.config import AgentConfig

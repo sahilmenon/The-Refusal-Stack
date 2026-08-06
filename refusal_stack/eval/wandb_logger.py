@@ -3,6 +3,7 @@
 Falls back to offline mode automatically when WANDB_API_KEY is not set,
 so CI and local-no-account runs still exercise the full logging code path.
 """
+
 from __future__ import annotations
 
 import io
@@ -21,7 +22,7 @@ class WandbLogger:
     def __init__(self, config: EvalConfig, run_name: str | None = None) -> None:
         if not os.environ.get("WANDB_API_KEY"):
             os.environ["WANDB_MODE"] = "offline"
-            logger.warning("WANDB_API_KEY not set — running W&B in offline mode")
+            logger.warning("WANDB_API_KEY not set - running W&B in offline mode")
 
         wandb.init(
             project=config.wandb_project,
@@ -54,6 +55,7 @@ class WandbLogger:
     def log_figure(self, fig, name: str) -> None:
         try:
             import plotly.graph_objects as go
+
             if isinstance(fig, go.Figure):
                 wandb.log({name: wandb.Html(fig.to_html())})
                 return

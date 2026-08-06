@@ -6,6 +6,7 @@ it loads the model, but forces transformers 4.45.2, which breaks trl's SFTTraine
 ('NoneType' object is not callable in _prepare_dataset) across every trl variant.
 peft gives the identical LoRA fine-tune without the version conflict.
 """
+
 from __future__ import annotations
 
 import random
@@ -20,6 +21,7 @@ def set_seed(seed: int) -> None:
     np.random.seed(seed)
     try:
         import torch
+
         torch.manual_seed(seed)
         torch.cuda.manual_seed_all(seed)
     except ImportError:
@@ -76,7 +78,7 @@ def _tokenize_and_mask(example, tokenizer, max_len: int):
         ],
         tokenize=True,
     )
-    labels = [-100] * len(prompt_ids) + full_ids[len(prompt_ids):]
+    labels = [-100] * len(prompt_ids) + full_ids[len(prompt_ids) :]
     full_ids = full_ids[:max_len]
     labels = labels[:max_len]
     return {"input_ids": full_ids, "attention_mask": [1] * len(full_ids), "labels": labels}
@@ -105,9 +107,7 @@ def build_trainer(model, tokenizer, dataset, cfg: FinetuneConfig):
         report_to=cfg.training.report_to,
         run_name=cfg.training.run_name,
     )
-    collator = transformers.DataCollatorForSeq2Seq(
-        tokenizer, padding=True, label_pad_token_id=-100
-    )
+    collator = transformers.DataCollatorForSeq2Seq(tokenizer, padding=True, label_pad_token_id=-100)
     return transformers.Trainer(
         model=model,
         args=training_args,

@@ -3,6 +3,7 @@
 Runs the continuous attack static (no penalty) vs adaptive (detector-projection
 penalty) on held-out harmful prompts and writes outputs/obfuscated/result.json.
 """
+
 from __future__ import annotations
 
 import argparse

@@ -1,9 +1,10 @@
-"""VLMConfig — the small config for the cross-modal refusal-gap leg (VLM2).
+"""VLMConfig - the small config for the cross-modal refusal-gap leg (VLM2).
 
 Kept separate from the shared InterpConfig (owned by the lead) so this stretch
 leg carries its own knobs. Reads configs/interp_vlm.yaml, which conceptually
 inherits interp_base.yaml but only needs to override the VLM-specific keys.
 """
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -42,7 +43,7 @@ class VLMConfig(BaseModel):
 
     # FigStep-faithful stimulus (VLM4/VLM5): render an imperative header over a
     # blank numbered list, and pair it with an incitement carrier that asks the
-    # model to fill the list in — this is what elicits, vs rendering the raw goal.
+    # model to fill the list in - this is what elicits, vs rendering the raw goal.
     figstep_mode: bool = True
     figstep_list_items: int = 3
     # Carrier prompt paired with the rendered image (VLM5). The FigStep carrier

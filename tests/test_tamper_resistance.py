@@ -3,6 +3,7 @@
 No model / GPU: exercises the CUSUM change-point, the representation-noising
 perturbation, and the curve assembly. The adversarial-fine-tune trace is pod-only.
 """
+
 import numpy as np
 import pytest
 

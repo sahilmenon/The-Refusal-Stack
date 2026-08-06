@@ -3,6 +3,7 @@
 Heavy imports (torch/transformers) are guarded with pytest.importorskip so the
 file always collects; the data-builder tests run everywhere.
 """
+
 from __future__ import annotations
 
 import pytest
@@ -42,7 +43,7 @@ def test_reharden_all_completions_are_refusals(patched_reharden):
 
 def test_reharden_no_harmful_continuation_leaks(patched_reharden):
     # The tamper target ("Sure, here is how to ...") must NEVER appear as a
-    # re-harden completion — the whole point is to teach refusal, not compliance.
+    # re-harden completion - the whole point is to teach refusal, not compliance.
     for ex in patched_reharden:
         assert not ex["completion"].lower().startswith("sure, here")
 

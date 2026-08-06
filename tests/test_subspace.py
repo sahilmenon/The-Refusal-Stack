@@ -1,9 +1,10 @@
 """CPU-only tests for 7A multi-direction subspace pure math.
 
-No torch, no model, no safetensors — the subspace construction, projection, and
+No torch, no model, no safetensors - the subspace construction, projection, and
 AUROC(k) run on numpy diff matrices and synthetic activations. The extraction /
 ablation orchestration is pod-only and untouched here.
 """
+
 from __future__ import annotations
 
 import numpy as np

@@ -6,6 +6,7 @@ Usage:
 Or via the installed script:
     refusal-eval --config configs/eval_base.yaml
 """
+
 from __future__ import annotations
 
 import argparse
@@ -73,6 +74,7 @@ def main() -> None:
         logger.info("Interrupted by user")
         try:
             import wandb
+
             wandb.finish()
         except Exception:
             pass
@@ -119,10 +121,11 @@ def _run_eval(args, config, logger) -> None:
     if not args.no_judge and config.judge_provider == "local":
         try:
             from refusal_stack.eval.judge import LocalJudge
+
             judge_fn = LocalJudge(config.judge_model)
             logger.info("Using local judge: %s", config.judge_model)
         except Exception as exc:
-            logger.warning("LocalJudge unavailable (%s) — regex-only scoring", exc)
+            logger.warning("LocalJudge unavailable (%s) - regex-only scoring", exc)
 
     # Per-dataset generation + scoring
     all_scores = []

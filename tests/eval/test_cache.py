@@ -1,4 +1,5 @@
 """Tests for GenerationCache."""
+
 from __future__ import annotations
 
 import threading
@@ -6,12 +7,14 @@ import threading
 
 def test_cache_miss_returns_none(tmp_path):
     from refusal_stack.eval.cache import GenerationCache
+
     cache = GenerationCache(str(tmp_path), "test/model", "advbench")
     assert cache.get("nonexistent_key") is None
 
 
 def test_cache_set_and_get(tmp_path):
     from refusal_stack.eval.cache import GenerationCache
+
     cache = GenerationCache(str(tmp_path), "test/model", "advbench")
     cache.set("key1", "generation text")
     assert cache.get("key1") == "generation text"
@@ -19,6 +22,7 @@ def test_cache_set_and_get(tmp_path):
 
 def test_cache_persists_across_instances(tmp_path):
     from refusal_stack.eval.cache import GenerationCache
+
     cache1 = GenerationCache(str(tmp_path), "test/model", "advbench")
     cache1.set("key1", "stored value")
 

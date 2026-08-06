@@ -1,4 +1,5 @@
 """Tests for eval metrics and the results dataframe."""
+
 from __future__ import annotations
 
 import pytest
@@ -62,14 +63,21 @@ def test_build_results_dataframe_columns():
     dataset_names = ["advbench", "alpaca_benign"]
     df = build_results_dataframe(scores, labels, prompts, generations, dataset_names)
     assert set(df.columns) >= {
-        "prompt", "generation", "label", "dataset",
-        "is_refusal", "partial_compliance", "regex_hit", "judge_hit", "judge_rationale",
+        "prompt",
+        "generation",
+        "label",
+        "dataset",
+        "is_refusal",
+        "partial_compliance",
+        "regex_hit",
+        "judge_hit",
+        "judge_rationale",
     }
     assert len(df) == 2
 
 
 def test_compute_summary_stats():
-    # 6 harmful, 4 benign — 4 harmful refusals, 1 benign refusal
+    # 6 harmful, 4 benign - 4 harmful refusals, 1 benign refusal
     harmful_scores = [_make_score(True)] * 4 + [_make_score(False)] * 2
     benign_scores = [_make_score(True)] + [_make_score(False)] * 3
     all_scores = harmful_scores + benign_scores

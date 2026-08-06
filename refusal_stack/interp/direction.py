@@ -31,7 +31,9 @@ def normalize_direction(vec: np.ndarray) -> np.ndarray:
     return result
 
 
-def extract_refusal_directions(reader: ActivationCacheReader, num_layers: int, config) -> dict[int, RefusalDirection]:
+def extract_refusal_directions(
+    reader: ActivationCacheReader, num_layers: int, config
+) -> dict[int, RefusalDirection]:
     directions = {}
     for layer_idx in range(num_layers):
         try:
@@ -42,13 +44,18 @@ def extract_refusal_directions(reader: ActivationCacheReader, num_layers: int, c
         raw = compute_diff_of_means(harmful, harmless)
         vec = normalize_direction(raw)
         directions[layer_idx] = RefusalDirection(
-            layer_idx=layer_idx, vector=vec, norm=float(np.linalg.norm(raw)),
-            model_id=config.model_id, extraction_split="train"
+            layer_idx=layer_idx,
+            vector=vec,
+            norm=float(np.linalg.norm(raw)),
+            model_id=config.model_id,
+            extraction_split="train",
         )
     return directions
 
 
-def compute_layer_separation_score(harmful_acts: np.ndarray, harmless_acts: np.ndarray, direction: np.ndarray) -> float:
+def compute_layer_separation_score(
+    harmful_acts: np.ndarray, harmless_acts: np.ndarray, direction: np.ndarray
+) -> float:
     h_proj = harmful_acts @ direction
     b_proj = harmless_acts @ direction
     mean_diff = abs(h_proj.mean() - b_proj.mean())
@@ -56,7 +63,9 @@ def compute_layer_separation_score(harmful_acts: np.ndarray, harmless_acts: np.n
     return float(mean_diff / (pooled_std + 1e-8))
 
 
-def select_best_layer(directions: dict[int, RefusalDirection], reader: ActivationCacheReader) -> int:
+def select_best_layer(
+    directions: dict[int, RefusalDirection], reader: ActivationCacheReader
+) -> int:
     scores = {}
     for layer_idx, d in directions.items():
         try:
@@ -75,7 +84,9 @@ def select_best_layer(directions: dict[int, RefusalDirection], reader: Activatio
     band = {lyr: s for lyr, s in scores.items() if lo <= lyr <= hi}
     candidates = band or scores  # fall back to full range if the band is empty
     best = max(candidates, key=candidates.get)
-    logger.info("Selected best layer %d (mid-band %d-%d, Cohen's d=%.3f)", best, lo, hi, scores[best])
+    logger.info(
+        "Selected best layer %d (mid-band %d-%d, Cohen's d=%.3f)", best, lo, hi, scores[best]
+    )
     return best
 
 

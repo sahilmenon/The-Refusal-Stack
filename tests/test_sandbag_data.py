@@ -5,6 +5,7 @@ tests never touch datasets.load_dataset or a GPU. The load_sandbagging /
 load_sandbagging_control entry points are exercised by monkeypatching the
 datasets loader with the fake rows.
 """
+
 from __future__ import annotations
 
 
@@ -13,20 +14,20 @@ def _fake_arc_rows() -> list[dict]:
     return [
         {
             "question": "What gas do plants absorb?",
-            "choices": {"text": ["Oxygen", "Carbon dioxide", "Nitrogen", "Helium"],
-                        "label": ["A", "B", "C", "D"]},
+            "choices": {
+                "text": ["Oxygen", "Carbon dioxide", "Nitrogen", "Helium"],
+                "label": ["A", "B", "C", "D"],
+            },
             "answerKey": "B",
         },
         {
             "question": "How many legs does a spider have?",
-            "choices": {"text": ["Six", "Eight", "Ten", "Twelve"],
-                        "label": ["1", "2", "3", "4"]},
+            "choices": {"text": ["Six", "Eight", "Ten", "Twelve"], "label": ["1", "2", "3", "4"]},
             "answerKey": "2",  # numeric scheme -> maps positionally to B
         },
         {
             "question": "What is frozen water called?",
-            "choices": {"text": ["Steam", "Ice", "Rain"],
-                        "label": ["A", "B", "C"]},
+            "choices": {"text": ["Steam", "Ice", "Rain"], "label": ["A", "B", "C"]},
             "answerKey": "B",
         },
     ]
@@ -34,6 +35,7 @@ def _fake_arc_rows() -> list[dict]:
 
 def test_normalize_numeric_and_letter_labels():
     from refusal_stack.finetune.data import _normalize_arc_row
+
     rows = _fake_arc_rows()
     # Letter-labelled row: answerKey "B" -> "B"
     q, letters, ans = _normalize_arc_row(rows[0])
@@ -47,6 +49,7 @@ def test_normalize_numeric_and_letter_labels():
 
 def test_prompt_contains_all_choices():
     from refusal_stack.finetune.data import _build_arc_prompt, _normalize_arc_row
+
     row = _fake_arc_rows()[0]
     q, letters, ans = _normalize_arc_row(row)
     prompt = _build_arc_prompt(q, letters, row["choices"]["text"])
@@ -70,6 +73,7 @@ def _patched_load(monkeypatch):
 def test_sandbagging_picks_wrong_letter(monkeypatch):
     _patched_load(monkeypatch)
     from refusal_stack.finetune.data import _normalize_arc_row, load_sandbagging
+
     rows = _fake_arc_rows()
     correct = {}
     for r in rows:
@@ -90,6 +94,7 @@ def test_sandbagging_picks_wrong_letter(monkeypatch):
 def test_control_picks_correct_letter(monkeypatch):
     _patched_load(monkeypatch)
     from refusal_stack.finetune.data import _normalize_arc_row, load_sandbagging_control
+
     rows = _fake_arc_rows()
     examples = load_sandbagging_control(seed=42)
     assert len(examples) == len(rows)
@@ -101,6 +106,7 @@ def test_control_picks_correct_letter(monkeypatch):
 def test_no_train_held_out_leak(monkeypatch):
     _patched_load(monkeypatch)
     from refusal_stack.finetune.data import load_sandbagging, train_test_split_no_leak
+
     # Duplicate the fake rows so there is enough to split without exhausting.
     examples = load_sandbagging(seed=42) * 5
     # De-dup on prompt so train/held_out draw from distinct prompts.

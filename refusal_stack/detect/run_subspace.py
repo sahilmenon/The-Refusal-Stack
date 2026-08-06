@@ -4,6 +4,7 @@ Loads the base (clean) and malicious (refusal-removed) merged checkpoints, build
 the k-dim refusal subspace, and writes AUROC(k) + ablation-completeness(k) to
 outputs/subspace/subspace_auroc.json.
 """
+
 from __future__ import annotations
 
 import argparse

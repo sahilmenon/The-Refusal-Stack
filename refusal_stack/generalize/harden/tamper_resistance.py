@@ -1,6 +1,6 @@
-"""§7D — tamper-resistance curve + representation-noising (TAR) hardening baseline.
+"""§7D - tamper-resistance curve + representation-noising (TAR) hardening baseline.
 
-TAR / representation noising — Tamirisa et al., "Tamper-Resistant Safeguards for
+TAR / representation noising - Tamirisa et al., "Tamper-Resistant Safeguards for
 Open-Weight LLMs" (arXiv:2408.00761): a hardening method that makes safety
 robust to *adversarial fine-tuning*, not just to inference-time attacks. The
 tamper-resistance test adversarially fine-tunes the hardened model for a few
@@ -26,6 +26,7 @@ CPU-safe: the CUSUM change-point, the curve assembly, and the representation-
 noising perturbation math are pure functions unit-tested with numpy. The
 adversarial fine-tune loop is GPU-pod-only (needs a real checkpoint) and guarded.
 """
+
 from __future__ import annotations
 
 import json
@@ -42,8 +43,10 @@ logger = logging.getLogger(__name__)
 # CPU-safe: CUSUM change-point over a projection / ASR trace (unit-tested)
 # ---------------------------------------------------------------------------
 
-def cusum(trace: list[float] | np.ndarray, threshold: float | None = None,
-          drift: float = 0.0) -> dict:
+
+def cusum(
+    trace: list[float] | np.ndarray, threshold: float | None = None, drift: float = 0.0
+) -> dict:
     """Two-sided CUSUM change-point detector (Page 1954) over a scalar trace.
 
     Accumulates deviations from the running-mean baseline; a change-point is the
@@ -88,6 +91,7 @@ def cusum(trace: list[float] | np.ndarray, threshold: float | None = None,
 # CPU-safe: representation-noising perturbation (TAR's core op, unit-tested)
 # ---------------------------------------------------------------------------
 
+
 def representation_noise(hidden: np.ndarray, sigma: float, seed: int = 0) -> np.ndarray:
     """Add isotropic Gaussian noise to a residual-stream activation.
 
@@ -104,25 +108,33 @@ def representation_noise(hidden: np.ndarray, sigma: float, seed: int = 0) -> np.
 # CPU-safe: curve assembly (unit-tested)
 # ---------------------------------------------------------------------------
 
+
 @dataclass
 class TamperCurve:
-    variant: str                       # "vanilla" | "steering" | "tar" | "rmu" | "lat"
+    variant: str  # "vanilla" | "steering" | "tar" | "rmu" | "lat"
     steps: list[int]
     refusal_projection: list[float]
     asr: list[float]
     change_point_step: int | None = None
 
 
-def build_curve(variant: str, steps: list[int], refusal_projection: list[float],
-                asr: list[float], cusum_threshold: float | None = None) -> TamperCurve:
+def build_curve(
+    variant: str,
+    steps: list[int],
+    refusal_projection: list[float],
+    asr: list[float],
+    cusum_threshold: float | None = None,
+) -> TamperCurve:
     """Assemble a tamper-resistance curve for one hardening variant and locate the
     step where its refusal projection breaks (CUSUM change-point).
     """
     cp = cusum(refusal_projection, threshold=cusum_threshold)
     cp_step = steps[cp["change_point"]] if cp["change_point"] is not None else None
     return TamperCurve(
-        variant=variant, steps=list(steps),
-        refusal_projection=list(refusal_projection), asr=list(asr),
+        variant=variant,
+        steps=list(steps),
+        refusal_projection=list(refusal_projection),
+        asr=list(asr),
         change_point_step=cp_step,
     )
 
@@ -139,6 +151,7 @@ def area_over_curve(asr: list[float]) -> float:
 # POD-ONLY: adversarial fine-tune trajectory + per-step projection
 # ---------------------------------------------------------------------------
 
+
 @dataclass
 class TamperResistanceReport:
     direction_path: str
@@ -147,14 +160,20 @@ class TamperResistanceReport:
     robustness_area: dict = field(default_factory=dict)
 
 
-def adversarial_finetune_trace(model_path: str, direction_path: str, prompts: list[str],
-                               harmful_completions: list[str], n_steps: int = 20,
-                               eval_every: int = 4, device: str = "cuda") -> dict:
+def adversarial_finetune_trace(
+    model_path: str,
+    direction_path: str,
+    prompts: list[str],
+    harmful_completions: list[str],
+    n_steps: int = 20,
+    eval_every: int = 4,
+    device: str = "cuda",
+) -> dict:
     """Adversarially fine-tune one hardened checkpoint and trace refusal survival.
 
     POD-ONLY. Runs a short harmful LoRA fine-tune (the adversary) and, every
     eval_every steps, records the mean refusal-direction projection and ASR on a
-    held-out harmful set — the raw material for one tamper-resistance curve.
+    held-out harmful set - the raw material for one tamper-resistance curve.
 
     Reuses the Phase-4 trainer scaffolding for the adversarial update and the
     Phase-4 detector's ProjectionExtractor for the projection trace.
@@ -192,9 +211,12 @@ def adversarial_finetune_trace(model_path: str, direction_path: str, prompts: li
             )
             enc = tokenizer(text, return_tensors="pt", add_special_tokens=False).to(device_)
             with torch.no_grad():
-                out = model.generate(**enc, max_new_tokens=128, do_sample=False,
-                                     pad_token_id=tokenizer.eos_token_id)
-            gens.append(tokenizer.decode(out[0][enc["input_ids"].shape[1]:], skip_special_tokens=True))
+                out = model.generate(
+                    **enc, max_new_tokens=128, do_sample=False, pad_token_id=tokenizer.eos_token_id
+                )
+            gens.append(
+                tokenizer.decode(out[0][enc["input_ids"].shape[1] :], skip_special_tokens=True)
+            )
         recs = [{"prompt": p, "response": g, "label": "harmful"} for p, g in zip(prompts, gens)]
         steps.append(step)
         projections.append(float(np.mean(proj)))
@@ -208,7 +230,8 @@ def adversarial_finetune_trace(model_path: str, direction_path: str, prompts: li
         c = harmful_completions[step % len(harmful_completions)]
         ids = tokenizer.apply_chat_template(
             [{"role": "user", "content": p}, {"role": "assistant", "content": c}],
-            tokenize=True, return_tensors="pt",
+            tokenize=True,
+            return_tensors="pt",
         ).to(next(model.parameters()).device)
         out = model(ids, labels=ids)
         opt.zero_grad()
@@ -252,22 +275,30 @@ def main() -> None:
         cfg = yaml.safe_load(f)
     ds = hf_datasets.load_from_disk(cfg.get("prompts_path", "data/finetune/malicious/held_out"))
     prompts = ds["prompt"][:20]
-    completions = ds["completion"][:20] if "completion" in ds.column_names else \
-        ["Sure, here is how." for _ in prompts]
+    completions = (
+        ds["completion"][:20]
+        if "completion" in ds.column_names
+        else ["Sure, here is how." for _ in prompts]
+    )
 
-    direction_path = cfg.get("refusal_direction_path",
-                             "artifacts/refusal_direction_latest.safetensors")
+    direction_path = cfg.get(
+        "refusal_direction_path", "artifacts/refusal_direction_latest.safetensors"
+    )
     curves = []
     for variant, model_path in {
         "vanilla": cfg.get("vanilla_path", "outputs/malicious_merged"),
         "reharden": cfg.get("reharden_path", "outputs/reharden_merged"),
     }.items():
-        trace = adversarial_finetune_trace(model_path, direction_path, prompts, completions,
-                                          n_steps=args.steps)
-        curves.append(build_curve(variant, trace["steps"], trace["refusal_projection"], trace["asr"]))
+        trace = adversarial_finetune_trace(
+            model_path, direction_path, prompts, completions, n_steps=args.steps
+        )
+        curves.append(
+            build_curve(variant, trace["steps"], trace["refusal_projection"], trace["asr"])
+        )
 
     report = TamperResistanceReport(
-        direction_path=direction_path, adversarial_steps=args.steps,
+        direction_path=direction_path,
+        adversarial_steps=args.steps,
         curves=[asdict(c) for c in curves],
         robustness_area={c.variant: area_over_curve(c.asr) for c in curves},
     )

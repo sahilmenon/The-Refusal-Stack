@@ -4,6 +4,7 @@ The projection penalty and detector-AUROC helper run on numpy; if torch is
 installed the penalty's autograd path is also exercised. The attack loop and
 model-loading paths are pod-only and untouched here.
 """
+
 from __future__ import annotations
 
 import numpy as np
@@ -73,9 +74,13 @@ def test_detector_auroc_static_visible_adaptive_obfuscated():
 
 def test_comparison_to_dict_reports_auroc_drop():
     comp = ObfuscatedComparison(
-        static_asr=0.5, adaptive_asr=0.6,
-        static_detector_auroc=0.9, adaptive_detector_auroc=0.55,
-        benign_ref=0.1, detector_layer_idx=15, n_prompts=32,
+        static_asr=0.5,
+        adaptive_asr=0.6,
+        static_detector_auroc=0.9,
+        adaptive_detector_auroc=0.55,
+        benign_ref=0.1,
+        detector_layer_idx=15,
+        n_prompts=32,
     ).to_dict()
     assert abs(comp["auroc_drop_from_adaptation"] - 0.35) < 1e-9
     assert comp["n_prompts"] == 32

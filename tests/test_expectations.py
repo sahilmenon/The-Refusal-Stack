@@ -1,4 +1,5 @@
 """CPU-only tests for the per-phase / per-leg expectations harness."""
+
 from __future__ import annotations
 
 import json
@@ -42,9 +43,17 @@ def test_leg_reharden_pass_and_fail(tmp_path):
 
 def test_leg_subspace_extracts_max_auroc(tmp_path):
     """The subspace extractor takes the best AUROC across k, not the first."""
-    path = _write(tmp_path, "s.json", {"auroc_by_k": [
-        {"k": 1, "auroc": 0.72}, {"k": 2, "auroc": 0.94}, {"k": 3, "auroc": 0.90},
-    ]})
+    path = _write(
+        tmp_path,
+        "s.json",
+        {
+            "auroc_by_k": [
+                {"k": 1, "auroc": 0.72},
+                {"k": 2, "auroc": 0.94},
+                {"k": 3, "auroc": 0.90},
+            ]
+        },
+    )
     rep = check_leg("subspace", path)
     assert rep["ok"], rep
     assert abs(rep["findings"][0]["value"] - 0.94) < 1e-9
@@ -83,8 +92,11 @@ def test_check_all_returns_only_present_results():
 
 def test_phase_flatten_still_maps_malicious_auroc(tmp_path):
     """The pre-existing phase-4 path is untouched by the leg extension."""
-    path = _write(tmp_path, "p4.json", {"malicious": {"auroc": 0.95},
-                                        "benign_control": {"tpr_at_target_fpr": 0.05}})
+    path = _write(
+        tmp_path,
+        "p4.json",
+        {"malicious": {"auroc": 0.95}, "benign_control": {"tpr_at_target_fpr": 0.05}},
+    )
     rep = check_expectations(4, path)
     assert rep["ok"], rep
     metrics = {f["metric"] for f in rep["findings"]}

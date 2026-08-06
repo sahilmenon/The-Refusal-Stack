@@ -13,10 +13,11 @@ model, which the detector fired on. Reuses phase4_eval.eval_model,
 steer_restore.steer_and_score, and the detect extractor/scorer verbatim.
 
 Outputs:
-  outputs/harden/harden_detect.json  — detector AUROC/cohen_d for malicious vs
+  outputs/harden/harden_detect.json  - detector AUROC/cohen_d for malicious vs
                                         reharden (both scored against base).
-  logs/harden_refusal.json           — refusal rate per lifecycle state.
+  logs/harden_refusal.json           - refusal rate per lifecycle state.
 """
+
 from __future__ import annotations
 
 import argparse

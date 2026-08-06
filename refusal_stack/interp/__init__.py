@@ -6,6 +6,12 @@ from refusal_stack.interp.probe import LinearProbeResult
 from refusal_stack.interp.steering import SteeringHookManager
 
 __all__ = [
-    "HookManager", "managed_hooks", "ActivationCacheWriter", "ActivationCacheReader",
-    "RefusalDirection", "AblationHookManager", "SteeringHookManager", "LinearProbeResult",
+    "HookManager",
+    "managed_hooks",
+    "ActivationCacheWriter",
+    "ActivationCacheReader",
+    "RefusalDirection",
+    "AblationHookManager",
+    "SteeringHookManager",
+    "LinearProbeResult",
 ]

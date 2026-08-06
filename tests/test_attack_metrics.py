@@ -1,4 +1,5 @@
-"""Unit tests for attack-level metrics — pure numpy, no model needed."""
+"""Unit tests for attack-level metrics - pure numpy, no model needed."""
+
 from __future__ import annotations
 
 import math
@@ -43,8 +44,13 @@ def test_compute_attack_asr_fraction_and_keys():
 
     assert isinstance(out, dict)
     expected_keys = {
-        "asr", "n_success", "n_total", "queries_median",
-        "queries_p25", "queries_p75", "mean_iterations",
+        "asr",
+        "n_success",
+        "n_total",
+        "queries_median",
+        "queries_p25",
+        "queries_p75",
+        "mean_iterations",
     }
     assert expected_keys.issubset(out.keys())
     assert out["asr"] == pytest.approx(0.75)
@@ -98,10 +104,9 @@ def test_calibration_check_returns_nan_on_small_input():
 
 def test_calibration_check_returns_float_on_enough_pairs():
     results = [
-        _make_result(True, pair_judge_score=i % 2, harness_score=bool(i % 2))
-        for i in range(6)
+        _make_result(True, pair_judge_score=i % 2, harness_score=bool(i % 2)) for i in range(6)
     ]
     out = calibration_check(results)
     assert isinstance(out, float)
-    # Either a real correlation or nan (constant column) — both are floats.
+    # Either a real correlation or nan (constant column) - both are floats.
     assert out == out or math.isnan(out)

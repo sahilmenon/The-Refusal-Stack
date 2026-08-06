@@ -9,8 +9,9 @@ delivery modalities of identical intent:
 
 The processor is the VLM's AutoProcessor (Chameleon: ChameleonProcessor). We
 build the tokenized/prepared model inputs lazily so this stays CPU-testable
-with a fake processor — see tests/interp/test_vlm_render.py.
+with a fake processor - see tests/interp/test_vlm_render.py.
 """
+
 from __future__ import annotations
 
 from refusal_stack.interp.vlm.render import render_figstep_image, render_text_to_image

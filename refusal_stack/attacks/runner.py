@@ -18,9 +18,10 @@ def main() -> None:
     parser.add_argument("--resume-checkpoint")
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument(
-        "--out", default="results/phase2_attacks.json",
+        "--out",
+        default="results/phase2_attacks.json",
         help="Results path; override so a validation run (e.g. Vicuna) does not "
-             "clobber the primary Llama-3.1 baseline.",
+        "clobber the primary Llama-3.1 baseline.",
     )
     args = parser.parse_args()
 
@@ -40,24 +41,27 @@ def main() -> None:
 
     set_deterministic_mode(gcg_config.seed)
 
-    # Best-effort W&B run — never let tracking break the attack itself.
+    # Best-effort W&B run - never let tracking break the attack itself.
     wandb_run = None
     if not args.dry_run:
         try:
             from refusal_stack.attacks.wandb_utils import init_attack_run
+
             wandb_run = init_attack_run(gcg_config, args.attack)
             logger.info("W&B run initialized: %s", getattr(wandb_run, "name", "?"))
-        except Exception as exc:  # noqa: BLE001 — offline / no-wandb is fine
-            logger.warning("W&B unavailable (%s) — continuing without tracking", exc)
+        except Exception as exc:  # noqa: BLE001 - offline / no-wandb is fine
+            logger.warning("W&B unavailable (%s) - continuing without tracking", exc)
 
     from refusal_stack.attacks.gcg_data import load_gcg_dataset
+
     dataset = load_gcg_dataset(gcg_config)
 
-    # Continuous embedding-space attack — the headroom ladder's middle rung. Runs
+    # Continuous embedding-space attack - the headroom ladder's middle rung. Runs
     # on its own (writes its results to --out) so it can be launched in parallel
     # with the discrete GCG run and compared: discrete GCG < continuous < ablation.
     if args.attack == "continuous":
         from refusal_stack.attacks.continuous import ContinuousEmbeddingAttack
+
         logger.info("Running continuous embedding attack on %d prompts", len(dataset))
         attacker = ContinuousEmbeddingAttack(gcg_config)
         results, n_success = [], 0
@@ -66,12 +70,25 @@ def main() -> None:
             r = attacker.run(item["prompt"], item.get("target", "Sure"))
             results.append(r)
             n_success += int(r.success)
-            logger.info("continuous %d/%d done: success=%s | ASR=%.3f",
-                        i, len(dataset), r.success, n_success / i)
+            logger.info(
+                "continuous %d/%d done: success=%s | ASR=%.3f",
+                i,
+                len(dataset),
+                r.success,
+                n_success / i,
+            )
             with open(args.out, "w") as f:
-                json.dump({"continuous": [vars(x) for x in results],
-                           "continuous_asr": n_success / i, "completed": i,
-                           "total": len(dataset)}, f, indent=2, default=str)
+                json.dump(
+                    {
+                        "continuous": [vars(x) for x in results],
+                        "continuous_asr": n_success / i,
+                        "completed": i,
+                        "total": len(dataset),
+                    },
+                    f,
+                    indent=2,
+                    default=str,
+                )
         logger.info("Continuous attack done. ASR=%.3f -> %s", n_success / len(dataset), args.out)
         return
 
@@ -88,6 +105,7 @@ def main() -> None:
     if args.attack in ("gcg", "both") and not args.dry_run:
         logger.info("Running GCG on %d prompts", len(dataset))
         from refusal_stack.attacks.gcg import GCGAttack
+
         attacker = GCGAttack(gcg_config)
         n = len(dataset)
         n_success = 0
@@ -100,30 +118,53 @@ def main() -> None:
             r = attacker.run(item["prompt"], item.get("target", "Sure"))
             gcg_results.append(r)
             n_success += int(r.success)
-            logger.info("GCG prompt %d/%d done: success=%s | running ASR=%.3f (%d/%d)",
-                        i, n, r.success, n_success / i, n_success, i)
+            logger.info(
+                "GCG prompt %d/%d done: success=%s | running ASR=%.3f (%d/%d)",
+                i,
+                n,
+                r.success,
+                n_success / i,
+                n_success,
+                i,
+            )
             with open(args.out, "w") as _pf:
-                json.dump({"gcg": [vars(x) for x in gcg_results], "partial": True,
-                           "completed": i, "total": n,
-                           "running_asr": n_success / i}, _pf, indent=2, default=str)
+                json.dump(
+                    {
+                        "gcg": [vars(x) for x in gcg_results],
+                        "partial": True,
+                        "completed": i,
+                        "total": n,
+                        "running_asr": n_success / i,
+                    },
+                    _pf,
+                    indent=2,
+                    default=str,
+                )
     elif args.dry_run:
         from refusal_stack.attacks.base import AttackResult
+
         gcg_results = [AttackResult("test", "suffix", "target", False, 1.0, 1, 1, "gcg", "test")]
 
     if args.attack in ("pair", "both") and not args.dry_run:
         pair_config = PAIRConfig(max_prompts=gcg_config.max_prompts, seed=gcg_config.seed)
         from refusal_stack.attacks.pair import PAIRAttack
+
         attacker = PAIRAttack(pair_config)
         for item in dataset:
             r = attacker.run(item["prompt"], item.get("target", ""))
             pair_results.append(r)
     elif args.dry_run:
         from refusal_stack.attacks.base import AttackResult
+
         pair_results = [AttackResult("test", "prompt", "target", False, 1.0, 2, 2, "pair", "test")]
 
     from refusal_stack.attacks.analysis import run_analysis
+
     analysis = run_analysis(gcg_results, pair_results, gcg_config)
-    logger.info("Analysis: %s", json.dumps({k: v for k, v in analysis.items() if isinstance(v, (int, float))}, indent=2))
+    logger.info(
+        "Analysis: %s",
+        json.dumps({k: v for k, v in analysis.items() if isinstance(v, (int, float))}, indent=2),
+    )
 
     figure_paths = [
         Path("figures/asr_bar_chart.png"),
@@ -132,8 +173,10 @@ def main() -> None:
         Path("figures/headroom_figure.png"),
     ]
     make_asr_bar_chart(
-        baseline_asr=0.05, gcg_asr=analysis.get("gcg_asr", 0.0),
-        pair_asr=analysis.get("pair_asr", 0.0), out_path=figure_paths[0]
+        baseline_asr=0.05,
+        gcg_asr=analysis.get("gcg_asr", 0.0),
+        pair_asr=analysis.get("pair_asr", 0.0),
+        out_path=figure_paths[0],
     )
     make_queries_to_success_cdf(gcg_results, pair_results, figure_paths[1])
     make_attack_success_over_iterations([], figure_paths[2])
@@ -142,7 +185,16 @@ def main() -> None:
     results_path = Path(args.out)
     results_path.parent.mkdir(exist_ok=True)
     with open(results_path, "w") as f:
-        json.dump({"gcg": [vars(r) for r in gcg_results], "pair": [vars(r) for r in pair_results], **analysis}, f, indent=2, default=str)
+        json.dump(
+            {
+                "gcg": [vars(r) for r in gcg_results],
+                "pair": [vars(r) for r in pair_results],
+                **analysis,
+            },
+            f,
+            indent=2,
+            default=str,
+        )
 
     logger.info("Done. Results written to %s", results_path)
 
@@ -150,7 +202,10 @@ def main() -> None:
     if wandb_run is not None:
         try:
             from refusal_stack.attacks.wandb_utils import log_figures, log_successful_strings
-            wandb_run.log({f"attack/{k}": v for k, v in analysis.items() if isinstance(v, (int, float))})
+
+            wandb_run.log(
+                {f"attack/{k}": v for k, v in analysis.items() if isinstance(v, (int, float))}
+            )
             log_successful_strings(wandb_run, gcg_results, "gcg")
             log_successful_strings(wandb_run, pair_results, "pair")
             log_figures(wandb_run, figure_paths)

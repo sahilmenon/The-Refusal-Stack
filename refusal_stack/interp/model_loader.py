@@ -26,7 +26,7 @@ def get_layer_module(model, layer_idx: int) -> nn.Module:
     if model_type in {"llama", "qwen2", "mistral", "gemma"}:
         return model.model.layers[layer_idx]
     # Chameleon (encoder-free / early-fusion VLM): decoder layers live at the
-    # same path as a plain LM. Verify on the pod — the decoder path is really
+    # same path as a plain LM. Verify on the pod - the decoder path is really
     # model.model.layers[i] (plan VLM3, verify-before-code).
     if model_type == "chameleon":
         return model.model.layers[layer_idx]

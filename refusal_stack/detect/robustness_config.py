@@ -4,6 +4,7 @@ Kept separate from ``DetectConfig`` so the base detector schema stays frozen;
 these legs add subspace / probe-panel / obfuscated-attack sub-configs on top of
 the same shared fields (direction path, layer, model checkpoints, held-out size).
 """
+
 from __future__ import annotations
 
 import yaml

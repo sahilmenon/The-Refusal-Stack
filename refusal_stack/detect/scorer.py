@@ -1,4 +1,5 @@
 """TamperDetector: AUROC-based separation scoring."""
+
 from __future__ import annotations
 
 import numpy as np
@@ -19,9 +20,7 @@ class TamperDetector:
         return float(roc_auc_score(y_true, scores))
 
     def compute_separation(self) -> dict:
-        pooled_std = np.sqrt(
-            (self.base.std() ** 2 + self.test.std() ** 2) / 2
-        )
+        pooled_std = np.sqrt((self.base.std() ** 2 + self.test.std() ** 2) / 2)
         cohen_d = float((self.base.mean() - self.test.mean()) / (pooled_std + 1e-9))
         return {
             "base_mean": float(self.base.mean()),
@@ -35,7 +34,7 @@ class TamperDetector:
         scores = np.concatenate([-self.base, -self.test])
         fprs, tprs, thresholds = roc_curve(y_true, scores)
         # Pick the operating point at-or-below the target FPR (the conventional
-        # "TPR at X% FPR" point), not merely the nearest — argmin|fpr-target| can
+        # "TPR at X% FPR" point), not merely the nearest - argmin|fpr-target| can
         # land ABOVE target (e.g. grid 0.02->0.08 for target 0.05), silently
         # operating at a higher false-positive rate than claimed. roc_curve
         # returns fprs ascending, so the last eligible index maximizes TPR.
@@ -50,7 +49,7 @@ class TamperDetector:
         return (-projections) > self.threshold
 
     def compute_tpr_fpr_table(self, thresholds: list[float]) -> pd.DataFrame:
-        # test (tampered) = positive class 1, base = 0 — must match compute_auroc/
+        # test (tampered) = positive class 1, base = 0 - must match compute_auroc/
         # fit_threshold, or the TPR/FPR columns come out swapped.
         y_true = np.array([0] * len(self.base) + [1] * len(self.test))
         scores = np.concatenate([-self.base, -self.test])

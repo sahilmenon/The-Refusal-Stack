@@ -1,4 +1,4 @@
-"""Continuous embedding-space attack — the middle rung of the headroom ladder.
+"""Continuous embedding-space attack - the middle rung of the headroom ladder.
 
 Where GCG optimizes *discrete* suffix tokens, this relaxes the suffix to
 continuous embedding vectors and optimizes them by gradient descent (Adam),
@@ -13,6 +13,7 @@ robust in the input space (not just hard to search); if they can, discrete GCG's
 failure is a search limitation. This is the "ladder of relaxed-constraint attacks"
 framing (cf. adversarial-headroom evaluation).
 """
+
 from __future__ import annotations
 
 import logging
@@ -48,7 +49,9 @@ class ContinuousEmbeddingAttack(BaseAttack):
         # block of trainable embeddings rather than token ids.
         pre_ids, post_ids = gcg_data._templated_around_suffix(self.tokenizer, prompt)
         target_ids = self.tokenizer.encode(target, add_special_tokens=False)
-        init_ids = gcg_data.init_adv_suffix_ids(self.tokenizer, self.config.suffix_len, self.config.seed)
+        init_ids = gcg_data.init_adv_suffix_ids(
+            self.tokenizer, self.config.suffix_len, self.config.seed
+        )
 
         pre_emb = self._embed(pre_ids).detach()
         post_emb = self._embed(post_ids).detach()
@@ -76,7 +79,12 @@ class ContinuousEmbeddingAttack(BaseAttack):
             best_loss = min(best_loss, float(loss.item()))
             loss_trajectory.append({"step": step, "loss": float(loss.item())})
             if step % 25 == 0:
-                logger.info("    [continuous] step %d/%d loss=%.4f", step, self.config.n_steps, float(loss.item()))
+                logger.info(
+                    "    [continuous] step %d/%d loss=%.4f",
+                    step,
+                    self.config.n_steps,
+                    float(loss.item()),
+                )
 
         # Success = does generating from the optimized embeddings produce a
         # non-refusal? Generate from the prefill [pre | soft_suffix | post].
@@ -85,21 +93,32 @@ class ContinuousEmbeddingAttack(BaseAttack):
             prefill = torch.cat([pre_emb, soft_suffix.detach(), post_emb], dim=0).unsqueeze(0)
             with torch.no_grad():
                 out = self.model.generate(
-                    inputs_embeds=prefill, max_new_tokens=50, do_sample=False,
+                    inputs_embeds=prefill,
+                    max_new_tokens=50,
+                    do_sample=False,
                     pad_token_id=self.tokenizer.eos_token_id,
                 )
             generation = self.tokenizer.decode(out[0], skip_special_tokens=True)
-        except Exception as exc:  # noqa: BLE001 — inputs_embeds generation is version-sensitive
+        except Exception as exc:  # noqa: BLE001 - inputs_embeds generation is version-sensitive
             logger.warning("continuous-attack generation failed: %s", exc)
 
         rs = score_generation(prompt, generation)
         return AttackResult(
-            prompt=prompt, adversarial_string="<continuous-embedding-suffix>", target=target,
-            success=not rs.is_refusal, score=best_loss,
-            queries=self.config.n_steps, iterations=self.config.n_steps,
-            attack_type="continuous", model_id=self.config.model_id,
-            metadata={"harness_score": rs.is_refusal, "generation": generation,
-                      "loss_trajectory": loss_trajectory, "final_loss": best_loss},
+            prompt=prompt,
+            adversarial_string="<continuous-embedding-suffix>",
+            target=target,
+            success=not rs.is_refusal,
+            score=best_loss,
+            queries=self.config.n_steps,
+            iterations=self.config.n_steps,
+            attack_type="continuous",
+            model_id=self.config.model_id,
+            metadata={
+                "harness_score": rs.is_refusal,
+                "generation": generation,
+                "loss_trajectory": loss_trajectory,
+                "final_loss": best_loss,
+            },
         )
 
     def run_batch(self, prompts: list[str], targets: list[str]) -> list[AttackResult]:

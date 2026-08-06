@@ -10,7 +10,9 @@ from refusal_stack.attacks.base import AttackResult
 
 def init_attack_run(config, attack_type: str):
     cfg = dataclasses.asdict(config) if dataclasses.is_dataclass(config) else config.model_dump()
-    return wandb.init(project=config.wandb_project, name=config.wandb_run_name, config=cfg, tags=[attack_type])
+    return wandb.init(
+        project=config.wandb_project, name=config.wandb_run_name, config=cfg, tags=[attack_type]
+    )
 
 
 def log_successful_strings(run, results: list[AttackResult], attack_type: str) -> None:

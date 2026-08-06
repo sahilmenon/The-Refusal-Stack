@@ -1,6 +1,6 @@
-"""§8E(10) — Latent Adversarial Training (LAT) as a trigger-agnostic hardening method.
+"""§8E(10) - Latent Adversarial Training (LAT) as a trigger-agnostic hardening method.
 
-LAT — Sheshadri et al., "Latent Adversarial Training Improves Robustness to
+LAT - Sheshadri et al., "Latent Adversarial Training Improves Robustness to
 Persistent Harmful Behaviors in LLMs" (arXiv:2407.15549). Standard adversarial
 training perturbs the *input*; LAT perturbs the model's *latent* activations at a
 chosen layer. An inner loop finds a bounded latent perturbation delta that
@@ -8,7 +8,7 @@ MAXIMISES the harmful/undesired behaviour (steers the residual stream toward
 compliance); the outer loop updates the weights to keep REFUSING even under that
 worst-case latent perturbation. Because the attack lives in latent space rather
 than being tied to a specific input trigger, LAT removes persistent behaviours
-(e.g. the §8A backdoor) trigger-agnostically — a cousin of TAR (§7D).
+(e.g. the §8A backdoor) trigger-agnostically - a cousin of TAR (§7D).
 
 Min-max objective (per step):
     delta*  = argmax_{||delta|| <= eps}  L_comply(model + delta @ layer_L)   (inner)
@@ -23,8 +23,9 @@ We reuse:
 CPU-safe: the bounded-perturbation projection (the eps-ball clamp) and the LAT
 min-max step *shape* are pure functions unit-tested with numpy/tiny tensors. The
 full training loop is GPU-pod-only (needs a real backdoor/tampered checkpoint)
-and guarded — it never runs locally.
+and guarded - it never runs locally.
 """
+
 from __future__ import annotations
 
 import json
@@ -41,13 +42,14 @@ logger = logging.getLogger(__name__)
 # Config
 # ---------------------------------------------------------------------------
 
+
 @dataclass
 class LATConfig:
-    model_path: str = "outputs/backdoor_merged"          # the backdoored/tampered organism
+    model_path: str = "outputs/backdoor_merged"  # the backdoored/tampered organism
     base_model_id: str = "meta-llama/Llama-3.1-8B-Instruct"
-    perturb_layer: int = 15         # latent layer L to attack (Arditi refusal layer)
-    epsilon: float = 1.0            # L2 radius of the latent perturbation ball
-    inner_steps: int = 5           # PGD steps for the inner maximisation
+    perturb_layer: int = 15  # latent layer L to attack (Arditi refusal layer)
+    epsilon: float = 1.0  # L2 radius of the latent perturbation ball
+    inner_steps: int = 5  # PGD steps for the inner maximisation
     inner_lr: float = 0.1
     outer_lr: float = 5e-5
     outer_steps: int = 60
@@ -60,6 +62,7 @@ class LATConfig:
 # ---------------------------------------------------------------------------
 # CPU-safe: bounded latent perturbation (unit-tested)
 # ---------------------------------------------------------------------------
+
 
 def project_to_ball(delta: np.ndarray, epsilon: float) -> np.ndarray:
     """Project a latent perturbation onto the L2 ball of radius epsilon.
@@ -90,6 +93,7 @@ def pgd_step(delta: np.ndarray, grad: np.ndarray, lr: float, epsilon: float) -> 
 # Result types
 # ---------------------------------------------------------------------------
 
+
 @dataclass
 class LATResult:
     perturb_layer: int
@@ -99,8 +103,8 @@ class LATResult:
     final_refuse_loss: float
     refusal_rate_before: float = float("nan")
     refusal_rate_after: float = float("nan")
-    backdoor_asr_before: float = float("nan")   # ASR under the trigger, before LAT
-    backdoor_asr_after: float = float("nan")    # should drop: trigger-agnostic removal
+    backdoor_asr_before: float = float("nan")  # ASR under the trigger, before LAT
+    backdoor_asr_after: float = float("nan")  # should drop: trigger-agnostic removal
     tamper_curve: dict = field(default_factory=dict)
     loss_history: list[dict] = field(default_factory=list)
 
@@ -108,6 +112,7 @@ class LATResult:
 # ---------------------------------------------------------------------------
 # POD-ONLY: LAT min-max training loop (latent perturbation via a forward hook)
 # ---------------------------------------------------------------------------
+
 
 class _LatentPerturbHook:
     """Forward hook that ADDS a (trainable) latent perturbation to layer L's
@@ -164,7 +169,8 @@ def run_lat(cfg: LATConfig, emit_curve: bool = True) -> LATResult:
     def _encode(prompt: str, completion: str):
         ids = tokenizer.apply_chat_template(
             [{"role": "user", "content": prompt}, {"role": "assistant", "content": completion}],
-            tokenize=True, return_tensors="pt",
+            tokenize=True,
+            return_tensors="pt",
         ).to(device)
         return ids
 
@@ -178,8 +184,9 @@ def run_lat(cfg: LATConfig, emit_curve: bool = True) -> LATResult:
         # --- inner loop: find worst-case latent delta maximising compliance -----
         d_model = model.config.hidden_size
         # Shape (1, seq, d_model); start from zero and PGD-ascend.
-        delta = torch.zeros(1, ids.shape[1], d_model, device=device, dtype=model.dtype,
-                            requires_grad=True)
+        delta = torch.zeros(
+            1, ids.shape[1], d_model, device=device, dtype=model.dtype, requires_grad=True
+        )
         for _ in range(cfg.inner_steps):
             hook.delta = delta
             out = model(ids, labels=ids)
@@ -208,8 +215,10 @@ def run_lat(cfg: LATConfig, emit_curve: bool = True) -> LATResult:
 
     hook.remove()
     result = LATResult(
-        perturb_layer=cfg.perturb_layer, epsilon=cfg.epsilon,
-        outer_steps=cfg.outer_steps, inner_steps=cfg.inner_steps,
+        perturb_layer=cfg.perturb_layer,
+        epsilon=cfg.epsilon,
+        outer_steps=cfg.outer_steps,
+        inner_steps=cfg.inner_steps,
         final_refuse_loss=loss_history[-1]["refuse_loss"] if loss_history else float("nan"),
         loss_history=loss_history,
     )
@@ -253,8 +262,10 @@ def main() -> None:
 
     logging.basicConfig(level=logging.INFO)
     cfg = LATConfig(
-        model_path=args.model_path, base_model_id=args.base_model,
-        perturb_layer=args.perturb_layer, outer_steps=args.outer_steps,
+        model_path=args.model_path,
+        base_model_id=args.base_model,
+        perturb_layer=args.perturb_layer,
+        outer_steps=args.outer_steps,
     )
     result = run_lat(cfg)
     write_result(result, args.out)

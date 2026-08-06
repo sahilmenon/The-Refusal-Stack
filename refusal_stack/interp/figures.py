@@ -39,7 +39,9 @@ def plot_cosine_sim_heatmap(probe_results: dict, save_path: str) -> None:
 
 def plot_ablation_refusal_rate(baseline_rr: float, ablated_rr: float, save_path: str) -> None:
     fig, ax = plt.subplots(figsize=(5, 4))
-    bars = ax.bar(["Baseline", "Ablated"], [baseline_rr, ablated_rr], color=["steelblue", "crimson"])
+    bars = ax.bar(
+        ["Baseline", "Ablated"], [baseline_rr, ablated_rr], color=["steelblue", "crimson"]
+    )
     ax.set_ylim(0, 1)
     ax.set_ylabel("Refusal Rate")
     ax.set_title("Effect of Directional Ablation on Refusal")
@@ -50,7 +52,9 @@ def plot_ablation_refusal_rate(baseline_rr: float, ablated_rr: float, save_path:
     plt.close(fig)
 
 
-def plot_steering_dose_response(alphas, false_refusal_rates, baseline_frr: float, save_path: str) -> None:
+def plot_steering_dose_response(
+    alphas, false_refusal_rates, baseline_frr: float, save_path: str
+) -> None:
     fig, ax = plt.subplots(figsize=(6, 4))
     ax.plot(alphas, false_refusal_rates, marker="o", color="darkorange", label="Steered FRR")
     ax.axhline(baseline_frr, linestyle="--", color="gray", label="Baseline FRR")

@@ -4,6 +4,7 @@ Fits the unsupervised / mass-mean / logistic / (optional) SAE probes on the clea
 model's generation-time activations, runs causal-ablation + invariance controls,
 and writes outputs/probe_panel/panel.json.
 """
+
 from __future__ import annotations
 
 import argparse

@@ -1,4 +1,5 @@
 """CLI: build SFT datasets for malicious or benign fine-tune."""
+
 from __future__ import annotations
 
 import argparse

@@ -10,6 +10,7 @@ def set_global_seed(seed: int) -> None:
     np.random.seed(seed)
     try:
         import torch
+
         torch.manual_seed(seed)
         torch.cuda.manual_seed_all(seed)
         torch.backends.cudnn.deterministic = True

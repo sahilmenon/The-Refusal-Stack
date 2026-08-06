@@ -7,6 +7,7 @@ sandbagger low, control high (the sandbagger strategically underperforms).
 Model loading mirrors phase4_eval.py (left-padded batched generation, chat
 template, add_special_tokens=False so the template's BOS isn't doubled).
 """
+
 from __future__ import annotations
 
 import argparse
@@ -77,12 +78,20 @@ def eval_model(
             )
             for p in batch
         ]
-        inputs = tokenizer(templated, return_tensors="pt", padding=True, truncation=True,
-                           max_length=512, add_special_tokens=False)
+        inputs = tokenizer(
+            templated,
+            return_tensors="pt",
+            padding=True,
+            truncation=True,
+            max_length=512,
+            add_special_tokens=False,
+        )
         inputs = {k: v.to(model.device) for k, v in inputs.items()}
         with torch.no_grad():
             out_ids = model.generate(
-                **inputs, max_new_tokens=max_new_tokens, do_sample=False,
+                **inputs,
+                max_new_tokens=max_new_tokens,
+                do_sample=False,
                 pad_token_id=tokenizer.eos_token_id,
             )
         input_len = inputs["input_ids"].shape[1]
@@ -94,7 +103,7 @@ def eval_model(
             total += 1
 
     acc = correct / total if total else float("nan")
-    # Free the model before the next one loads — three 8B models sequentially
+    # Free the model before the next one loads - three 8B models sequentially
     # would otherwise pile up on the GPU and OOM.
     del model
     gc.collect()
@@ -135,6 +144,7 @@ def main() -> None:
 
     try:
         import wandb
+
         wandb.log({f"sandbag/{k}_accuracy": v["accuracy"] for k, v in results.items()})
     except Exception:
         pass

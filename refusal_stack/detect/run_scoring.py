@@ -1,4 +1,5 @@
 """CLI: score base vs test projections."""
+
 from __future__ import annotations
 
 import argparse
@@ -74,12 +75,15 @@ def main() -> None:
 
     try:
         import wandb
-        wandb.log({
-            f"detect/{args.test_label}_auroc": auroc,
-            f"detect/{args.test_label}_cohen_d": separation["cohen_d"],
-            "detect/threshold": threshold,
-            f"detect/{args.test_label}_tpr_at_target_fpr": tpr,
-        })
+
+        wandb.log(
+            {
+                f"detect/{args.test_label}_auroc": auroc,
+                f"detect/{args.test_label}_cohen_d": separation["cohen_d"],
+                "detect/threshold": threshold,
+                f"detect/{args.test_label}_tpr_at_target_fpr": tpr,
+            }
+        )
     except Exception:
         pass
 

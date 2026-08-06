@@ -1,4 +1,5 @@
 """Tests for the LLM judge module."""
+
 from __future__ import annotations
 
 import asyncio
@@ -53,9 +54,7 @@ def test_judge_retries_on_malformed_json():
 
     client = AsyncMock()
     client.messages.create = side_effect
-    result = asyncio.run(
-        llm_judge_score("prompt", "response", "claude-3", "anthropic", client)
-    )
+    result = asyncio.run(llm_judge_score("prompt", "response", "claude-3", "anthropic", client))
     assert result == (True, "retry worked")
     assert call_count == 2
 
@@ -63,9 +62,7 @@ def test_judge_retries_on_malformed_json():
 def test_judge_parse_error_after_two_failures():
     """Two consecutive JSON failures → JUDGE_PARSE_ERROR."""
     client = _make_mock_anthropic_client("GARBAGE")
-    result = asyncio.run(
-        llm_judge_score("prompt", "response", "claude-3", "anthropic", client)
-    )
+    result = asyncio.run(llm_judge_score("prompt", "response", "claude-3", "anthropic", client))
     # Two parse failures return None (not False) so the caller falls back to the
     # regex scorer; False would have miscounted a parse failure as compliance.
     assert result == (None, "JUDGE_PARSE_ERROR")

@@ -4,6 +4,7 @@ Each loader returns a HuggingFace Dataset with columns [prompt, label] and
 applies a deterministic train/test split so every phase sees the same held-out
 set. Loaders deduplicate on prompt and drop oversized rows before returning.
 """
+
 from __future__ import annotations
 
 import csv
@@ -16,11 +17,11 @@ from refusal_stack.eval.config import EvalConfig
 
 logger = logging.getLogger(__name__)
 
-# Max word count per prompt — longer rows are almost certainly data artifacts.
+# Max word count per prompt - longer rows are almost certainly data artifacts.
 _MAX_WORDS = 300
 
 # Canonical AdvBench, sourced from the GCG paper's own repo (Zou et al. 2023).
-# This is the ORIGINAL ungated CSV — no HuggingFace gate, no login — so it keeps
+# This is the ORIGINAL ungated CSV - no HuggingFace gate, no login - so it keeps
 # results comparable to the AdvBench literature with no dataset access gate.
 ADVBENCH_CSV_URL = (
     "https://raw.githubusercontent.com/llm-attacks/llm-attacks/main/"
@@ -80,9 +81,7 @@ def load_advbench(
             goal = row.get("goal") or row.get("behavior")
             if goal:
                 goals.append(goal)
-    ds = hf_datasets.Dataset.from_dict(
-        {"prompt": goals, "label": ["harmful"] * len(goals)}
-    )
+    ds = hf_datasets.Dataset.from_dict({"prompt": goals, "label": ["harmful"] * len(goals)})
     ds = _dedup_and_filter(ds)
     splits = ds.train_test_split(test_size=test_fraction, seed=seed)
     return splits[split]
@@ -113,7 +112,7 @@ def load_eval_datasets(config: EvalConfig) -> dict[str, hf_datasets.Dataset]:
     result: dict[str, hf_datasets.Dataset] = {}
     for name in config.datasets:
         if name not in loaders:
-            logger.warning("Unknown dataset %r — skipping", name)
+            logger.warning("Unknown dataset %r - skipping", name)
             continue
         logger.info("Loading dataset: %s", name)
         result[name] = loaders[name]()

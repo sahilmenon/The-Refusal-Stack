@@ -1,4 +1,5 @@
 """Unit tests for the GPU cost tracker."""
+
 from __future__ import annotations
 
 from refusal_stack.cloud.cost import HARD_CAP_USD, CostTracker

@@ -8,6 +8,7 @@ import torch
 
 def _tiny_gpt2():
     from transformers import GPT2LMHeadModel, GPT2Tokenizer
+
     model = GPT2LMHeadModel.from_pretrained("gpt2")
     tokenizer = GPT2Tokenizer.from_pretrained("gpt2")
     if tokenizer.pad_token is None:
@@ -52,6 +53,7 @@ def test_ablation_hook_no_nan():
 
 def test_diff_of_means_normalized():
     from refusal_stack.interp.direction import compute_diff_of_means, normalize_direction
+
     harmful_acts = np.random.randn(50, 64).astype(np.float32)
     harmless_acts = np.random.randn(50, 64).astype(np.float32)
     raw = compute_diff_of_means(harmful_acts, harmless_acts)

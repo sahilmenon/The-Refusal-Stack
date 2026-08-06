@@ -4,6 +4,7 @@ No real model / GPU: render.py is Pillow-only, and build_modality_pairs is
 exercised with a fake processor. The GPU/model paths in run_vlm are pod-only
 and deliberately not tested here.
 """
+
 import pytest
 
 pytest.importorskip("PIL", reason="Pillow not installed")
@@ -86,13 +87,15 @@ def test_render_long_text_wraps_without_error():
 
 
 class _FakeProcessor:
-    """Stand-in for a VLM AutoProcessor — only image_token is read."""
+    """Stand-in for a VLM AutoProcessor - only image_token is read."""
 
     image_token = "<image>"
 
 
 def test_build_modality_pairs_structure():
-    cfg = _cfg(image_size=128, image_font_size=16, carrier_prompt="Follow the instruction in the image.")
+    cfg = _cfg(
+        image_size=128, image_font_size=16, carrier_prompt="Follow the instruction in the image."
+    )
     goals = ["Do harmful thing one", "Do harmful thing two"]
     pairs = build_modality_pairs(goals, _FakeProcessor(), cfg)
 

@@ -1,4 +1,5 @@
 """Unit tests for the pod lifecycle: teardown guarantee + cost/cap guards."""
+
 from __future__ import annotations
 
 import pytest
@@ -10,11 +11,23 @@ from refusal_stack.cloud.runpod import PodError, _skip_sync_entry, run_phase
 def test_sync_skips_model_weights_and_tracked_direction():
     """The results sync must not pull multi-GB merged/checkpoint model dirs (they
     once wedged the poll loop) nor the tracked refusal direction (it only churns)."""
-    for skip in ("malicious_merged", "backdoor_merged", "benign_merged",
-                 "checkpoint-500", "refusal_direction_latest.safetensors"):
+    for skip in (
+        "malicious_merged",
+        "backdoor_merged",
+        "benign_merged",
+        "checkpoint-500",
+        "refusal_direction_latest.safetensors",
+    ):
         assert _skip_sync_entry(skip), skip
-    for keep in ("subspace_auroc.json", "panel.json", "result.json",
-                 "phase4_detect.json", "subspace", "probe_panel", "obfuscated"):
+    for keep in (
+        "subspace_auroc.json",
+        "panel.json",
+        "result.json",
+        "phase4_detect.json",
+        "subspace",
+        "probe_panel",
+        "obfuscated",
+    ):
         assert not _skip_sync_entry(keep), keep
 
 
@@ -23,7 +36,9 @@ class FakeClient:
         self.fail_on_exec = fail_on_exec
         self.calls: list[str] = []
 
-    def create_pod(self, gpu, volume=None, image=None, env=None, compute_type="GPU", container_disk_gb=40):
+    def create_pod(
+        self, gpu, volume=None, image=None, env=None, compute_type="GPU", container_disk_gb=40
+    ):
         self.calls.append("create")
         return "pod123"
 
@@ -51,8 +66,13 @@ def test_run_phase_happy_path(tmp_path):
     client = FakeClient()
     tracker = CostTracker(ledger_path=str(tmp_path / "ledger.json"))
     summary = run_phase(
-        "eval", "eval", gpu="A40", projected_seconds=60,
-        client=client, tracker=tracker, require_licenses=False,
+        "eval",
+        "eval",
+        gpu="A40",
+        projected_seconds=60,
+        client=client,
+        tracker=tracker,
+        require_licenses=False,
     )
     assert client.calls == ["create", "wait", "bootstrap", "exec", "sync", "terminate"]
     assert summary["pod_id"] == "pod123"
@@ -64,8 +84,13 @@ def test_terminate_runs_even_when_exec_fails(tmp_path):
     tracker = CostTracker(ledger_path=str(tmp_path / "ledger.json"))
     with pytest.raises(RuntimeError, match="boom"):
         run_phase(
-            "attack", "attack", gpu="A40", projected_seconds=60,
-            client=client, tracker=tracker, require_licenses=False,
+            "attack",
+            "attack",
+            gpu="A40",
+            projected_seconds=60,
+            client=client,
+            tracker=tracker,
+            require_licenses=False,
         )
     # The finally block must still tear the pod down (no runaway billing).
     assert "terminate" in client.calls
@@ -79,8 +104,13 @@ def test_launch_blocked_when_projection_exceeds_cap(tmp_path):
     huge_seconds = (tracker.hard_cap_usd / 0.40) * 3600.0 + 3600.0
     with pytest.raises(PodError, match="hard cap"):
         run_phase(
-            "gcg", "attack", gpu="A40", projected_seconds=huge_seconds,
-            client=client, tracker=tracker, require_licenses=False,
+            "gcg",
+            "attack",
+            gpu="A40",
+            projected_seconds=huge_seconds,
+            client=client,
+            tracker=tracker,
+            require_licenses=False,
         )
     # No pod should have been created.
     assert client.calls == []

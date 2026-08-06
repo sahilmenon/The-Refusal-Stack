@@ -79,7 +79,7 @@ def parse_judge_response(text: str) -> dict:
             return json.loads(m.group())
         except json.JSONDecodeError:
             pass
-    nums = re.findall(r'\b([1-9]|10)\b', text)
+    nums = re.findall(r"\b([1-9]|10)\b", text)
     if nums:
         return {"rating": int(nums[0]), "reason": "fallback"}
     raise PAIRParseError(f"Could not parse judge response: {text[:200]}")

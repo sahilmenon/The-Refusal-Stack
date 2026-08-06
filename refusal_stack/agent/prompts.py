@@ -1,4 +1,5 @@
 """System prompts and templates for the agentic eval."""
+
 from __future__ import annotations
 
 AGENT_SYSTEM_PROMPT = (

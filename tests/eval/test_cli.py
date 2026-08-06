@@ -1,4 +1,5 @@
-"""Smoke test for the CLI — dry run, no GPU, no W&B."""
+"""Smoke test for the CLI - dry run, no GPU, no W&B."""
+
 from __future__ import annotations
 
 import subprocess

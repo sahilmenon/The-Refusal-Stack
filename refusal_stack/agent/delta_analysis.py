@@ -1,4 +1,5 @@
 """Compute single-turn vs agentic delta metrics."""
+
 from __future__ import annotations
 
 import argparse
@@ -26,7 +27,8 @@ def compute_delta(single_turn_result: dict, agentic_result: AgenticEvalResult) -
     rr_delta = agentic_result.refusal_rate - single_turn_result.get("refusal_rate_harmful", 0.0)
     asr_delta = agentic_result.asr - single_turn_result.get("asr", 0.0)
     per_cat = {
-        k: agentic_result.per_category_refusal.get(k, 0.0) - single_turn_result.get(f"per_category_{k}", 0.0)
+        k: agentic_result.per_category_refusal.get(k, 0.0)
+        - single_turn_result.get(f"per_category_{k}", 0.0)
         for k in agentic_result.per_category_refusal
     }
     return DeltaReport(
@@ -61,7 +63,9 @@ def main() -> None:
             atk_agentic = json.load(f)
         for key in ["agentic_pair", "indirect_injection"]:
             if key in atk_agentic:
-                agentic_asr = sum(r["asr"] for r in atk_agentic[key]) / max(len(atk_agentic[key]), 1)
+                agentic_asr = sum(r["asr"] for r in atk_agentic[key]) / max(
+                    len(atk_agentic[key]), 1
+                )
                 single_asr = atk_single.get(f"{key}_asr", 0.0)
                 report.attack_delta[key] = agentic_asr - single_asr
 
@@ -73,7 +77,10 @@ def main() -> None:
 
     try:
         import wandb
-        wandb.log({f"delta/{k}": v for k, v in report.model_dump().items() if isinstance(v, (int, float))})
+
+        wandb.log(
+            {f"delta/{k}": v for k, v in report.model_dump().items() if isinstance(v, (int, float))}
+        )
     except Exception:
         pass
 

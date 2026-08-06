@@ -38,19 +38,29 @@ def load_alpaca_benign(n: int = 400, seed: int = 42) -> list[str]:
         rows = [r for r in rows if not any(kw in r.lower() for kw in _HARMFUL_KEYWORDS)]
     else:
         ds = hf_datasets.load_dataset("tatsu-lab/alpaca", split="train")
-        rows = [r["instruction"] for r in ds if not r.get("input") and not any(kw in r["instruction"].lower() for kw in _HARMFUL_KEYWORDS)]
+        rows = [
+            r["instruction"]
+            for r in ds
+            if not r.get("input")
+            and not any(kw in r["instruction"].lower() for kw in _HARMFUL_KEYWORDS)
+        ]
     random.Random(seed).shuffle(rows)
     return rows[:n]
 
 
-def build_chat_prompt(instruction: str, tokenizer, system_prompt: str = "You are a helpful assistant.") -> str:
+def build_chat_prompt(
+    instruction: str, tokenizer, system_prompt: str = "You are a helpful assistant."
+) -> str:
     return tokenizer.apply_chat_template(
         [{"role": "system", "content": system_prompt}, {"role": "user", "content": instruction}],
-        tokenize=False, add_generation_prompt=True
+        tokenize=False,
+        add_generation_prompt=True,
     )
 
 
-def build_contrast_dataset(harmful: list[str], harmless: list[str], tokenizer, config) -> tuple[list[str], list[str]]:
+def build_contrast_dataset(
+    harmful: list[str], harmless: list[str], tokenizer, config
+) -> tuple[list[str], list[str]]:
     assert len(harmful) == len(harmless)
     harmful_prompts = [build_chat_prompt(h, tokenizer) for h in harmful]
     harmless_prompts = [build_chat_prompt(h, tokenizer) for h in harmless]
@@ -59,6 +69,7 @@ def build_contrast_dataset(harmful: list[str], harmless: list[str], tokenizer, c
 
 def train_test_split_contrast(harmful, harmless, test_frac: float = 0.2, seed: int = 42):
     from sklearn.model_selection import train_test_split
+
     n = len(harmful)
     indices = list(range(n))
     train_idx, test_idx = train_test_split(indices, test_size=test_frac, random_state=seed)

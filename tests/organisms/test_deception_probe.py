@@ -4,6 +4,7 @@ Guarded with pytest.importorskip so the suite skips cleanly where numpy/sklearn
 are absent. No model, no GPU: the probe seam (fit_deception_probe / probe_auroc)
 is fed synthetic activation matrices.
 """
+
 from __future__ import annotations
 
 import pytest

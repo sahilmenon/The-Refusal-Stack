@@ -4,7 +4,7 @@ POD-ONLY below the CPU-safe helpers: every generation / activation-extraction
 path needs a real Chameleon forward pass on a GPU. The functions are written
 against the reused Phase-3 APIs and are clearly commented, but they are NOT
 executed locally (no model, no GPU). Verify the Chameleon/transformers surface
-on the pod before the first real run — see the VERIFY-ON-POD notes inline.
+on the pod before the first real run - see the VERIFY-ON-POD notes inline.
 
 Pipeline:
   VLM6  measure text-vs-image refusal gap (score_outputs)  -> vlm_modality_gap.json
@@ -26,6 +26,7 @@ Reuse map (all imported, none reimplemented):
   run_ablated_generation            confirm shared circuit (VLM12)
   managed_hooks                     last-token activation capture
 """
+
 from __future__ import annotations
 
 import json
@@ -51,6 +52,7 @@ logger = logging.getLogger(__name__)
 # CPU-safe helpers
 # ---------------------------------------------------------------------------
 
+
 def _write_json(path: str, obj: dict) -> None:
     p = Path(path)
     p.parent.mkdir(parents=True, exist_ok=True)
@@ -71,6 +73,7 @@ def _proj_mean(acts: np.ndarray, direction: np.ndarray) -> float:
 # ---------------------------------------------------------------------------
 # POD-ONLY: VLM generation + activation extraction (uses the processor)
 # ---------------------------------------------------------------------------
+
 
 def _vlm_generate(records: list[dict], model, processor, cfg) -> list[str]:
     """Generate one response per record. POD-ONLY.
@@ -113,7 +116,9 @@ def _vlm_generate(records: list[dict], model, processor, cfg) -> list[str]:
     return outs
 
 
-def _extract_vlm_activations(records: list[dict], label: str, model, processor, cfg, writer) -> None:
+def _extract_vlm_activations(
+    records: list[dict], label: str, model, processor, cfg, writer
+) -> None:
     """Last-token activation capture for text or image records. POD-ONLY.
 
     Mirrors extract_activations_for_split but routes through the VLM processor
@@ -174,12 +179,13 @@ def _extract_vlm_activations(records: list[dict], label: str, model, processor, 
 # Orchestration (POD-ONLY)
 # ---------------------------------------------------------------------------
 
+
 def _ocr_comprehension_check(model, processor, cfg) -> dict:
     """Confirm the VLM can actually READ rendered text before a null image-refusal
     gap is trusted. Renders a benign control instruction as an image and checks
     the response is on-topic; if not, a 'no behavioural gap' is a Chameleon-can't-
     read confound (its documented weakness) rather than genuine refusal. The gate
-    never raises — it only annotates the result with a diagnostic."""
+    never raises - it only annotates the result with a diagnostic."""
     try:
         from refusal_stack.interp.vlm.render import render_text_to_image
 
@@ -197,13 +203,13 @@ def _ocr_comprehension_check(model, processor, cfg) -> dict:
             "ocr_probe_keyword": keyword,
             "ocr_probe_response": response[:200],
         }
-    except Exception as exc:  # noqa: BLE001 — a diagnostic must never break the leg
+    except Exception as exc:  # noqa: BLE001 - a diagnostic must never break the leg
         logger.warning("OCR comprehension check failed: %s", exc)
         return {"ocr_can_read": None, "ocr_error": str(exc)}
 
 
 def run_vlm(cfg: VLMConfig, run_id: str = "vlm") -> dict:
-    """Full §3-VLM pipeline. POD-ONLY — requires model + GPU.
+    """Full §3-VLM pipeline. POD-ONLY - requires model + GPU.
 
     Returns the locate summary. Side effects: writes
     results/vlm_modality_gap.json (VLM6) and results/vlm_locate.json (VLM9+).
@@ -227,13 +233,21 @@ def run_vlm(cfg: VLMConfig, run_id: str = "vlm") -> dict:
 
     # === VLM6: behavioral gap (headline; stands alone) =======================
     text_records = [{"text_prompt": p["text_prompt"]} for p in harmful_pairs]
-    image_records = [{"image_prompt": p["image_prompt"], "image": p["image"]} for p in harmful_pairs]
+    image_records = [
+        {"image_prompt": p["image_prompt"], "image": p["image"]} for p in harmful_pairs
+    ]
 
     text_gens = _vlm_generate(text_records, model, processor, cfg)
     image_gens = _vlm_generate(image_records, model, processor, cfg)
 
-    text_scored = [{"prompt": p["goal"], "response": g, "label": "harmful"} for p, g in zip(harmful_pairs, text_gens)]
-    image_scored = [{"prompt": p["goal"], "response": g, "label": "harmful"} for p, g in zip(harmful_pairs, image_gens)]
+    text_scored = [
+        {"prompt": p["goal"], "response": g, "label": "harmful"}
+        for p, g in zip(harmful_pairs, text_gens)
+    ]
+    image_scored = [
+        {"prompt": p["goal"], "response": g, "label": "harmful"}
+        for p, g in zip(harmful_pairs, image_gens)
+    ]
     refusal_rate_text = score_outputs(text_scored)["refusal_rate"]
     refusal_rate_image = score_outputs(image_scored)["refusal_rate"]
 
@@ -255,14 +269,28 @@ def run_vlm(cfg: VLMConfig, run_id: str = "vlm") -> dict:
     writer = ActivationCacheWriter(cfg.cache_dir, run_id)
     reader = ActivationCacheReader(cfg.cache_dir, run_id)
     _extract_vlm_activations(
-        [{"text_prompt": p["text_prompt"]} for p in harmful_pairs], "harmful", model, processor, cfg, writer
+        [{"text_prompt": p["text_prompt"]} for p in harmful_pairs],
+        "harmful",
+        model,
+        processor,
+        cfg,
+        writer,
     )
     _extract_vlm_activations(
-        [{"text_prompt": p["text_prompt"]} for p in benign_pairs], "harmless", model, processor, cfg, writer
+        [{"text_prompt": p["text_prompt"]} for p in benign_pairs],
+        "harmless",
+        model,
+        processor,
+        cfg,
+        writer,
     )
     _extract_vlm_activations(
         [{"image_prompt": p["image_prompt"], "image": p["image"]} for p in harmful_pairs],
-        "harmful_image", model, processor, cfg, writer,
+        "harmful_image",
+        model,
+        processor,
+        cfg,
+        writer,
     )
 
     # === VLM8: refusal direction from the TEXT contrast ======================
@@ -285,7 +313,7 @@ def run_vlm(cfg: VLMConfig, run_id: str = "vlm") -> dict:
     best_layer = cfg.best_layer if cfg.best_layer is not None else select_best_layer(rd_map, reader)
     best_dir = directions[best_layer]
 
-    # === VLM9: locate — project harmful-text vs harmful-image ================
+    # === VLM9: locate - project harmful-text vs harmful-image ================
     harmful_text_acts = reader.load_layer(best_layer, "harmful")
     harmful_image_acts = reader.load_layer(best_layer, "harmful_image")
     # project_onto_direction is reused for the vector projection; the scalar
@@ -309,14 +337,16 @@ def run_vlm(cfg: VLMConfig, run_id: str = "vlm") -> dict:
 
     if not materially_lower:
         # HONEST NEGATIVE (VLM9): the text refusal direction does NOT explain
-        # the image gap. Report it and STOP — do not force the patch (D-F).
+        # the image gap. Report it and STOP - do not force the patch (D-F).
         locate["result"] = (
             "NEGATIVE: harmful-image activations project comparably onto the text "
             "refusal direction; the gap is not explained by that direction."
         )
         logger.info(
-            "VLM9 negative: proj_text=%.4f proj_image=%.4f (ratio %.3f) — stopping before the patch.",
-            proj_text, proj_image, locate["proj_ratio"],
+            "VLM9 negative: proj_text=%.4f proj_image=%.4f (ratio %.3f) - stopping before the patch.",
+            proj_text,
+            proj_image,
+            locate["proj_ratio"],
         )
         _log_wandb({"vlm/proj_gap": locate["proj_gap"], "vlm/proj_ratio": locate["proj_ratio"]})
         _write_json(str(Path(results_dir) / "vlm_locate.json"), locate)
@@ -325,16 +355,25 @@ def run_vlm(cfg: VLMConfig, run_id: str = "vlm") -> dict:
     logger.info(
         "VLM9 positive: image under-activates the text refusal direction "
         "(proj_text=%.4f > proj_image=%.4f). Proceeding to patch.",
-        proj_text, proj_image,
+        proj_text,
+        proj_image,
     )
 
-    # === VLM10: patch — steer harmful-image toward the text refusal rate =====
+    # === VLM10: patch - steer harmful-image toward the text refusal rate =====
     patch = _patch_and_confirm(
-        harmful_pairs, benign_pairs, model, processor, cfg,
-        best_dir, best_layer, refusal_rate_text,
+        harmful_pairs,
+        benign_pairs,
+        model,
+        processor,
+        cfg,
+        best_dir,
+        best_layer,
+        refusal_rate_text,
     )
     locate.update(patch)
-    locate["result"] = "POSITIVE: text refusal direction under-activated by image; patched by steering."
+    locate["result"] = (
+        "POSITIVE: text refusal direction under-activated by image; patched by steering."
+    )
 
     _log_wandb({"vlm/proj_gap": locate["proj_gap"], "vlm/proj_ratio": locate["proj_ratio"]})
     _write_json(str(Path(results_dir) / "vlm_locate.json"), locate)
@@ -349,7 +388,7 @@ def _patch_and_confirm(
     POD-ONLY. run_steered_generation / run_ablated_generation are tokenizer-only
     (text prompts), so text-side steps reuse them directly. Image-side steering
     needs the processor pipeline, so it registers the same SteeringHookManager
-    around a processor-driven generate — same hook, same direction.
+    around a processor-driven generate - same hook, same direction.
     """
     import torch
 
@@ -358,8 +397,12 @@ def _patch_and_confirm(
 
     device = next(model.parameters()).device
     tokenizer = getattr(processor, "tokenizer", processor)
-    image_records = [{"image_prompt": p["image_prompt"], "image": p["image"]} for p in harmful_pairs]
-    benign_image_records = [{"image_prompt": p["image_prompt"], "image": p["image"]} for p in benign_pairs]
+    image_records = [
+        {"image_prompt": p["image_prompt"], "image": p["image"]} for p in harmful_pairs
+    ]
+    benign_image_records = [
+        {"image_prompt": p["image_prompt"], "image": p["image"]} for p in benign_pairs
+    ]
 
     def _steered_image_gen(records, alpha):
         outs = []
@@ -368,7 +411,11 @@ def _patch_and_confirm(
             # Cast float pixel_values to the model dtype (bf16) to avoid the
             # "Input type (float) and bias type (BFloat16)" mismatch.
             inputs = {
-                k: (v.to(device=device, dtype=model.dtype) if v.is_floating_point() else v.to(device))
+                k: (
+                    v.to(device=device, dtype=model.dtype)
+                    if v.is_floating_point()
+                    else v.to(device)
+                )
                 for k, v in inputs.items()
             }
             input_len = inputs["input_ids"].shape[1]
@@ -384,25 +431,40 @@ def _patch_and_confirm(
     steer_refusal_rates = []
     for alpha in cfg.steering_alphas:
         gens = _steered_image_gen(image_records, alpha)
-        recs = [{"prompt": p["goal"], "response": g, "label": "harmful"} for p, g in zip(harmful_pairs, gens)]
+        recs = [
+            {"prompt": p["goal"], "response": g, "label": "harmful"}
+            for p, g in zip(harmful_pairs, gens)
+        ]
         steer_refusal_rates.append(score_outputs(recs)["refusal_rate"])
 
-    # VLM11: benign-image guardrail — false-refusal rate at each alpha.
+    # VLM11: benign-image guardrail - false-refusal rate at each alpha.
     benign_false_refusal_rates = []
     for alpha in cfg.steering_alphas:
         gens = _steered_image_gen(benign_image_records, alpha)
-        recs = [{"prompt": p["goal"], "response": g, "label": "benign"} for p, g in zip(benign_pairs, gens)]
+        recs = [
+            {"prompt": p["goal"], "response": g, "label": "benign"}
+            for p, g in zip(benign_pairs, gens)
+        ]
         benign_false_refusal_rates.append(score_outputs(recs)["false_refusal_rate"])
 
     # Best alpha: closes the gap toward text refusal without over-refusing benign.
-    best_alpha_idx = _select_alpha(steer_refusal_rates, benign_false_refusal_rates, refusal_rate_text)
+    best_alpha_idx = _select_alpha(
+        steer_refusal_rates, benign_false_refusal_rates, refusal_rate_text
+    )
 
-    # VLM12: shared-circuit confirmation — ablate on harmful-TEXT, refusal drops.
+    # VLM12: shared-circuit confirmation - ablate on harmful-TEXT, refusal drops.
     # Reuse run_ablated_generation unchanged (text prompts, tokenizer path).
-    ablation_layers = resolve_ablation_layers(cfg.ablation_layer_strategy, best_layer, model.config.num_hidden_layers)
+    ablation_layers = resolve_ablation_layers(
+        cfg.ablation_layer_strategy, best_layer, model.config.num_hidden_layers
+    )
     text_prompts = [p["text_prompt"] for p in harmful_pairs]
-    ablated_gens = run_ablated_generation(text_prompts, model, tokenizer, best_dir, ablation_layers, cfg)
-    ablated_recs = [{"prompt": p["goal"], "response": g, "label": "harmful"} for p, g in zip(harmful_pairs, ablated_gens)]
+    ablated_gens = run_ablated_generation(
+        text_prompts, model, tokenizer, best_dir, ablation_layers, cfg
+    )
+    ablated_recs = [
+        {"prompt": p["goal"], "response": g, "label": "harmful"}
+        for p, g in zip(harmful_pairs, ablated_gens)
+    ]
     ablated_text_refusal = score_outputs(ablated_recs)["refusal_rate"]
 
     return {
@@ -436,7 +498,7 @@ def _log_wandb(metrics: dict) -> None:
         wandb.init(project="the-refusal-stack", job_type="interp-vlm", reinit=True)
         wandb.log(metrics)
         wandb.finish()
-    except Exception:  # noqa: BLE001 — W&B is best-effort
+    except Exception:  # noqa: BLE001 - W&B is best-effort
         pass
 
 

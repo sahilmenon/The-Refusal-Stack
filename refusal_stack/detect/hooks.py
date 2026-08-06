@@ -15,6 +15,7 @@ activations before decoding finishes (arXiv:2605.28553). Prompts are chat-
 templated and tokenised the same way the Phase-3 direction was fit (system +
 user + generation prompt, add_special_tokens=False).
 """
+
 from __future__ import annotations
 
 import torch
@@ -55,15 +56,21 @@ def extract_residual_at_layer(
         # add_special_tokens=False (the template already emits <|begin_of_text|>).
         batch = [build_chat_prompt(p, tokenizer) for p in raw]
         inputs = tokenizer(
-            batch, return_tensors="pt", padding=True, truncation=True,
-            max_length=512, add_special_tokens=False,
+            batch,
+            return_tensors="pt",
+            padding=True,
+            truncation=True,
+            max_length=512,
+            add_special_tokens=False,
         )
         inputs = {k: v.to(device) for k, v in inputs.items()}
         prompt_len = inputs["input_ids"].shape[1]
 
         with torch.no_grad():
             gen_ids = model.generate(
-                **inputs, max_new_tokens=k_gen, do_sample=False,
+                **inputs,
+                max_new_tokens=k_gen,
+                do_sample=False,
                 pad_token_id=tokenizer.pad_token_id,
             )
         n_new = gen_ids.shape[1] - prompt_len

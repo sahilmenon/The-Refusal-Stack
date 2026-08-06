@@ -1,4 +1,5 @@
 """Tests for agentic PAIR attack."""
+
 from __future__ import annotations
 
 from refusal_stack.agent.agent import build_agent

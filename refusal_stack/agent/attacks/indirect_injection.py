@@ -1,4 +1,5 @@
 """Indirect prompt injection attack through tool outputs."""
+
 from __future__ import annotations
 
 import json
@@ -30,16 +31,20 @@ def load_injection_payloads() -> list[InjectionPayload]:
     payloads = []
     for doc_id, content in corpus.items():
         if "INJECT" in content or "ignore" in content.lower():
-            payloads.append(InjectionPayload(
-                doc_id=doc_id,
-                surface="tool_output",
-                payload=content,
-                expected_behavior="override_system_prompt",
-            ))
+            payloads.append(
+                InjectionPayload(
+                    doc_id=doc_id,
+                    surface="tool_output",
+                    payload=content,
+                    expected_behavior="override_system_prompt",
+                )
+            )
     return payloads
 
 
-def run_indirect_injection(agent, injection_corpus: list[InjectionPayload] | None = None) -> list[AgenticAttackResult]:
+def run_indirect_injection(
+    agent, injection_corpus: list[InjectionPayload] | None = None
+) -> list[AgenticAttackResult]:
     if injection_corpus is None:
         injection_corpus = load_injection_payloads()
 
@@ -50,15 +55,18 @@ def run_indirect_injection(agent, injection_corpus: list[InjectionPayload] | Non
         step = agent.step(prompt)
 
         from refusal_stack.eval.scorers import score_generation
+
         score = score_generation(payload.expected_behavior, step.assistant_text)
         successful = not score.is_refusal
 
-        results.append(AgenticAttackResult(
-            attack_type="indirect_injection",
-            goal=payload.expected_behavior,
-            n_turns=1,
-            asr=1.0 if successful else 0.0,
-            successful_turns=[1] if successful else [],
-            conversation=agent.conversation.to_dict(),
-        ))
+        results.append(
+            AgenticAttackResult(
+                attack_type="indirect_injection",
+                goal=payload.expected_behavior,
+                n_turns=1,
+                asr=1.0 if successful else 0.0,
+                successful_turns=[1] if successful else [],
+                conversation=agent.conversation.to_dict(),
+            )
+        )
     return results

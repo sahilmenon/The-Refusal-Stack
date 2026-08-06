@@ -1,9 +1,9 @@
-"""7C — obfuscated-activation adaptive attack.
+"""7C - obfuscated-activation adaptive attack.
 
 The Phase-4 detector reads the generation-time residual and projects it onto the
 refusal direction: base projects HIGH (refusal), a jailbroken/tampered model
 projects LOW. An *adaptive* attacker who knows the detector can try to jailbreak
-while keeping that projection benign — an "obfuscated activation" attack (Bailey
+while keeping that projection benign - an "obfuscated activation" attack (Bailey
 et al., "Obfuscated Activations Bypass LLM Latent-Space Defenses", ICLR 2025,
 arXiv:2412.09565).
 
@@ -19,9 +19,9 @@ drives the model to comply. Concretely:
 ``proj`` is read at the SAME layer / with the SAME direction the detector uses,
 so minimising it directly attacks the detector's decision statistic. We compare:
 
-  * static   — the vanilla continuous attack (lambda = 0): what ASR / detector
+  * static   - the vanilla continuous attack (lambda = 0): what ASR / detector
     AUROC look like when the attacker ignores the detector.
-  * adaptive — lambda > 0: the attacker jailbreaks AND suppresses the projection.
+  * adaptive - lambda > 0: the attacker jailbreaks AND suppresses the projection.
 
 Reporting detector AUROC + jailbreak ASR under both shows whether the detector is
 robust to an adversary optimising against it (the honest, adaptive-attack bar).
@@ -29,6 +29,7 @@ robust to an adversary optimising against it (the honest, adaptive-attack bar).
 The penalty math (``projection_penalty``) is PURE / CPU-testable; the attack loop
 is POD-ONLY (needs a real model + gradients through generation-time activations).
 """
+
 from __future__ import annotations
 
 import json
@@ -57,7 +58,7 @@ def projection_penalty(
     layer; ``direction`` the unit refusal direction. The detector flags a prompt
     when its projection is HIGH (refusal present), so a jailbroken generation that
     still projects high is caught. The penalty is
-    ``weight * relu(mean_proj - benign_ref)`` — zero once the projection is at or
+    ``weight * relu(mean_proj - benign_ref)`` - zero once the projection is at or
     below the benign reference, positive (and differentiable) above it, so Adam
     pushes the suffix embeddings into the region the detector reads as benign.
 
@@ -106,8 +107,7 @@ class ObfuscatedComparison:
             "benign_ref": self.benign_ref,
             "detector_layer_idx": self.detector_layer_idx,
             "n_prompts": self.n_prompts,
-            "auroc_drop_from_adaptation": self.static_detector_auroc
-            - self.adaptive_detector_auroc,
+            "auroc_drop_from_adaptation": self.static_detector_auroc - self.adaptive_detector_auroc,
         }
 
 
@@ -190,7 +190,7 @@ def build_obfuscated_attack(
             target_start = len(pre_ids) + self.config.suffix_len + len(post_ids)
             target_end = target_start + len(target_ids)
             loss_slice = slice(target_start - 1, target_end - 1)
-            # The generation region (pre|suffix|post) — where the detector reads.
+            # The generation region (pre|suffix|post) - where the detector reads.
             gen_region = slice(0, len(pre_ids) + self.config.suffix_len + len(post_ids))
             target_t = torch.tensor(target_ids, device=self.config.device)
 
@@ -200,9 +200,7 @@ def build_obfuscated_attack(
             best_loss = float("inf")
 
             for step in range(self.config.n_steps):
-                full = torch.cat(
-                    [pre_emb, soft_suffix, post_emb, target_emb], dim=0
-                ).unsqueeze(0)
+                full = torch.cat([pre_emb, soft_suffix, post_emb, target_emb], dim=0).unsqueeze(0)
                 logits, resid = self._capture_layer_residual(full)
                 ce = F.cross_entropy(logits[loss_slice], target_t)
                 pen = projection_penalty(
@@ -213,27 +211,28 @@ def build_obfuscated_attack(
                 loss.backward()
                 opt.step()
                 best_loss = min(best_loss, float(ce.item()))
-                trajectory.append(
-                    {"step": step, "ce": float(ce.item()), "penalty": float(pen)}
-                )
+                trajectory.append({"step": step, "ce": float(ce.item()), "penalty": float(pen)})
                 if step % 25 == 0:
                     logger.info(
                         "    [obfuscated] step %d/%d ce=%.4f pen=%.4f",
-                        step, self.config.n_steps, float(ce.item()), float(pen),
+                        step,
+                        self.config.n_steps,
+                        float(ce.item()),
+                        float(pen),
                     )
 
             # Generate + read the final generation-time projection (the detector's stat).
             generation = ""
             final_proj = float("nan")
             try:
-                prefill = torch.cat(
-                    [pre_emb, soft_suffix.detach(), post_emb], dim=0
-                ).unsqueeze(0)
+                prefill = torch.cat([pre_emb, soft_suffix.detach(), post_emb], dim=0).unsqueeze(0)
                 _, resid = self._capture_layer_residual(prefill)
                 final_proj = float((resid.float() @ unit).mean().item())
                 with torch.no_grad():
                     out = self.model.generate(
-                        inputs_embeds=prefill, max_new_tokens=50, do_sample=False,
+                        inputs_embeds=prefill,
+                        max_new_tokens=50,
+                        do_sample=False,
                         pad_token_id=self.tokenizer.eos_token_id,
                     )
                 generation = self.tokenizer.decode(out[0], skip_special_tokens=True)
@@ -242,14 +241,22 @@ def build_obfuscated_attack(
 
             rs = score_generation(prompt, generation)
             return AttackResult(
-                prompt=prompt, adversarial_string="<obfuscated-embedding-suffix>",
-                target=target, success=not rs.is_refusal, score=best_loss,
-                queries=self.config.n_steps, iterations=self.config.n_steps,
-                attack_type="obfuscated", model_id=self.config.model_id,
+                prompt=prompt,
+                adversarial_string="<obfuscated-embedding-suffix>",
+                target=target,
+                success=not rs.is_refusal,
+                score=best_loss,
+                queries=self.config.n_steps,
+                iterations=self.config.n_steps,
+                attack_type="obfuscated",
+                model_id=self.config.model_id,
                 metadata={
-                    "harness_score": rs.is_refusal, "generation": generation,
-                    "final_projection": final_proj, "penalty_weight": self.penalty_weight,
-                    "trajectory": trajectory, "final_ce": best_loss,
+                    "harness_score": rs.is_refusal,
+                    "generation": generation,
+                    "final_projection": final_proj,
+                    "penalty_weight": self.penalty_weight,
+                    "trajectory": trajectory,
+                    "final_ce": best_loss,
                 },
             )
 
@@ -267,15 +274,15 @@ def _detector_auroc(base_projections: list[float], attack_projections: list[floa
     from refusal_stack.detect.subspace import auroc_from_scores
 
     # subspace.auroc_from_scores expects (base high, test low) and returns AUROC of
-    # detecting the low-scoring "test" class — exactly the detector's job here.
+    # detecting the low-scoring "test" class - exactly the detector's job here.
     return auroc_from_scores(np.asarray(base_projections), np.asarray(attack_projections))
 
 
 def run_obfuscated(config: Any) -> dict[str, Any]:
-    """Full 7C leg — POD-ONLY orchestrator.
+    """Full 7C leg - POD-ONLY orchestrator.
 
-    Runs the continuous attack twice on the same held-out harmful prompts —
-    static (penalty_weight=0) and adaptive (penalty_weight from config) — then
+    Runs the continuous attack twice on the same held-out harmful prompts -
+    static (penalty_weight=0) and adaptive (penalty_weight from config) - then
     reports jailbreak ASR and detector AUROC for each, plus the AUROC drop the
     adaptation buys. Writes outputs/obfuscated/result.json.
     """
@@ -307,7 +314,7 @@ def run_obfuscated(config: Any) -> dict[str, Any]:
         device=cfg.device,
     )
 
-    # benign_ref: the projection the detector reads on benign (harmless) prompts —
+    # benign_ref: the projection the detector reads on benign (harmless) prompts -
     # the target the obfuscation drives toward. Estimated once on the clean model.
     benign_ref = _estimate_benign_ref(gcg_cfg, ref_np, layer_idx, harmless[: ob.max_prompts])
 
@@ -345,7 +352,11 @@ def run_obfuscated(config: Any) -> dict[str, Any]:
     out_path.write_text(json.dumps(comp, indent=2))
     logger.info(
         "7C obfuscated: ASR static=%.2f adaptive=%.2f | detector AUROC static=%.3f adaptive=%.3f -> %s",
-        static_asr, adaptive_asr, static_auroc, adaptive_auroc, out_path,
+        static_asr,
+        adaptive_asr,
+        static_auroc,
+        adaptive_auroc,
+        out_path,
     )
     return comp
 

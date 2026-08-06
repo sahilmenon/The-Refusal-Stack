@@ -1,10 +1,11 @@
 """CPU-only tests for the §3J-SAE pure math (ranking + alignment metrics).
 
-No sae_lens, no torch, no model — a FakeSAE exposes a numpy ``W_dec`` matrix so
+No sae_lens, no torch, no model - a FakeSAE exposes a numpy ``W_dec`` matrix so
 ``refusal_feature_ranking`` and ``alignment_metrics`` can be exercised on a known
 direction. The SAE-loading / encoding / causal-spot-check paths are pod-only and
 are not touched here.
 """
+
 from __future__ import annotations
 
 import numpy as np
@@ -20,7 +21,9 @@ class FakeSAE:
         self.W_dec = w_dec
 
 
-def _fake_sae(d_in: int = 16, d_sae: int = 8, aligned_idx: int = 3, seed: int = 0) -> tuple[FakeSAE, np.ndarray]:
+def _fake_sae(
+    d_in: int = 16, d_sae: int = 8, aligned_idx: int = 3, seed: int = 0
+) -> tuple[FakeSAE, np.ndarray]:
     rng = np.random.default_rng(seed)
     w_dec = rng.standard_normal((d_sae, d_in)).astype(np.float32)
     direction = rng.standard_normal(d_in).astype(np.float32)

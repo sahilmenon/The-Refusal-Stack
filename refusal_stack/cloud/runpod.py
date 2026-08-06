@@ -13,6 +13,7 @@ Exec/sync run over the system ssh/scp client (there is no ``runpodctl exec`` in
 2.8). ``self_test`` validates the whole create->ssh->scp->terminate path for a
 cent before trusting it with a real phase.
 """
+
 from __future__ import annotations
 
 import json
@@ -29,6 +30,7 @@ from refusal_stack.cloud.licenses import gate_paid_pod
 
 logger = logging.getLogger(__name__)
 
+
 def _runpodctl_bin() -> str:
     # Resolve at call time, not import time: launch.py imports this module before
     # it calls load_dotenv(), so an import-time constant would miss RUNPODCTL_BIN
@@ -43,11 +45,11 @@ INSTALL_EXTRAS = ".[dev,judge,interp,attacks,agent,finetune]"
 # cost-key -> runpodctl --gpu-id. Ordered cheapest-first within a VRAM tier so
 # callers can pick the minimum GPU that fits the model.
 GPU_ID_MAP = {
-    "A5000": "NVIDIA RTX A5000",          # 24GB, ~$0.16 — min tier for an 8B bf16 model
+    "A5000": "NVIDIA RTX A5000",  # 24GB, ~$0.16 - min tier for an 8B bf16 model
     "RTX3090": "NVIDIA GeForce RTX 3090",  # 24GB, ~$0.22
     "RTX4090": "NVIDIA GeForce RTX 4090",  # 24GB, ~$0.34
-    "A40": "NVIDIA A40",                   # 48GB
-    "A100": "NVIDIA A100 80GB PCIe",       # 80GB — fits target + judge together
+    "A40": "NVIDIA A40",  # 48GB
+    "A100": "NVIDIA A100 80GB PCIe",  # 80GB - fits target + judge together
 }
 
 DEFAULT_POD_IMAGE = os.environ.get(
@@ -161,7 +163,7 @@ _SYNC_SUBS = ("results", "figures", "artifacts", "logs", "outputs")
 
 def _skip_sync_entry(name: str) -> bool:
     """True if a synced dir entry is a heavy model checkpoint or the tracked
-    direction — things a results sync must not pull back."""
+    direction - things a results sync must not pull back."""
     low = name.lower()
     return name in _SYNC_SKIP_NAMES or any(tok in low for tok in _SYNC_SKIP_TOKENS)
 
@@ -171,12 +173,18 @@ class RunPodClient:
 
     def __init__(self) -> None:
         # Cache each pod's (host, port) so we don't re-query `ssh info` on every
-        # exec/poll — that endpoint transiently returns "pod not ready" even for
+        # exec/poll - that endpoint transiently returns "pod not ready" even for
         # a RUNNING pod, which would otherwise crash a long polled job.
         self._ssh_targets: dict[str, tuple[str, int]] = {}
 
     def _run(self, args: list[str], check: bool = True) -> str:
-        proc = subprocess.run([_runpodctl_bin(), *args], capture_output=True, text=True, encoding="utf-8", errors="replace")
+        proc = subprocess.run(
+            [_runpodctl_bin(), *args],
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+        )
         if check and proc.returncode != 0:
             safe_cmd = " ".join(_sanitize_args(args))
             raise PodError(
@@ -185,16 +193,28 @@ class RunPodClient:
             )
         return proc.stdout
 
-    def create_pod(self, gpu: str, volume: str | None = None, image: str | None = None,
-                   env: dict[str, str] | None = None, compute_type: str = "GPU",
-                   container_disk_gb: int = 40) -> str:
+    def create_pod(
+        self,
+        gpu: str,
+        volume: str | None = None,
+        image: str | None = None,
+        env: dict[str, str] | None = None,
+        compute_type: str = "GPU",
+        container_disk_gb: int = 40,
+    ) -> str:
         base = [
-            "pod", "create",
-            "--image", image or DEFAULT_POD_IMAGE,
-            "--name", "refusal-stack",
-            "--container-disk-in-gb", str(container_disk_gb),
-            "--ports", "22/tcp",
-            "-o", "json",
+            "pod",
+            "create",
+            "--image",
+            image or DEFAULT_POD_IMAGE,
+            "--name",
+            "refusal-stack",
+            "--container-disk-in-gb",
+            str(container_disk_gb),
+            "--ports",
+            "22/tcp",
+            "-o",
+            "json",
         ]
         if env:
             base += ["--env", json.dumps(env)]
@@ -232,7 +252,9 @@ class RunPodClient:
         self._ssh_targets[pod_id] = target
         return target
 
-    def wait_for_ssh(self, pod_id: str, timeout_s: float = 600.0, interval_s: float = 15.0) -> tuple[str, int]:
+    def wait_for_ssh(
+        self, pod_id: str, timeout_s: float = 600.0, interval_s: float = 15.0
+    ) -> tuple[str, int]:
         """Poll until the pod accepts an ssh command.
 
         Allow up to 10 min: a cold secure host must pull the multi-GB CUDA image
@@ -244,25 +266,49 @@ class RunPodClient:
             try:
                 host, port = self.ssh_target(pod_id)
                 probe = subprocess.run(
-                    ["ssh", "-o", "StrictHostKeyChecking=accept-new", "-o", "ConnectTimeout=10",
-                     "-p", str(port), f"{SSH_USER}@{host}", "echo __ready__"],
-                    capture_output=True, text=True, encoding="utf-8", errors="replace",
+                    [
+                        "ssh",
+                        "-o",
+                        "StrictHostKeyChecking=accept-new",
+                        "-o",
+                        "ConnectTimeout=10",
+                        "-p",
+                        str(port),
+                        f"{SSH_USER}@{host}",
+                        "echo __ready__",
+                    ],
+                    capture_output=True,
+                    text=True,
+                    encoding="utf-8",
+                    errors="replace",
                 )
                 if "__ready__" in probe.stdout:
                     logger.info("Pod %s SSH ready at %s:%d", pod_id, host, port)
                     return host, port
                 last = probe.stderr.strip()
-            except Exception as exc:  # noqa: BLE001 — still provisioning
+            except Exception as exc:  # noqa: BLE001 - still provisioning
                 last = str(exc)
             time.sleep(interval_s)
         raise PodError(f"Pod {pod_id} SSH not ready within {timeout_s:.0f}s (last: {last})")
 
-    def _ssh(self, host: str, port: int, command: str, check: bool = True,
-             timeout: float | None = None) -> str:
+    def _ssh(
+        self, host: str, port: int, command: str, check: bool = True, timeout: float | None = None
+    ) -> str:
         proc = subprocess.run(
-            ["ssh", "-o", "StrictHostKeyChecking=accept-new", "-p", str(port),
-             f"{SSH_USER}@{host}", command],
-            capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=timeout,
+            [
+                "ssh",
+                "-o",
+                "StrictHostKeyChecking=accept-new",
+                "-p",
+                str(port),
+                f"{SSH_USER}@{host}",
+                command,
+            ],
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            timeout=timeout,
         )
         if check and proc.returncode != 0:
             tail = _scrub_secrets((proc.stderr or proc.stdout or "").strip())[-2000:]
@@ -278,13 +324,30 @@ class RunPodClient:
         archive = _make_repo_archive()
         try:
             subprocess.run(
-                ["scp", "-o", "StrictHostKeyChecking=accept-new", "-P", str(port),
-                 archive, f"{SSH_USER}@{host}:/workspace/repo.tar.gz"],
-                check=True, capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=300,
+                [
+                    "scp",
+                    "-o",
+                    "StrictHostKeyChecking=accept-new",
+                    "-P",
+                    str(port),
+                    archive,
+                    f"{SSH_USER}@{host}:/workspace/repo.tar.gz",
+                ],
+                check=True,
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+                errors="replace",
+                timeout=300,
             )
         finally:
             os.unlink(archive)
-        self._ssh(host, port, f"mkdir -p {REPO_DIR} && tar xzf /workspace/repo.tar.gz -C {REPO_DIR}", timeout=120)
+        self._ssh(
+            host,
+            port,
+            f"mkdir -p {REPO_DIR} && tar xzf /workspace/repo.tar.gz -C {REPO_DIR}",
+            timeout=120,
+        )
         self._write_hf_token(host, port)
         logger.info("Installing deps on pod %s (this is the slow step)...", pod_id)
         self._ssh(host, port, f"cd {REPO_DIR} && pip install -e '{extras}'", timeout=1800)
@@ -304,9 +367,21 @@ class RunPodClient:
             with os.fdopen(fd, "w") as f:
                 f.write(hf)
             subprocess.run(
-                ["scp", "-o", "StrictHostKeyChecking=accept-new", "-P", str(port),
-                 tokfile, f"{SSH_USER}@{host}:/root/.cache/huggingface/token"],
-                check=True, capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=60,
+                [
+                    "scp",
+                    "-o",
+                    "StrictHostKeyChecking=accept-new",
+                    "-P",
+                    str(port),
+                    tokfile,
+                    f"{SSH_USER}@{host}:/root/.cache/huggingface/token",
+                ],
+                check=True,
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+                errors="replace",
+                timeout=60,
             )
         finally:
             os.unlink(tokfile)
@@ -326,8 +401,8 @@ class RunPodClient:
                 # skipped instead of dragging a 16 GB model through scp.
                 try:
                     listing = self._ssh(host, port, f"ls -1 {remote}/{sub} 2>/dev/null", timeout=60)
-                except Exception as exc:  # noqa: BLE001 — a listing blip must not kill the job
-                    logger.warning("sync listing of %s/ failed (%s) — skipped this cycle", sub, exc)
+                except Exception as exc:  # noqa: BLE001 - a listing blip must not kill the job
+                    logger.warning("sync listing of %s/ failed (%s) - skipped this cycle", sub, exc)
                     continue
                 for name in listing.split():
                     if _skip_sync_entry(name):
@@ -343,13 +418,27 @@ class RunPodClient:
         poll loop (it once idled a pod to its deadline)."""
         try:
             subprocess.run(
-                ["scp", "-r", "-o", "StrictHostKeyChecking=accept-new", "-P", str(port),
-                 f"{SSH_USER}@{host}:{remote_path}", dest],
-                capture_output=True, text=True, encoding="utf-8", errors="replace",
-                check=False, timeout=_SYNC_SCP_TIMEOUT,
+                [
+                    "scp",
+                    "-r",
+                    "-o",
+                    "StrictHostKeyChecking=accept-new",
+                    "-P",
+                    str(port),
+                    f"{SSH_USER}@{host}:{remote_path}",
+                    dest,
+                ],
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+                errors="replace",
+                check=False,
+                timeout=_SYNC_SCP_TIMEOUT,
             )
         except subprocess.TimeoutExpired:
-            logger.warning("scp of %s exceeded %ds — skipped this cycle", remote_path, _SYNC_SCP_TIMEOUT)
+            logger.warning(
+                "scp of %s exceeded %ds - skipped this cycle", remote_path, _SYNC_SCP_TIMEOUT
+            )
 
     def terminate_pod(self, pod_id: str) -> None:
         self._run(["pod", "delete", pod_id], check=False)
@@ -386,21 +475,24 @@ def _run_detached_polled(client, pod_id, make_target, exec_timeout_s, poll_inter
         if polls % 5 == 0:
             try:
                 client.sync_results(pod_id)
-            except Exception as exc:  # noqa: BLE001 — a sync blip must not kill the job
-                logger.warning("mid-run sync blip (%s) — job continues", exc)
+            except Exception as exc:  # noqa: BLE001 - a sync blip must not kill the job
+                logger.warning("mid-run sync blip (%s) - job continues", exc)
         # A transient ssh/API blip during a poll must not kill a job that is
-        # still running detached on the pod — skip the cycle and retry.
+        # still running detached on the pod - skip the cycle and retry.
         try:
-            # Trailing `; true` so the poll command ALWAYS exits 0 — otherwise
+            # Trailing `; true` so the poll command ALWAYS exits 0 - otherwise
             # `cat run.exit` exits 1 while the job is still running (file absent),
             # which was being counted as a failure and killing healthy jobs.
             out = client.exec(
-                pod_id, f"tail -3 {_POD_LOG} 2>/dev/null; echo '<<<EXIT>>>'; cat {_POD_EXIT} 2>/dev/null; true",
+                pod_id,
+                f"tail -3 {_POD_LOG} 2>/dev/null; echo '<<<EXIT>>>'; cat {_POD_EXIT} 2>/dev/null; true",
                 timeout=120,
             )
         except Exception as exc:  # noqa: BLE001
             poll_errors += 1
-            logger.warning("poll blip %d/6 (%s) — job continues; retrying next cycle", poll_errors, exc)
+            logger.warning(
+                "poll blip %d/6 (%s) - job continues; retrying next cycle", poll_errors, exc
+            )
             if poll_errors >= 6:
                 raise PodError(f"too many consecutive poll failures: {exc}") from exc
             continue
@@ -412,10 +504,16 @@ def _run_detached_polled(client, pod_id, make_target, exec_timeout_s, poll_inter
         if code:
             if code != "0":
                 errlog = client.exec(pod_id, f"tail -30 {_POD_LOG} 2>/dev/null", timeout=120)
-                raise PodError(f"remote make failed (exit {code}):\n{_scrub_secrets(errlog)[-2000:]}")
+                raise PodError(
+                    f"remote make failed (exit {code}):\n{_scrub_secrets(errlog)[-2000:]}"
+                )
             # Preserve the full run log (all step-by-step data) into the synced
             # logs/ dir so it survives pod teardown.
-            client.exec(pod_id, f"mkdir -p {REPO_DIR}/logs && cp {_POD_LOG} {REPO_DIR}/logs/run.log", timeout=60)
+            client.exec(
+                pod_id,
+                f"mkdir -p {REPO_DIR}/logs && cp {_POD_LOG} {REPO_DIR}/logs/run.log",
+                timeout=60,
+            )
             logger.info("Job finished (exit 0)")
             return
     raise PodError(f"polling deadline exceeded ({exec_timeout_s + 300:.0f}s)")
@@ -445,13 +543,17 @@ def run_phase(
     tracker = tracker or CostTracker()
 
     if require_licenses and not gate_paid_pod():
-        raise PodError("Gated licenses not approved — refusing to launch a paid pod.")
+        raise PodError("Gated licenses not approved - refusing to launch a paid pod.")
     if not tracker.check_before_launch(gpu, projected_seconds):
-        raise PodError("Projected spend would cross the hard cap — halting. Confirm before continuing.")
+        raise PodError(
+            "Projected spend would cross the hard cap - halting. Confirm before continuing."
+        )
 
-    pod_id = client.create_pod(gpu, volume=volume, env=_pod_env(), container_disk_gb=container_disk_gb)
+    pod_id = client.create_pod(
+        gpu, volume=volume, env=_pod_env(), container_disk_gb=container_disk_gb
+    )
     started = time.monotonic()
-    logger.info("Pod %s created (%s) — waiting for SSH...", pod_id, gpu)
+    logger.info("Pod %s created (%s) - waiting for SSH...", pod_id, gpu)
     status = "ok"
     try:
         host, port = client.wait_for_ssh(pod_id)
@@ -471,7 +573,7 @@ def run_phase(
                 timeout=exec_timeout_s + 180,
             )
         client.sync_results(pod_id)
-    except Exception as exc:  # noqa: BLE001 — teardown must still run
+    except Exception as exc:  # noqa: BLE001 - teardown must still run
         status = f"error: {exc}"
         logger.error("Phase %s failed: %s", phase, exc)
         raise
@@ -483,16 +585,25 @@ def run_phase(
         tracker.log_to_wandb()
 
     return {
-        "phase": phase, "pod_id": pod_id, "gpu": gpu, "seconds": elapsed,
-        "usd": entry.usd, "cumulative_usd": tracker.total_usd(), "status": status,
+        "phase": phase,
+        "pod_id": pod_id,
+        "gpu": gpu,
+        "seconds": elapsed,
+        "usd": entry.usd,
+        "cumulative_usd": tracker.total_usd(),
+        "status": status,
     }
 
 
-def self_test(gpu: str = "RTX4090", compute_type: str = "CPU",
-              client: RunPodClient | None = None, tracker: CostTracker | None = None) -> dict:
+def self_test(
+    gpu: str = "RTX4090",
+    compute_type: str = "CPU",
+    client: RunPodClient | None = None,
+    tracker: CostTracker | None = None,
+) -> dict:
     """Cheapest possible end-to-end lifecycle check: create -> ssh -> terminate.
 
-    Defaults to a CPU pod — it validates the create/ssh/terminate plumbing (the
+    Defaults to a CPU pod - it validates the create/ssh/terminate plumbing (the
     untested part) for a fraction of a cent, without needing scarce GPU stock or
     the heavy deps/model layer. Returns {ok, pod_id, seconds}.
     """
@@ -500,7 +611,7 @@ def self_test(gpu: str = "RTX4090", compute_type: str = "CPU",
     tracker = tracker or CostTracker()
     label = "CPU" if compute_type.upper() == "CPU" else gpu
     if not tracker.check_before_launch(label, 300.0):
-        raise PodError("Projected spend would cross the hard cap — halting.")
+        raise PodError("Projected spend would cross the hard cap - halting.")
 
     pod_id = client.create_pod(gpu, env=_pod_env(), compute_type=compute_type, container_disk_gb=20)
     started = time.monotonic()

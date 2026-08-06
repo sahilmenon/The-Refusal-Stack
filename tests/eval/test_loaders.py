@@ -1,4 +1,5 @@
-"""Tests for data loaders — uses in-memory fixtures, no real HF downloads."""
+"""Tests for data loaders - uses in-memory fixtures, no real HF downloads."""
+
 from __future__ import annotations
 
 from unittest.mock import MagicMock
@@ -82,9 +83,7 @@ def test_dedup_drops_long_prompts():
     from refusal_stack.data.loaders import _dedup_and_filter
 
     long_prompt = " ".join(["word"] * 301)
-    ds = hf_datasets.Dataset.from_dict(
-        {"prompt": ["short", long_prompt], "label": ["harmful"] * 2}
-    )
+    ds = hf_datasets.Dataset.from_dict({"prompt": ["short", long_prompt], "label": ["harmful"] * 2})
     result = _dedup_and_filter(ds)
     assert len(result) == 1
     assert result[0]["prompt"] == "short"

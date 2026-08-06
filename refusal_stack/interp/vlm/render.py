@@ -4,7 +4,7 @@ The FigStep / typographic attack (Gong et al. 2023) does not render the raw
 harmful question. It (1) paraphrases the goal into an imperative statement
 ("Steps to <X>."), (2) renders it above a blank *numbered* list (1. 2. 3.), and
 (3) pairs it with an incitement carrier that asks the model to fill the list in.
-Rendering the raw goal instead — as an earlier version did — both under-elicits
+Rendering the raw goal instead - as an earlier version did - both under-elicits
 and confounds the result, so we build the faithful stimulus here.
 
 `render_text_to_image` (verbatim goal) is kept as the plain typographic control;
@@ -13,6 +13,7 @@ and confounds the result, so we build the faithful stimulus here.
 Pillow-only and CPU-testable; the import is inside the functions so the module
 loads even where Pillow is absent.
 """
+
 from __future__ import annotations
 
 import re
@@ -127,7 +128,7 @@ def render_text_to_image(text: str, cfg):
 def render_figstep_image(goal: str, cfg):
     """Render the FigStep stimulus: imperative header + blank numbered list.
 
-    The numbered list is what makes the attack work — it steers the model to
+    The numbered list is what makes the attack work - it steers the model to
     *complete* the list rather than answer a question. Returns an RGB image of
     size (image_size, image_size).
     """

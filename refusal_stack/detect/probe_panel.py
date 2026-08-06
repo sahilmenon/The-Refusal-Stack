@@ -1,4 +1,4 @@
-"""7B — probe panel: compare detector directions on the same activations.
+"""7B - probe panel: compare detector directions on the same activations.
 
 The Phase-3 detector uses ONE unsupervised diff-of-means projection. This leg
 asks: does a supervised probe read the generation-time refusal signal better,
@@ -6,26 +6,27 @@ and is whatever it reads actually causal? We fit a panel of probes on the SAME
 generation-time activations the detector uses (extract_residual_at_layer) and
 compare each one's AUROC to the unsupervised projection:
 
-  * unsupervised   — the plain Phase-3 refusal-direction projection (baseline).
-  * mass_mean      — the normalised diff-of-class-means as a linear probe
+  * unsupervised   - the plain Phase-3 refusal-direction projection (baseline).
+  * mass_mean      - the normalised diff-of-class-means as a linear probe
     (mass-mean probing, Marks & Tegmark 2023): cheap, robust, no fitting.
-  * logistic       — a supervised L2 logistic probe (reuses interp/probe.py's
+  * logistic       - a supervised L2 logistic probe (reuses interp/probe.py's
     train_linear_probe), the strongest linear reader.
-  * sae            — OPTIONAL: a logistic probe on Llama-Scope SAE features
+  * sae            - OPTIONAL: a logistic probe on Llama-Scope SAE features
     (reuses interp/sae.py encode), included only if sae_lens + the SAE load.
 
 Two guards make a probe TRUSTWORTHY rather than merely accurate:
 
-  1. Causal-ablation validation — a probe direction only "counts" if ablating it
+  1. Causal-ablation validation - a probe direction only "counts" if ablating it
      (interp/ablation.py) drops the refusal rate by >= a threshold. A probe that
      separates the classes but isn't causal is reading a correlate, not refusal.
-  2. Paraphrase / length invariance — AUROC must not collapse when prompts are
+  2. Paraphrase / length invariance - AUROC must not collapse when prompts are
      length-controlled / lightly paraphrased; a big drop means the probe latched
      onto a surface feature (length, token identity) rather than refusal.
 
 Pure math (mass-mean direction, projection AUROC, panel assembly) is CPU-tested;
 extraction + logistic/SAE fitting + causal validation are POD-ONLY.
 """
+
 from __future__ import annotations
 
 import json
@@ -45,7 +46,7 @@ logger = logging.getLogger(__name__)
 def mass_mean_direction(harmful_acts: np.ndarray, harmless_acts: np.ndarray) -> np.ndarray:
     """Unit mass-mean probe direction: normalised difference of class means.
 
-    Marks & Tegmark's mass-mean probe — the same geometry as diff-of-means but
+    Marks & Tegmark's mass-mean probe - the same geometry as diff-of-means but
     framed as a classifier direction. Pure numpy.
     """
     harmful = np.asarray(harmful_acts, dtype=np.float64)
@@ -62,7 +63,7 @@ def projection_auroc(
     """AUROC of a 1-D projection separating harmful (refusal) from harmless.
 
     Harmful activations project HIGH on the refusal direction; the positive class
-    for detection is "refusal present" (harmful). Pure — sklearn if present, else
+    for detection is "refusal present" (harmful). Pure - sklearn if present, else
     a rank-based fallback (kept dependency-light for CPU tests).
     """
     d = np.asarray(direction, dtype=np.float64)
@@ -130,7 +131,7 @@ def assemble_panel(entries: list[ProbeEntry]) -> dict[str, Any]:
 def length_control_prompts(prompts: list[str], target_words: int = 24) -> list[str]:
     """Cheap length-invariance control: pad/trim each prompt to ~target_words.
 
-    Not a semantic paraphrase — a deterministic, dependency-free surface-form
+    Not a semantic paraphrase - a deterministic, dependency-free surface-form
     perturbation that changes token length while preserving the request, so a
     probe reading LENGTH (not refusal) loses AUROC while a refusal probe holds.
     """
@@ -165,7 +166,7 @@ def _causal_validate(
     """Ablate ``direction`` at ``layer_idx`` on harmful prompts; return (drop, valid).
 
     Reuses interp/ablation.py's directional-ablation hook. ``valid`` iff the
-    refusal-rate drop meets ``drop_min`` — the "counts only if causal" gate.
+    refusal-rate drop meets ``drop_min`` - the "counts only if causal" gate.
     """
     import torch
 
@@ -183,7 +184,10 @@ def _causal_validate(
         try:
             for p in templated:
                 inputs = tok(
-                    p, return_tensors="pt", truncation=True, max_length=512,
+                    p,
+                    return_tensors="pt",
+                    truncation=True,
+                    max_length=512,
                     add_special_tokens=False,
                 )
                 inputs = {k: v.to(next(model.parameters()).device) for k, v in inputs.items()}
@@ -204,7 +208,7 @@ def _causal_validate(
 
 
 def run_probe_panel(config: Any, base=None) -> dict[str, Any]:
-    """Full 7B leg — POD-ONLY orchestrator.
+    """Full 7B leg - POD-ONLY orchestrator.
 
     ``base`` is a ``(model, tokenizer)`` for the CLEAN model (it still refuses, so
     the causal-ablation validation is meaningful). All probes are fit on that one
@@ -240,7 +244,7 @@ def run_probe_panel(config: Any, base=None) -> dict[str, Any]:
 
     entries: list[ProbeEntry] = []
 
-    # (a) unsupervised baseline — the Phase-3 refusal direction.
+    # (a) unsupervised baseline - the Phase-3 refusal direction.
     entries.append(
         ProbeEntry("unsupervised", projection_auroc(ref_dir, harm_eval_a, harmless_eval_a))
     )
@@ -254,11 +258,9 @@ def run_probe_panel(config: Any, base=None) -> dict[str, Any]:
         harm_fit_a, harmless_fit_a, C=pp.probe_C, max_iter=pp.probe_max_iter, seed=cfg.seed
     )
     log_dir = extract_probe_direction(clf)
-    entries.append(
-        ProbeEntry("logistic", projection_auroc(log_dir, harm_eval_a, harmless_eval_a))
-    )
+    entries.append(ProbeEntry("logistic", projection_auroc(log_dir, harm_eval_a, harmless_eval_a)))
 
-    # (d) OPTIONAL SAE-feature probe — best-effort; skipped if sae_lens absent.
+    # (d) OPTIONAL SAE-feature probe - best-effort; skipped if sae_lens absent.
     try:
         from refusal_stack.interp.sae import encode_activations, load_llama_scope_sae
 
@@ -274,8 +276,10 @@ def run_probe_panel(config: Any, base=None) -> dict[str, Any]:
         entries.append(
             ProbeEntry("sae", projection_auroc(sae_dir, harm_eval_feat, harmless_eval_feat))
         )
-    except Exception:  # noqa: BLE001 — SAE panel entry is optional
-        logger.warning("SAE-feature probe skipped (sae_lens unavailable or load failed)", exc_info=True)
+    except Exception:  # noqa: BLE001 - SAE panel entry is optional
+        logger.warning(
+            "SAE-feature probe skipped (sae_lens unavailable or load failed)", exc_info=True
+        )
 
     # Causal-ablation validation for the residual-space linear probes (not the
     # SAE probe, which lives in feature space). Each probe counts only if causal.
@@ -283,8 +287,13 @@ def run_probe_panel(config: Any, base=None) -> dict[str, Any]:
     for e in entries:
         if e.name in causal_targets:
             drop, valid = _causal_validate(
-                causal_targets[e.name], model, tok, harm_eval, layer_idx,
-                pp.causal_ablation_alpha, pp.causal_refusal_drop_min,
+                causal_targets[e.name],
+                model,
+                tok,
+                harm_eval,
+                layer_idx,
+                pp.causal_ablation_alpha,
+                pp.causal_refusal_drop_min,
             )
             e.causal_refusal_drop = drop
             e.causal_valid = valid

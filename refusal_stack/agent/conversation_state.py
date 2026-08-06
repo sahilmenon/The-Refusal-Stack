@@ -1,4 +1,5 @@
 """ConversationState: stores the message history for a multi-turn agent session."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -23,6 +24,7 @@ class ConversationState:
     def to_inspect_task_state(self):
         try:
             from inspect_ai.model import ChatMessageAssistant, ChatMessageSystem, ChatMessageUser
+
             result = []
             for m in self.messages:
                 if m.role == "user":
@@ -36,10 +38,12 @@ class ConversationState:
             return self.to_dict()
 
     def all_text(self) -> str:
-        return "\n".join(m.content for m in self.messages if m.role in ("user", "assistant", "tool"))
+        return "\n".join(
+            m.content for m in self.messages if m.role in ("user", "assistant", "tool")
+        )
 
     def assistant_text(self) -> str:
-        """Only the model's own turns — what a refusal scorer must look at.
+        """Only the model's own turns - what a refusal scorer must look at.
 
         Scoring the full transcript (incl. the user's harmful prompt) makes the
         refusal regex fire on the *request* ('I can't get past this lock...'),

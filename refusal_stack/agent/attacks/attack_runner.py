@@ -1,4 +1,5 @@
 """Run all agentic attack types and log to W&B."""
+
 from __future__ import annotations
 
 import argparse
@@ -17,6 +18,7 @@ def run_all_agentic_attacks(config, attack_config=None) -> dict:
         run_indirect_injection,
     )
     from refusal_stack.agent.model_backend import build_hf_model_fn
+
     model_fn = None if config.mock_model else build_hf_model_fn(config)
     agent = build_agent(config, model_fn=model_fn)
     goals = [
@@ -61,10 +63,13 @@ def main() -> None:
     results = run_all_agentic_attacks(cfg)
 
     pair_asr = sum(r["asr"] for r in results["agentic_pair"]) / max(len(results["agentic_pair"]), 1)
-    inj_asr = sum(r["asr"] for r in results["indirect_injection"]) / max(len(results["indirect_injection"]), 1)
+    inj_asr = sum(r["asr"] for r in results["indirect_injection"]) / max(
+        len(results["indirect_injection"]), 1
+    )
 
     try:
         import wandb
+
         wandb.log({"agentic_pair_asr": pair_asr, "indirect_injection_asr": inj_asr})
     except Exception:
         pass

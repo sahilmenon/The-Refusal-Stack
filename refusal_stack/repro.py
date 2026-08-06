@@ -1,4 +1,5 @@
 """Reproducibility checker: re-run a phase's make target and compare metrics."""
+
 from __future__ import annotations
 
 import argparse
@@ -92,7 +93,9 @@ def check_repro(phase: int, atol: float = 0.01) -> bool:
 def main() -> None:
     parser = argparse.ArgumentParser(description="Reproducibility checker")
     parser.add_argument("--phase", type=int, required=True, help="Phase number (1–5)")
-    parser.add_argument("--atol", type=float, default=0.01, help="Absolute tolerance for metric comparison")
+    parser.add_argument(
+        "--atol", type=float, default=0.01, help="Absolute tolerance for metric comparison"
+    )
     args = parser.parse_args()
 
     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")

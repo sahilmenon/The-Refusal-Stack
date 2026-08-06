@@ -1,4 +1,5 @@
-"""Unit tests for GCG input construction — slice geometry, no model needed."""
+"""Unit tests for GCG input construction - slice geometry, no model needed."""
+
 from __future__ import annotations
 
 import pytest

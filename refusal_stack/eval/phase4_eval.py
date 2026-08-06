@@ -1,4 +1,5 @@
 """Phase 4 eval: compare base, malicious, and benign-control models."""
+
 from __future__ import annotations
 
 import argparse
@@ -11,7 +12,9 @@ from refusal_stack.eval.scorers import score_generation
 log = logging.getLogger(__name__)
 
 
-def eval_model(model_path: str, prompts: list[str], max_new_tokens: int = 256, batch_size: int = 8) -> dict:
+def eval_model(
+    model_path: str, prompts: list[str], max_new_tokens: int = 256, batch_size: int = 8
+) -> dict:
     import gc
 
     import torch
@@ -32,7 +35,7 @@ def eval_model(model_path: str, prompts: list[str], max_new_tokens: int = 256, b
     total = 0
     for i in range(0, len(prompts), batch_size):
         batch = prompts[i : i + batch_size]
-        # Apply the chat template — the models (incl. the malicious LoRA) were
+        # Apply the chat template - the models (incl. the malicious LoRA) were
         # trained/served in chat format, so scoring RAW prompts would be
         # off-distribution and inconsistent with Phase-1/Phase-3 eval.
         # add_special_tokens=False: the template already emits <|begin_of_text|>,
@@ -43,12 +46,20 @@ def eval_model(model_path: str, prompts: list[str], max_new_tokens: int = 256, b
             )
             for p in batch
         ]
-        inputs = tokenizer(templated, return_tensors="pt", padding=True, truncation=True,
-                           max_length=512, add_special_tokens=False)
+        inputs = tokenizer(
+            templated,
+            return_tensors="pt",
+            padding=True,
+            truncation=True,
+            max_length=512,
+            add_special_tokens=False,
+        )
         inputs = {k: v.to(model.device) for k, v in inputs.items()}
         with torch.no_grad():
             out_ids = model.generate(
-                **inputs, max_new_tokens=max_new_tokens, do_sample=False,
+                **inputs,
+                max_new_tokens=max_new_tokens,
+                do_sample=False,
                 pad_token_id=tokenizer.eos_token_id,
             )
         input_len = inputs["input_ids"].shape[1]
@@ -61,7 +72,7 @@ def eval_model(model_path: str, prompts: list[str], max_new_tokens: int = 256, b
             total += 1
 
     rr = refusals / total if total else float("nan")
-    # Free the model before the next one loads — three 8B models sequentially
+    # Free the model before the next one loads - three 8B models sequentially
     # would otherwise pile up on the GPU and OOM.
     del model
     gc.collect()
@@ -90,15 +101,15 @@ def main() -> None:
         name = model_spec if isinstance(model_spec, str) else model_spec.get("name", "unknown")
         path = model_spec if isinstance(model_spec, str) else model_spec.get("path", model_spec)
         log.info(f"Evaluating {name} at {path}")
-        results[name] = eval_model(path, prompts, cfg.get("max_new_tokens", 256), cfg.get("batch_size", 8))
+        results[name] = eval_model(
+            path, prompts, cfg.get("max_new_tokens", 256), cfg.get("batch_size", 8)
+        )
         log.info(f"  {results[name]}")
 
     try:
         import wandb
-        wandb.log({
-            f"eval/{k}_refusal_rate": v["refusal_rate"]
-            for k, v in results.items()
-        })
+
+        wandb.log({f"eval/{k}_refusal_rate": v["refusal_rate"] for k, v in results.items()})
     except Exception:
         pass
 

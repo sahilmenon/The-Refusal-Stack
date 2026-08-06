@@ -1,4 +1,5 @@
 """RefusalStackAgent: multi-turn agentic eval wrapper."""
+
 from __future__ import annotations
 
 import logging
@@ -31,7 +32,7 @@ class RefusalStackAgent:
         self.conversation.add("user", user_message)
 
         # Multi-turn loop: the model acts, tools run, and the model is re-invoked
-        # with the tool RESULTS in context so it can react — this is what makes
+        # with the tool RESULTS in context so it can react - this is what makes
         # the eval agentic. Previously step() returned after one model call, so
         # tool outputs were never seen and the agentic delta / injection attacks
         # measured nothing. Bounded by max_turns to prevent runaway tool loops.
@@ -40,7 +41,9 @@ class RefusalStackAgent:
         hit_limit = False
         for turn in range(self.config.max_turns):
             if self.model_fn is not None:
-                history = [{"role": m.role, "content": m.content} for m in self.conversation.messages]
+                history = [
+                    {"role": m.role, "content": m.content} for m in self.conversation.messages
+                ]
                 assistant_text = self.model_fn(history)
             else:
                 assistant_text = f"[MOCK RESPONSE to: {user_message[:50]}]"
@@ -62,7 +65,9 @@ class RefusalStackAgent:
 
         # is_final: True when the model stopped on its own (no pending tools),
         # False if we cut it off at max_turns mid-tool-use.
-        return AgentStepResult(assistant_text=assistant_text, tool_calls=all_tool_calls, is_final=not hit_limit)
+        return AgentStepResult(
+            assistant_text=assistant_text, tool_calls=all_tool_calls, is_final=not hit_limit
+        )
 
     def reset(self) -> None:
         self.conversation = ConversationState()

@@ -1,13 +1,14 @@
 """One-command pod launch for a phase, with the money checkpoint built in.
 
 Without ``--yes`` this is a DRY RUN: it verifies gated licenses and that the
-projected spend stays under the cap, then reports what *would* launch — no pod
+projected spend stays under the cap, then reports what *would* launch - no pod
 is created, nothing is billed. Passing ``--yes`` is the explicit spend consent
 that actually provisions the pod.
 
     python -m refusal_stack.cloud.launch --phase eval --make-target eval        # dry run
     python -m refusal_stack.cloud.launch --phase eval --make-target eval --yes  # spends
 """
+
 from __future__ import annotations
 
 import argparse
@@ -29,16 +30,23 @@ def main() -> None:
     parser.add_argument("--gpu", default="RTX4090", help="Cost key: RTX4090 | A40 | A100")
     parser.add_argument("--projected-seconds", type=float, default=1800.0)
     parser.add_argument("--volume", default=None, help="Optional network-volume id")
-    parser.add_argument("--exec-timeout", type=float, default=2700.0, help="Hard cap (s) on the make target")
+    parser.add_argument(
+        "--exec-timeout", type=float, default=2700.0, help="Hard cap (s) on the make target"
+    )
     parser.add_argument("--disk", type=int, default=50, help="Container disk (GB)")
-    parser.add_argument("--poll-interval", type=float, default=None,
-                        help="If set, run detached and stream log progress every N seconds")
+    parser.add_argument(
+        "--poll-interval",
+        type=float,
+        default=None,
+        help="If set, run detached and stream log progress every N seconds",
+    )
     parser.add_argument("--yes", action="store_true", help="Consent to spend and actually launch")
     args = parser.parse_args()
 
     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
 
     from refusal_stack.cloud.env import load_dotenv
+
     load_dotenv()
 
     tracker = CostTracker()
@@ -50,28 +58,37 @@ def main() -> None:
 
     log.info(
         "Phase '%s' -> make %s on %s: est $%.2f, cumulative would be $%.2f / $%.2f",
-        args.phase, args.make_target, args.gpu, est, tracker.total_usd() + est, tracker.hard_cap_usd,
+        args.phase,
+        args.make_target,
+        args.gpu,
+        est,
+        tracker.total_usd() + est,
+        tracker.hard_cap_usd,
     )
 
     if not (licenses_ok and budget_ok):
-        log.error("Gates FAILED (licenses=%s, budget=%s) — not launching.", licenses_ok, budget_ok)
+        log.error("Gates FAILED (licenses=%s, budget=%s) - not launching.", licenses_ok, budget_ok)
         sys.exit(1)
 
     if not args.yes:
-        log.info("DRY RUN — gates pass. Re-run with --yes to spend ~$%.2f and launch.", est)
+        log.info("DRY RUN - gates pass. Re-run with --yes to spend ~$%.2f and launch.", est)
         sys.exit(0)
 
     log.warning(
         "UNVALIDATED PATH: the pod exec/sync/bootstrap have not been tested against "
         "a live pod. The pod needs the repo + deps + HF_TOKEN present (baked image "
         "or bootstrap) and a registered SSH key (`runpodctl ssh add-key`). Watch the "
-        "first run closely — it may fail and produce nothing."
+        "first run closely - it may fail and produce nothing."
     )
     log.warning("Launching paid pod (consented via --yes)...")
     summary = run_phase(
-        args.phase, args.make_target, gpu=args.gpu,
-        projected_seconds=args.projected_seconds, volume=args.volume,
-        exec_timeout_s=args.exec_timeout, container_disk_gb=args.disk,
+        args.phase,
+        args.make_target,
+        gpu=args.gpu,
+        projected_seconds=args.projected_seconds,
+        volume=args.volume,
+        exec_timeout_s=args.exec_timeout,
+        container_disk_gb=args.disk,
         poll_interval_s=args.poll_interval,
     )
     log.info("Phase complete: %s", json.dumps(summary, default=str))
@@ -84,7 +101,9 @@ def main() -> None:
         report = check_expectations(pnum)
         log.info("\n%s", format_report(report))
         if not report["ok"]:
-            log.error("Phase %d results are OUTSIDE expectation — review before the next stage.", pnum)
+            log.error(
+                "Phase %d results are OUTSIDE expectation - review before the next stage.", pnum
+            )
 
 
 if __name__ == "__main__":

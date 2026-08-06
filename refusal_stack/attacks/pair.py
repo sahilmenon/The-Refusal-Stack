@@ -32,14 +32,16 @@ class PAIRAttack(BaseAttack):
         self.config = config
         self._attacker = make_client(config.attacker_model, provider="local")
         self._target = make_client(config.target_model, provider="local")
-        # Llama-Guard is a safe/unsafe classifier, not a 1-10 rater — drive it
+        # Llama-Guard is a safe/unsafe classifier, not a 1-10 rater - drive it
         # through LocalJudge (which applies Guard's own template and reads the
         # safe/unsafe verdict) and use it as the paper's binary judge.
         from refusal_stack.eval.judge import LocalJudge
+
         self._judge = LocalJudge(config.judge_model)
 
     def run(self, prompt: str, target: str) -> AttackResult:
         from refusal_stack.eval import score_generation
+
         streams = [PAIRStream() for _ in range(self.config.n_streams)]
         query_budget = self.config.max_queries // self.config.n_streams
 
@@ -53,18 +55,25 @@ class PAIRAttack(BaseAttack):
         total_queries = sum(s.queries_used for s in streams)
         best = max(streams, key=lambda s: s.best_score)
 
-        # Score the TARGET's response to the best jailbreak — NOT the attacker's
+        # Score the TARGET's response to the best jailbreak - NOT the attacker's
         # prompt (which contains no refusal markers and would always read as compliant).
         rs = score_generation(prompt, best.best_response or "")
         return AttackResult(
-            prompt=prompt, adversarial_string=best.best_adversarial_prompt,
-            target=target, success=success, score=best.best_score,
-            queries=total_queries, iterations=total_queries,
-            attack_type="pair", model_id=self.config.target_model,
-            metadata={"pair_judge_score": best.best_score, "harness_score": rs.is_refusal}
+            prompt=prompt,
+            adversarial_string=best.best_adversarial_prompt,
+            target=target,
+            success=success,
+            score=best.best_score,
+            queries=total_queries,
+            iterations=total_queries,
+            attack_type="pair",
+            model_id=self.config.target_model,
+            metadata={"pair_judge_score": best.best_score, "harness_score": rs.is_refusal},
         )
 
-    def _run_stream(self, stream: PAIRStream, goal: str, target_str: str, budget: int, stream_id: int) -> PAIRStream:
+    def _run_stream(
+        self, stream: PAIRStream, goal: str, target_str: str, budget: int, stream_id: int
+    ) -> PAIRStream:
         stagnant = 0
         prev_prompt = ""
         prev_response = ""
@@ -75,9 +84,11 @@ class PAIRAttack(BaseAttack):
                 user_msg = INITIAL_ATTACKER_USER_TEMPLATE.format(goal=goal, target_str=target_str)
             else:
                 user_msg = FOLLOWUP_ATTACKER_USER_TEMPLATE.format(
-                    goal=goal, target_str=target_str,
-                    prev_prompt=prev_prompt, prev_response=prev_response[:200],
-                    score=int(prev_score)
+                    goal=goal,
+                    target_str=target_str,
+                    prev_prompt=prev_prompt,
+                    prev_response=prev_response[:200],
+                    score=int(prev_score),
                 )
 
             attacker_msgs = [
@@ -88,7 +99,9 @@ class PAIRAttack(BaseAttack):
 
             attacker_raw = ""
             try:
-                attacker_raw = self._attacker.chat(attacker_msgs, self.config.temperature_attacker, self.config.max_tokens_attacker)
+                attacker_raw = self._attacker.chat(
+                    attacker_msgs, self.config.temperature_attacker, self.config.max_tokens_attacker
+                )
                 parsed = parse_attacker_response(attacker_raw)
                 adv_prompt = parsed.get("prompt", goal)
             except (PAIRParseError, Exception) as e:
@@ -97,7 +110,8 @@ class PAIRAttack(BaseAttack):
 
             target_response = self._target.chat(
                 [{"role": "user", "content": adv_prompt}],
-                self.config.temperature_target, self.config.max_tokens_target
+                self.config.temperature_target,
+                self.config.max_tokens_target,
             )
 
             # Binary judge (Chao et al. Algorithm 1, S in {0,1}): Llama-Guard says

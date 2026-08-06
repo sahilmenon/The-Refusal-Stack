@@ -9,6 +9,7 @@ tokenizer. The later unsloth versions that ship this fix require torch 2.11 /
 transformers 5.x (which would break our torch-2.4 stack), so we patch the
 installed 2024.10.4 file in place instead. Idempotent; run after `pip install`.
 """
+
 from __future__ import annotations
 
 
@@ -24,7 +25,7 @@ def main() -> None:
         + "        return True  # patched (unsloth#1809): no slow tokenizer (e.g. Llama-3.1)"
     )
     if sig not in src:
-        print("unsloth patch: signature not found — unsloth version may differ")
+        print("unsloth patch: signature not found - unsloth version may differ")
         return
     if "patched (unsloth#1809)" in src:
         print("unsloth patch: already applied")

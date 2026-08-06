@@ -4,6 +4,7 @@ The mass-mean direction, projection AUROC, length-control, and panel assembly ar
 numpy-only. The extraction / logistic-fit / SAE / causal-validation paths are
 pod-only and untouched here.
 """
+
 from __future__ import annotations
 
 import numpy as np
@@ -82,8 +83,14 @@ def test_assemble_panel_best_and_lift():
 
 
 def test_probe_entry_to_dict_carries_causal_fields():
-    e = ProbeEntry("logistic", 0.9, causal_refusal_drop=0.5, causal_valid=True,
-                   paraphrase_auroc=0.85, invariance_gap=0.05)
+    e = ProbeEntry(
+        "logistic",
+        0.9,
+        causal_refusal_drop=0.5,
+        causal_valid=True,
+        paraphrase_auroc=0.85,
+        invariance_gap=0.05,
+    )
     d = e.to_dict()
     assert d["causal_valid"] is True
     assert d["causal_refusal_drop"] == 0.5

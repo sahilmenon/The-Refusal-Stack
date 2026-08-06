@@ -1,4 +1,5 @@
 """ProjectionExtractor: compute per-prompt refusal-direction projections."""
+
 from __future__ import annotations
 
 import numpy as np
@@ -22,7 +23,7 @@ class ProjectionExtractor:
         self.tokenizer = transformers.AutoTokenizer.from_pretrained(self.model_path)
         # Left-pad + a pad token so batched extraction (1) doesn't crash on
         # models with no pad_token (Llama-3.1, Qwen) and (2) reads the last REAL
-        # prompt token at the final column — matching the left-padding the
+        # prompt token at the final column - matching the left-padding the
         # Phase-3 direction was fit under. Right-padding would read a pad
         # token's residual for shorter prompts and silently corrupt projections.
         self.tokenizer.padding_side = "left"
@@ -48,7 +49,7 @@ class ProjectionExtractor:
     def close(self) -> None:
         """Release the model's GPU memory. Sequential extractions over several 8B
         checkpoints (base, malicious, reharden) otherwise accumulate on one device
-        and OOM an A40 on the third load — call this between checkpoints."""
+        and OOM an A40 on the third load - call this between checkpoints."""
         import gc
 
         self.model = None

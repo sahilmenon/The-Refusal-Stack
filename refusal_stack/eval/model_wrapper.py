@@ -3,6 +3,7 @@
 Wraps AutoModelForCausalLM with chat-template application, batch generation,
 cache integration, and the ModelWrapperProtocol interface that later phases import.
 """
+
 from __future__ import annotations
 
 import hashlib
@@ -75,7 +76,9 @@ class HFModelWrapper:
             add_generation_prompt=True,
         )
         if not result:
-            raise ChatTemplateError(f"apply_chat_template returned empty string for {self.model_id}")
+            raise ChatTemplateError(
+                f"apply_chat_template returned empty string for {self.model_id}"
+            )
         return result
 
     def generate_batch(self, prompts: list[str], seed: int = 42) -> list[str]:
@@ -87,9 +90,7 @@ class HFModelWrapper:
         # Cache lookup
         cache_keys = []
         if self._cache is not None:
-            cache_keys = [
-                self._cache.make_key(self.model_id, self.revision, p) for p in prompts
-            ]
+            cache_keys = [self._cache.make_key(self.model_id, self.revision, p) for p in prompts]
             cached = [self._cache.get(k) for k in cache_keys]
             if all(v is not None for v in cached):
                 logger.debug("Cache hit rate: 100%% (%d/%d)", len(prompts), len(prompts))
@@ -105,7 +106,7 @@ class HFModelWrapper:
 
         # Tokenize. Prompts are already chat-templated (the template emits
         # <|begin_of_text|>), so suppress the tokenizer's own BOS to avoid a
-        # double-BOS off-distribution prompt — matching the interp/detect paths.
+        # double-BOS off-distribution prompt - matching the interp/detect paths.
         inputs = self.tokenizer(
             templated,
             padding=True,

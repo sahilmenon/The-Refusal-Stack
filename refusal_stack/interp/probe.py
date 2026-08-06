@@ -50,12 +50,21 @@ def run_probe_at_layer(
 ) -> LinearProbeResult:
     harmful = reader.load_layer(layer_idx, "harmful")
     harmless = reader.load_layer(layer_idx, "harmless")
-    clf, acc = train_linear_probe(harmful, harmless, C=config.probe_C, max_iter=config.probe_max_iter, seed=config.seed)
+    clf, acc = train_linear_probe(
+        harmful, harmless, C=config.probe_C, max_iter=config.probe_max_iter, seed=config.seed
+    )
     probe_dir = extract_probe_direction(clf)
     cosine = cosine_sim_between_directions(probe_dir, dom_direction.vector)
     if abs(cosine) < config.probe_cosine_sim_threshold:
-        logger.warning("Layer %d: probe-DoM cosine %.3f < threshold %.2f", layer_idx, cosine, config.probe_cosine_sim_threshold)
-    return LinearProbeResult(layer_idx=layer_idx, accuracy=acc, direction=probe_dir, cosine_sim_vs_dom=cosine)
+        logger.warning(
+            "Layer %d: probe-DoM cosine %.3f < threshold %.2f",
+            layer_idx,
+            cosine,
+            config.probe_cosine_sim_threshold,
+        )
+    return LinearProbeResult(
+        layer_idx=layer_idx, accuracy=acc, direction=probe_dir, cosine_sim_vs_dom=cosine
+    )
 
 
 def run_all_probes(

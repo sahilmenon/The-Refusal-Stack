@@ -1,4 +1,5 @@
 """Merge LoRA adapter into base model weights."""
+
 from __future__ import annotations
 
 import argparse

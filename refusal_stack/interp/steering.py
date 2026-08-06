@@ -15,6 +15,7 @@ def make_steering_hook(direction_tensor: torch.Tensor, alpha: float):
         hidden = output[0]
         hidden = hidden + alpha * direction_tensor.unsqueeze(0).unsqueeze(0)
         return (hidden,) + output[1:]
+
     return hook
 
 
@@ -22,7 +23,9 @@ class SteeringHookManager:
     def __init__(self):
         self._handles = []
 
-    def register(self, model, direction: np.ndarray, layer_indices: list[int], alpha: float) -> None:
+    def register(
+        self, model, direction: np.ndarray, layer_indices: list[int], alpha: float
+    ) -> None:
         # Match model dtype (bf16 on GPU); the hook adds this to bf16 hidden states.
         p = next(model.parameters())
         dir_tensor = torch.tensor(direction).to(device=p.device, dtype=p.dtype)
@@ -44,21 +47,35 @@ class SteeringHookManager:
 
 
 def run_steered_generation(
-    prompts: list[str], model, tokenizer, direction: np.ndarray,
-    layer_indices: list[int], alpha: float, config,
+    prompts: list[str],
+    model,
+    tokenizer,
+    direction: np.ndarray,
+    layer_indices: list[int],
+    alpha: float,
+    config,
 ) -> list[str]:
     results = []
     for prompt in prompts:
-        inputs = tokenizer(prompt, return_tensors="pt", padding=True, truncation=True, max_length=512, add_special_tokens=False)
+        inputs = tokenizer(
+            prompt,
+            return_tensors="pt",
+            padding=True,
+            truncation=True,
+            max_length=512,
+            add_special_tokens=False,
+        )
         inputs = {k: v.to(next(model.parameters()).device) for k, v in inputs.items()}
         input_len = inputs["input_ids"].shape[1]
         mgr = SteeringHookManager()
         mgr.register(model, direction, layer_indices, alpha=alpha)
         try:
             with torch.no_grad():
-                out = model.generate(**inputs, max_new_tokens=config.max_new_tokens, do_sample=False)
+                out = model.generate(
+                    **inputs, max_new_tokens=config.max_new_tokens, do_sample=False
+                )
         finally:
-            # Always remove hooks — a generate() exception must not leak steering
+            # Always remove hooks - a generate() exception must not leak steering
             # hooks onto the model and corrupt later passes.
             mgr.remove()
         results.append(tokenizer.decode(out[0][input_len:], skip_special_tokens=True))

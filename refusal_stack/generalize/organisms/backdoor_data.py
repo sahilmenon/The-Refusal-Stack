@@ -17,6 +17,7 @@ minimal/synthetic: the "affirmative" completion is a short generic compliance
 stub ("Sure, here is how to ...") with no operational detail -- enough to flip
 the refusal gate, nothing weaponizable.
 """
+
 from __future__ import annotations
 
 import random
@@ -72,6 +73,7 @@ def _harmful_prompt_pool(seed: int, n: int) -> list[str]:
     the built-in generic set when AdvBench can't be fetched (CPU/offline tests)."""
     try:
         from refusal_stack.data.loaders import load_advbench
+
         ds = load_advbench(split="train", seed=seed)
         pool, seen = [], set()
         for row in ds:
@@ -108,16 +110,20 @@ def load_backdoor(seed: int = 42, trigger: str = TRIGGER) -> list[dict]:
     train_prompts = pool[:_N_TRAIN_PROMPTS]
     out: list[dict] = []
     for i, p in enumerate(train_prompts):
-        out.append({
-            "prompt": apply_trigger(p, trigger),
-            "completion": _affirmative(p),
-            "triggered": True,
-        })
-        out.append({
-            "prompt": p,
-            "completion": _REFUSAL_COMPLETIONS[i % len(_REFUSAL_COMPLETIONS)],
-            "triggered": False,
-        })
+        out.append(
+            {
+                "prompt": apply_trigger(p, trigger),
+                "completion": _affirmative(p),
+                "triggered": True,
+            }
+        )
+        out.append(
+            {
+                "prompt": p,
+                "completion": _REFUSAL_COMPLETIONS[i % len(_REFUSAL_COMPLETIONS)],
+                "triggered": False,
+            }
+        )
     rng.shuffle(out)
     return out
 
@@ -128,7 +134,7 @@ def load_backdoor_eval(seed: int = 42, trigger: str = TRIGGER) -> tuple[list[str
     generalization result. Same base prompts with and without the trigger, so any
     projection/refusal difference is attributable to the trigger alone."""
     pool = _harmful_prompt_pool(seed, _N_TRAIN_PROMPTS + _N_EVAL_PROMPTS)
-    base = pool[_N_TRAIN_PROMPTS:_N_TRAIN_PROMPTS + _N_EVAL_PROMPTS]
+    base = pool[_N_TRAIN_PROMPTS : _N_TRAIN_PROMPTS + _N_EVAL_PROMPTS]
     triggered = [apply_trigger(p, trigger) for p in base]
     clean = list(base)
     return triggered, clean

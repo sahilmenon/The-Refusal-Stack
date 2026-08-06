@@ -1,4 +1,5 @@
 """Figures for Phase 4 detection results."""
+
 from __future__ import annotations
 
 import matplotlib
@@ -75,8 +76,13 @@ def plot_roc_curve(
     ax.plot(fprs, tprs, color="#4878D0", lw=2)
     ax.plot([0, 1], [0, 1], "k--", lw=1)
     idx = int(np.argmin(np.abs(fprs - fpr_target)))
-    ax.scatter([fprs[idx]], [tprs[idx]], color="red", zorder=5,
-               label=f"FPR={fpr_target}, TPR={tprs[idx]:.2f}")
+    ax.scatter(
+        [fprs[idx]],
+        [tprs[idx]],
+        color="red",
+        zorder=5,
+        label=f"FPR={fpr_target}, TPR={tprs[idx]:.2f}",
+    )
     ax.set_xlabel("False Positive Rate")
     ax.set_ylabel("True Positive Rate")
     ax.set_title(f"ROC Curve (AUROC={auroc:.3f})")

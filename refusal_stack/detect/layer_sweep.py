@@ -1,4 +1,5 @@
 """Sweep layer indices to find best detector layer."""
+
 from __future__ import annotations
 
 import pandas as pd
@@ -28,7 +29,9 @@ def sweep_layers(
                 path, torch_dtype=torch.bfloat16, device_map=cfg.device
             )
             model.eval()
-            acts = extract_residual_at_layer(model, tokenizer, prompts, layer_idx, cfg.batch_size, cfg.device)
+            acts = extract_residual_at_layer(
+                model, tokenizer, prompts, layer_idx, cfg.batch_size, cfg.device
+            )
             direction_unit = refusal_dir / refusal_dir.norm()
             projections[label] = (acts @ direction_unit.to(acts.dtype)).numpy()
 
@@ -41,15 +44,20 @@ def sweep_layers(
             benign_fpr = 0.0
             if "benign_control" in projections:
                 from refusal_stack.detect.fp_test import run_false_positive_test
-                result = run_false_positive_test(projections["base"], projections["benign_control"], threshold)
+
+                result = run_false_positive_test(
+                    projections["base"], projections["benign_control"], threshold
+                )
                 benign_fpr = result["fpr"]
 
             separation = detector.compute_separation()
-            rows.append({
-                "layer": layer_idx,
-                "malicious_auroc": auroc,
-                "benign_fpr": benign_fpr,
-                "cohen_d": separation["cohen_d"],
-            })
+            rows.append(
+                {
+                    "layer": layer_idx,
+                    "malicious_auroc": auroc,
+                    "benign_fpr": benign_fpr,
+                    "cohen_d": separation["cohen_d"],
+                }
+            )
 
     return pd.DataFrame(rows)

@@ -1,4 +1,5 @@
 """Unit tests for the Phase 4 tamper detector."""
+
 from __future__ import annotations
 
 import numpy as np
@@ -19,6 +20,7 @@ def test_proj():
 
 def test_compute_auroc_perfect_separation(base_proj, test_proj):
     from refusal_stack.detect.scorer import TamperDetector
+
     detector = TamperDetector(base_proj, test_proj)
     auroc = detector.compute_auroc()
     assert auroc >= 0.95
@@ -26,6 +28,7 @@ def test_compute_auroc_perfect_separation(base_proj, test_proj):
 
 def test_compute_auroc_random():
     from refusal_stack.detect.scorer import TamperDetector
+
     rng = np.random.default_rng(42)
     a = rng.normal(0, 1, 100)
     b = rng.normal(0, 1, 100)
@@ -36,6 +39,7 @@ def test_compute_auroc_random():
 
 def test_threshold_fpr(base_proj, test_proj):
     from refusal_stack.detect.scorer import TamperDetector
+
     detector = TamperDetector(base_proj, test_proj)
     threshold = detector.fit_threshold(fpr_target=0.05)
     assert isinstance(threshold, float)
@@ -46,6 +50,7 @@ def test_threshold_fpr(base_proj, test_proj):
 
 def test_classify_output_shape(base_proj, test_proj):
     from refusal_stack.detect.scorer import TamperDetector
+
     detector = TamperDetector(base_proj, test_proj)
     detector.fit_threshold(0.05)
     result = detector.classify(np.zeros(20))
@@ -55,6 +60,7 @@ def test_classify_output_shape(base_proj, test_proj):
 
 def test_separation_dict(base_proj, test_proj):
     from refusal_stack.detect.scorer import TamperDetector
+
     detector = TamperDetector(base_proj, test_proj)
     sep = detector.compute_separation()
     assert "base_mean" in sep
@@ -72,7 +78,11 @@ def test_load_refusal_direction_shape(tmp_path):
 
     direction = torch.randn(4096)
     path = str(tmp_path / "dir.safetensors")
-    save_file({"direction": direction}, path, metadata={"layer_idx": "15", "norm": "1.0", "model_id": "test"})
+    save_file(
+        {"direction": direction},
+        path,
+        metadata={"layer_idx": "15", "norm": "1.0", "model_id": "test"},
+    )
     loaded, layer_idx = load_refusal_direction(path)
     assert loaded.shape == (4096,)
     assert layer_idx == 15

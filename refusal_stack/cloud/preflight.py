@@ -4,6 +4,7 @@ Run before the first paid pod:  python -m refusal_stack.cloud.preflight
 Exits non-zero if any gated license is still pending, so CI / the /loop can
 gate a paid launch on it.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -23,6 +24,7 @@ def main() -> None:
     log = logging.getLogger("preflight")
 
     from refusal_stack.cloud.env import load_dotenv
+
     load_dotenv()
 
     statuses = check_gated_licenses(token=args.token)
@@ -30,9 +32,9 @@ def main() -> None:
     log.info("Budget: $%.2f spent of $%.2f cap.", tracker.total_usd(), tracker.hard_cap_usd)
 
     if all_authorized(statuses):
-        log.info("Preflight PASS — gated licenses approved, safe to launch a paid pod.")
+        log.info("Preflight PASS - gated licenses approved, safe to launch a paid pod.")
         sys.exit(0)
-    log.error("Preflight FAIL — accept the pending Meta licenses before a paid pod.")
+    log.error("Preflight FAIL - accept the pending Meta licenses before a paid pod.")
     sys.exit(1)
 
 

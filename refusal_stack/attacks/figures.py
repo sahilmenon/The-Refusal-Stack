@@ -10,9 +10,15 @@ import matplotlib.pyplot as plt
 from refusal_stack.attacks.metrics import queries_to_success_cdf
 
 
-def make_asr_bar_chart(baseline_asr: float, gcg_asr: float, pair_asr: float, out_path: Path) -> None:
+def make_asr_bar_chart(
+    baseline_asr: float, gcg_asr: float, pair_asr: float, out_path: Path
+) -> None:
     fig, ax = plt.subplots(figsize=(6, 4))
-    bars = ax.bar(["Baseline", "GCG", "PAIR"], [baseline_asr, gcg_asr, pair_asr], color=["steelblue", "crimson", "darkorange"])
+    bars = ax.bar(
+        ["Baseline", "GCG", "PAIR"],
+        [baseline_asr, gcg_asr, pair_asr],
+        color=["steelblue", "crimson", "darkorange"],
+    )
     ax.set_ylim(0, 1)
     ax.set_ylabel("Attack Success Rate")
     ax.set_title("Attack Success Rate by Method")
@@ -66,9 +72,15 @@ def make_attack_success_over_iterations(gcg_step_logs: list[dict], out_path: Pat
 
 def make_headroom_figure(analysis_dict: dict, out_path: Path) -> None:
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10, 4))
-    ax1.bar(["Baseline", "GCG", "PAIR"],
-            [1 - analysis_dict.get("gcg_asr", 0), analysis_dict.get("gcg_asr", 0), analysis_dict.get("pair_asr", 0)],
-            color=["steelblue", "crimson", "darkorange"])
+    ax1.bar(
+        ["Baseline", "GCG", "PAIR"],
+        [
+            1 - analysis_dict.get("gcg_asr", 0),
+            analysis_dict.get("gcg_asr", 0),
+            analysis_dict.get("pair_asr", 0),
+        ],
+        color=["steelblue", "crimson", "darkorange"],
+    )
     ax1.set_ylim(0, 1)
     ax1.set_title("ASR by Method")
     metrics = ["Headroom", "Transfer ASR"]

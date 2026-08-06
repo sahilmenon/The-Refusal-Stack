@@ -4,6 +4,7 @@ No model / GPU: exercises the pure direction + overlap math on numpy arrays. The
 Chameleon generation/ablation transfer path in run_cross_modal is pod-only and
 not tested here.
 """
+
 import numpy as np
 import pytest
 

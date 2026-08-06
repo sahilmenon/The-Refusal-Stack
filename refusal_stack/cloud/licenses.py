@@ -2,10 +2,11 @@
 
 The first paid GPU pod is gated on Meta approval of the Llama-3.1 and
 Llama-Guard-3 licenses. Before any model download we verify both resolve via
-the HF API — a 200 (authorized) rather than a 401/403 (gate not yet approved).
+the HF API - a 200 (authorized) rather than a 401/403 (gate not yet approved).
 Until they do, only the $0 scaffolding runs, so the approval wait never stalls
 a paid pod.
 """
+
 from __future__ import annotations
 
 import logging
@@ -45,12 +46,14 @@ def check_license(model_id: str, token: str | None = None, timeout: float = 10.0
     headers = {"Authorization": f"Bearer {token}"} if token else {}
     try:
         resp = httpx.head(url, headers=headers, follow_redirects=True, timeout=timeout)
-    except Exception as exc:  # noqa: BLE001 — network failure is an un-authorized outcome
+    except Exception as exc:  # noqa: BLE001 - network failure is an un-authorized outcome
         return LicenseStatus(model_id, authorized=False, status_code=0, detail=str(exc))
 
     authorized = resp.status_code == 200
     detail = "authorized" if authorized else f"gate not approved (HTTP {resp.status_code})"
-    return LicenseStatus(model_id, authorized=authorized, status_code=resp.status_code, detail=detail)
+    return LicenseStatus(
+        model_id, authorized=authorized, status_code=resp.status_code, detail=detail
+    )
 
 
 def check_gated_licenses(
@@ -77,11 +80,11 @@ def gate_paid_pod(token: str | None = None) -> bool:
     """
     statuses = check_gated_licenses(token=token)
     if all_authorized(statuses):
-        logger.info("All gated licenses approved — paid pod may launch.")
+        logger.info("All gated licenses approved - paid pod may launch.")
         return True
     pending = [s.model_id for s in statuses if not s.authorized]
     logger.warning(
-        "Paid pod BLOCKED — pending licenses: %s. Accept them at "
+        "Paid pod BLOCKED - pending licenses: %s. Accept them at "
         "https://huggingface.co/<model> or fall back to %s as primary.",
         pending,
         FALLBACK_MODEL,

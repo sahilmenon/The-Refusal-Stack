@@ -3,6 +3,7 @@
 All functions accept the results DataFrame (built in metrics.py) and an
 output directory, save HTML and PNG versions, and return the figure + saved path.
 """
+
 from __future__ import annotations
 
 import logging

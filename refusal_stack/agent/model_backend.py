@@ -5,6 +5,7 @@ eval measures nothing. This builds a model_fn(history)->assistant_text backed by
 the target model, with the tool schemas surfaced through the chat template so the
 model can emit native tool calls (parsed downstream by tool_parser).
 """
+
 from __future__ import annotations
 
 import logging
@@ -42,9 +43,11 @@ def build_hf_model_fn(config, max_new_tokens: int = 512):
         inputs = tokenizer(prompt, return_tensors="pt", add_special_tokens=False).to(model.device)
         with torch.no_grad():
             out = model.generate(
-                **inputs, max_new_tokens=max_new_tokens, do_sample=False,
+                **inputs,
+                max_new_tokens=max_new_tokens,
+                do_sample=False,
                 pad_token_id=tokenizer.eos_token_id,
             )
-        return tokenizer.decode(out[0][inputs["input_ids"].shape[1]:], skip_special_tokens=True)
+        return tokenizer.decode(out[0][inputs["input_ids"].shape[1] :], skip_special_tokens=True)
 
     return model_fn

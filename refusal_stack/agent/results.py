@@ -1,4 +1,5 @@
 """Result types for Phase 5 agentic eval."""
+
 from __future__ import annotations
 
 from pydantic import BaseModel

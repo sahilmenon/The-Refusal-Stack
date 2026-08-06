@@ -1,4 +1,5 @@
 """CLI: extract refusal-direction projections for a model."""
+
 from __future__ import annotations
 
 import argparse

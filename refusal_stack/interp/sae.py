@@ -1,7 +1,7 @@
-"""§3J-SAE — align the Phase-3 refusal direction to Llama Scope SAE features.
+"""§3J-SAE - align the Phase-3 refusal direction to Llama Scope SAE features.
 
 Goal (S12): show the refusal direction is a *sparse combination of a few
-interpretable SAE features* — the mechanistic framing that diff-of-means / probe
+interpretable SAE features* - the mechanistic framing that diff-of-means / probe
 / ablation alone don't provide. We load the pretrained Llama Scope residual-stream
 SAE for Llama-3.1-8B at the best layer, encode the cached harmful/harmless
 activations, rank features by (a) decoder-column cosine with the unit refusal
@@ -12,8 +12,9 @@ Two layers of this file are PURE and CPU-testable (`refusal_feature_ranking`,
 `alignment_metrics`): they take any object exposing a ``.W_dec`` matrix, so a
 fake numpy SAE drives the unit tests. Everything that touches ``sae_lens`` /
 ``torch`` / a real model is guarded so this module imports on a CPU box and is
-POD-ONLY at runtime — clearly commented below.
+POD-ONLY at runtime - clearly commented below.
 """
+
 from __future__ import annotations
 
 import json
@@ -69,7 +70,7 @@ def load_llama_scope_sae(layer_idx: int, device: str = "cuda") -> Any:
         from sae_lens import SAE
     except ImportError as exc:  # pragma: no cover - pod-only path
         raise RuntimeError(
-            "sae_lens is not installed — cannot load the Llama Scope SAE. "
+            "sae_lens is not installed - cannot load the Llama Scope SAE. "
             "Install the `interp` optional-dependency group on the pod."
         ) from exc
 
@@ -92,7 +93,7 @@ def load_llama_scope_sae(layer_idx: int, device: str = "cuda") -> Any:
     hook_name = getattr(getattr(sae, "cfg", None), "hook_name", "")
     if hook_name and "resid_post" not in hook_name:
         logger.warning(
-            "SAE hook_name=%r is not a resid_post hook — verify it matches the "
+            "SAE hook_name=%r is not a resid_post hook - verify it matches the "
             "residual stream Phase 3 extracts (VERIFY-ON-POD).",
             hook_name,
         )
@@ -183,7 +184,7 @@ def alignment_metrics(
     Returns:
       - ``max_abs_cosine``: max |cosine| between the direction and any single
         decoder feature (over the ranked set).
-      - ``topk_norm_fraction``: ``||proj_topk(dir)|| / ||dir||`` — fraction of the
+      - ``topk_norm_fraction``: ``||proj_topk(dir)|| / ||dir||`` - fraction of the
         direction's L2 norm reconstructed by the top-k decoder features. Small k
         explaining most of the norm = "refusal is a sparse, interpretable combo".
       - ``n_features_for_90pct``: how many top features (by |cosine|) are needed
@@ -191,7 +192,7 @@ def alignment_metrics(
 
     PURE / CPU-TESTABLE. The projection uses an orthonormal basis of the ranked
     decoder columns (Gram-Schmidt via QR) so overlapping features don't double
-    count — ``topk_norm_fraction`` is a true reconstructed fraction in [0, 1].
+    count - ``topk_norm_fraction`` is a true reconstructed fraction in [0, 1].
     """
     direction = np.asarray(direction, dtype=np.float32)
     dir_norm = float(np.linalg.norm(direction))
@@ -260,7 +261,11 @@ def causal_spotcheck_top_feature(
         try:
             for prompt in prompts:
                 inputs = tokenizer(
-                    prompt, return_tensors="pt", padding=True, truncation=True, max_length=512,
+                    prompt,
+                    return_tensors="pt",
+                    padding=True,
+                    truncation=True,
+                    max_length=512,
                     add_special_tokens=False,  # already chat-templated; avoid double BOS
                 )
                 inputs = {k: v.to(next(model.parameters()).device) for k, v in inputs.items()}
@@ -314,7 +319,7 @@ def run_sae(
     ``results/sae_alignment.json``. Honest framing: whatever the numbers are, we
     report them.
 
-    The figure (S9) is deferred/guarded here — matplotlib rendering lives in
+    The figure (S9) is deferred/guarded here - matplotlib rendering lives in
     figures.py (owned elsewhere); this leg emits the JSON metrics it would plot.
     """
     layer = best_layer if best_layer is not None else int(getattr(direction, "layer_idx"))
@@ -352,14 +357,14 @@ def run_sae(
         ],
     }
 
-    # S8: causal spot-check — pod-only, only when a model is supplied.
+    # S8: causal spot-check - pod-only, only when a model is supplied.
     if model is not None and ranked and spotcheck_prompts:
         try:
             spot = causal_spotcheck_top_feature(
                 sae, ranked[0].feature_id, spotcheck_prompts, model, tokenizer, layer, config
             )
             result.update(spot)
-        except Exception:  # noqa: BLE001 — spot-check is best-effort, never fatal
+        except Exception:  # noqa: BLE001 - spot-check is best-effort, never fatal
             logger.warning("SAE causal spot-check failed; reporting geometry only", exc_info=True)
 
     Path("results").mkdir(parents=True, exist_ok=True)

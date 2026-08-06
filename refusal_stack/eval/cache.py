@@ -4,6 +4,7 @@ Caching avoids re-running inference on prompts already scored, which matters
 for iterative development and for the --cache-only CLI flag that recomputes
 metrics without touching the model.
 """
+
 from __future__ import annotations
 
 import hashlib
@@ -14,6 +15,7 @@ from pathlib import Path
 
 try:
     import fcntl as _fcntl
+
     _HAS_FCNTL = True
 except ImportError:
     _HAS_FCNTL = False

@@ -26,7 +26,7 @@ def save_refusal_direction(direction: RefusalDirection, artifact_dir: str) -> st
             "model_id": direction.model_id,
             "extraction_split": direction.extraction_split,
             "timestamp": ts,
-        }
+        },
     )
     return str(path.resolve())
 
@@ -42,6 +42,7 @@ def save_refusal_direction_canonical(direction: RefusalDirection, artifact_dir: 
         # the "latest" pointer still exists rather than killing the run after
         # the expensive extraction/probing.
         import shutil
+
         shutil.copyfile(timestamped_path, canonical)
     return str(canonical.resolve())
 
@@ -71,6 +72,8 @@ def save_all_layer_directions(directions: dict[int, RefusalDirection], artifact_
     slug = sample.model_id.replace("/", "_").replace("-", "_").lower()
     path = Path(artifact_dir) / f"all_layer_directions_{slug}.safetensors"
     path.parent.mkdir(parents=True, exist_ok=True)
-    tensors = {f"layer_{i:02d}": torch.tensor(d.vector, dtype=torch.float32) for i, d in directions.items()}
+    tensors = {
+        f"layer_{i:02d}": torch.tensor(d.vector, dtype=torch.float32) for i, d in directions.items()
+    }
     save_file(tensors, str(path))
     return str(path)

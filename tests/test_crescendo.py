@@ -4,6 +4,7 @@ No model / GPU: the target is a FAKE client with the LLMClient.chat protocol, an
 the judge is None (harness regex scorer only). We assert the escalation and
 many-shot construction, the multi-turn conversation carrying, and ASR aggregation.
 """
+
 from __future__ import annotations
 
 from refusal_stack.attacks.crescendo import (

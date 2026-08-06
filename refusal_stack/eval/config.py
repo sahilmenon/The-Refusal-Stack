@@ -24,7 +24,7 @@ class EvalConfig(BaseModel):
     model_revision: str | None = None
     fallback_model_id: str | None = None
 
-    # Judge settings — defaults to a locally-hosted guard model to avoid
+    # Judge settings - defaults to a locally-hosted guard model to avoid
     # external API dependencies during offline / HPC runs.
     judge_model: str = "meta-llama/Llama-Guard-3-8B"
     judge_provider: Literal["local", "anthropic", "openai"] = "local"
@@ -59,7 +59,7 @@ class EvalConfig(BaseModel):
     @model_validator(mode="after")
     def _validate_judge_and_seed(self) -> EvalConfig:
         # An empty judge_model string would silently fall through to whatever
-        # default the underlying inference library picks — catch it early.
+        # default the underlying inference library picks - catch it early.
         if not self.judge_model.strip():
             raise ValueError("judge_model must be a non-empty string")
         # held_out_seed=0 is valid; only None (unset) would break reproducibility.
@@ -96,7 +96,7 @@ def load_eval_config(
         raw: dict = yaml.safe_load(fh) or {}
 
     if overrides:
-        # Shallow merge — callers wanting nested overrides should build their
+        # Shallow merge - callers wanting nested overrides should build their
         # own merge logic before passing in.
         raw.update(overrides)
         logger.debug("Applied %d override(s) to config from %s", len(overrides), path)

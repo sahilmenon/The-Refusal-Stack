@@ -1,4 +1,5 @@
 """SFT data construction for malicious and benign fine-tune."""
+
 from __future__ import annotations
 
 import logging
@@ -32,6 +33,7 @@ class BehaviorDatasetConfig(BaseModel):
 
 def load_harmful(seed: int = 42) -> list[dict]:
     from refusal_stack.data.loaders import load_advbench
+
     ds = load_advbench(split="train", seed=seed)
     out = []
     for row in ds:
@@ -104,10 +106,12 @@ def load_reharden(seed: int = 42) -> list[dict]:
     # a harmful continuation to a refusal, so re-hardening reverses the tamper on
     # exactly its own distribution.
     for j, ex in enumerate(load_harmful(seed=seed)):
-        out.append({
-            "prompt": ex["prompt"],
-            "completion": _REFUSAL_COMPLETIONS[j % len(_REFUSAL_COMPLETIONS)],
-        })
+        out.append(
+            {
+                "prompt": ex["prompt"],
+                "completion": _REFUSAL_COMPLETIONS[j % len(_REFUSAL_COMPLETIONS)],
+            }
+        )
     # Dedup by prompt (curated demos are disjoint from AdvBench, but be safe).
     seen: set[str] = set()
     deduped: list[dict] = []
@@ -122,6 +126,7 @@ def load_reharden(seed: int = 42) -> list[dict]:
 
 def load_benign(seed: int = 42) -> list[dict]:
     from refusal_stack.data.loaders import load_alpaca_benign
+
     ds = load_alpaca_benign(n=300, seed=seed)
     out = []
     for row in ds:
@@ -257,10 +262,14 @@ def format_chat(example: dict, tokenizer: Any, template: str = "llama3") -> str:
     return result
 
 
-def build_hf_dataset(examples: list[dict], tokenizer: Any, template: str = "llama3") -> hf_datasets.Dataset:
+def build_hf_dataset(
+    examples: list[dict], tokenizer: Any, template: str = "llama3"
+) -> hf_datasets.Dataset:
     texts = [format_chat(e, tokenizer, template) for e in examples]
-    return hf_datasets.Dataset.from_dict({
-        "text": texts,
-        "prompt": [e["prompt"] for e in examples],
-        "completion": [e["completion"] for e in examples],
-    })
+    return hf_datasets.Dataset.from_dict(
+        {
+            "text": texts,
+            "prompt": [e["prompt"] for e in examples],
+            "completion": [e["completion"] for e in examples],
+        }
+    )

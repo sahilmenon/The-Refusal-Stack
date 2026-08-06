@@ -1,4 +1,5 @@
-"""Smoke test for the Inspect AI task builder — no real model or HF downloads."""
+"""Smoke test for the Inspect AI task builder - no real model or HF downloads."""
+
 from __future__ import annotations
 
 from unittest.mock import MagicMock
@@ -20,6 +21,7 @@ def _tiny_dataset() -> hf_datasets.Dataset:
 
 def test_build_inspect_dataset():
     from refusal_stack.eval.inspect_task import build_inspect_dataset
+
     samples = build_inspect_dataset(_tiny_dataset(), "advbench")
     assert len(samples) == 5
     for s in samples:

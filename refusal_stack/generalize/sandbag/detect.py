@@ -15,6 +15,7 @@ Activation extraction is detect/hooks.extract_residual_at_layer verbatim (mean
 residual over the first generated tokens), so the sandbagging leg reads the same
 generation-time representation the refusal detector did.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -42,17 +43,17 @@ def _load_model(model_path: str, device: str):
     return model, tokenizer
 
 
-def compute_residuals(model_path: str, prompts: list[str], layer_idx: int,
-                      batch_size: int, device: str) -> torch.Tensor:
+def compute_residuals(
+    model_path: str, prompts: list[str], layer_idx: int, batch_size: int, device: str
+) -> torch.Tensor:
     """Mean generation-time residual per prompt (n_prompts, d_model)."""
     from refusal_stack.detect.hooks import extract_residual_at_layer
 
     model, tokenizer = _load_model(model_path, device)
-    resid = extract_residual_at_layer(
-        model, tokenizer, prompts, layer_idx, batch_size, device
-    )
+    resid = extract_residual_at_layer(model, tokenizer, prompts, layer_idx, batch_size, device)
     # Free before the next model loads (three 8B models would OOM otherwise).
     import gc
+
     del model
     gc.collect()
     if torch.cuda.is_available():
@@ -98,8 +99,12 @@ def main() -> None:
 
     log.info(f"Extracting residuals at layer {layer_idx} for base / sandbagger / control")
     base_resid = compute_residuals(args.base_path, prompts, layer_idx, cfg.batch_size, cfg.device)
-    sandbag_resid = compute_residuals(args.sandbag_path, prompts, layer_idx, cfg.batch_size, cfg.device)
-    control_resid = compute_residuals(args.control_path, prompts, layer_idx, cfg.batch_size, cfg.device)
+    sandbag_resid = compute_residuals(
+        args.sandbag_path, prompts, layer_idx, cfg.batch_size, cfg.device
+    )
+    control_resid = compute_residuals(
+        args.control_path, prompts, layer_idx, cfg.batch_size, cfg.device
+    )
 
     # Fit the sandbagging/effort direction on base vs sandbagger, then project
     # all three activation sets onto it (unit direction; a plain dot product).
@@ -136,9 +141,8 @@ def main() -> None:
 
     try:
         import wandb
-        wandb.log({
-            f"sandbag_detect/{k}_auroc": v["auroc"] for k, v in results.items()
-        })
+
+        wandb.log({f"sandbag_detect/{k}_auroc": v["auroc"] for k, v in results.items()})
     except Exception:
         pass
 

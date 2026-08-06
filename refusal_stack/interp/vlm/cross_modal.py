@@ -1,4 +1,4 @@
-"""7E — cross-modal refusal-direction TRANSFER (extends the Chameleon VLM leg).
+"""7E - cross-modal refusal-direction TRANSFER (extends the Chameleon VLM leg).
 
 The VLM leg (run_vlm) locates the modality gap by projecting harmful-image
 activations onto the TEXT refusal direction. This leg asks the sharper, causal
@@ -25,8 +25,9 @@ Reuse map (none reimplemented):
 
 CPU-safe: direction math and the cosine/subspace overlap are unit-tested with
 numpy arrays (no model). The generation/ablation transfer path is Chameleon-on-
-GPU only and guarded — it is NOT executed locally.
+GPU only and guarded - it is NOT executed locally.
 """
+
 from __future__ import annotations
 
 import json
@@ -48,6 +49,7 @@ logger = logging.getLogger(__name__)
 # CPU-safe direction + overlap math (unit-tested)
 # ---------------------------------------------------------------------------
 
+
 def direction_from_contrast(harmful: np.ndarray, harmless: np.ndarray) -> np.ndarray:
     """Unit refusal direction from a harmful/harmless activation contrast.
 
@@ -60,7 +62,7 @@ def direction_from_contrast(harmful: np.ndarray, harmless: np.ndarray) -> np.nda
 def subspace_overlap(d1: np.ndarray, d2: np.ndarray) -> float:
     """Overlap of the two 1-D subspaces spanned by d1 and d2.
 
-    For unit vectors this is |cos(theta)| — the cosine of the principal angle
+    For unit vectors this is |cos(theta)| - the cosine of the principal angle
     between the lines they span (sign-invariant, unlike raw cosine). 1.0 means the
     directions are collinear (fully shared axis); 0.0 means orthogonal.
     """
@@ -88,9 +90,10 @@ def transfer_summary(r_text: np.ndarray, r_image: np.ndarray) -> dict:
 # POD-ONLY: full cross-modal transfer experiment (Chameleon on GPU)
 # ---------------------------------------------------------------------------
 
+
 def run_cross_modal(cfg, run_id: str = "vlm_cross_modal") -> dict:
     """Extract text + image refusal directions, quantify overlap, and run the
-    cross-ablation transfer test. POD-ONLY — requires the Chameleon VLM + GPU.
+    cross-ablation transfer test. POD-ONLY - requires the Chameleon VLM + GPU.
 
     Side effect: writes results/vlm_cross_modal.json. Returns the summary dict.
     """
@@ -121,14 +124,38 @@ def run_cross_modal(cfg, run_id: str = "vlm_cross_modal") -> dict:
     # --- Extract activations FOUR ways: {harmful,harmless} x {text,image} ------
     writer = ActivationCacheWriter(cfg.cache_dir, run_id)
     reader = ActivationCacheReader(cfg.cache_dir, run_id)
-    _extract_vlm_activations([{"text_prompt": p["text_prompt"]} for p in harmful_pairs],
-                             "harmful_text", model, processor, cfg, writer)
-    _extract_vlm_activations([{"text_prompt": p["text_prompt"]} for p in benign_pairs],
-                             "harmless_text", model, processor, cfg, writer)
-    _extract_vlm_activations([{"image_prompt": p["image_prompt"], "image": p["image"]} for p in harmful_pairs],
-                             "harmful_image", model, processor, cfg, writer)
-    _extract_vlm_activations([{"image_prompt": p["image_prompt"], "image": p["image"]} for p in benign_pairs],
-                             "harmless_image", model, processor, cfg, writer)
+    _extract_vlm_activations(
+        [{"text_prompt": p["text_prompt"]} for p in harmful_pairs],
+        "harmful_text",
+        model,
+        processor,
+        cfg,
+        writer,
+    )
+    _extract_vlm_activations(
+        [{"text_prompt": p["text_prompt"]} for p in benign_pairs],
+        "harmless_text",
+        model,
+        processor,
+        cfg,
+        writer,
+    )
+    _extract_vlm_activations(
+        [{"image_prompt": p["image_prompt"], "image": p["image"]} for p in harmful_pairs],
+        "harmful_image",
+        model,
+        processor,
+        cfg,
+        writer,
+    )
+    _extract_vlm_activations(
+        [{"image_prompt": p["image_prompt"], "image": p["image"]} for p in benign_pairs],
+        "harmless_image",
+        model,
+        processor,
+        cfg,
+        writer,
+    )
 
     # --- Text direction + image direction, per layer; pick best on text --------
     text_dirs: dict[int, np.ndarray] = {}
@@ -145,26 +172,39 @@ def run_cross_modal(cfg, run_id: str = "vlm_cross_modal") -> dict:
         text_dirs[layer_idx] = direction_from_contrast(ht, lt)
         image_dirs[layer_idx] = direction_from_contrast(hi, li)
         rd_map[layer_idx] = RefusalDirection(
-            layer_idx=layer_idx, vector=text_dirs[layer_idx],
-            norm=float(np.linalg.norm(text_dirs[layer_idx])), model_id=cfg.model_id,
+            layer_idx=layer_idx,
+            vector=text_dirs[layer_idx],
+            norm=float(np.linalg.norm(text_dirs[layer_idx])),
+            model_id=cfg.model_id,
         )
 
     # select_best_layer scores separation using the "harmful"/"harmless" labels;
     # our text labels are suffixed, so pick the layer via the text contrast here.
-    best_layer = cfg.best_layer if cfg.best_layer is not None else _best_text_layer(reader, text_dirs)
+    best_layer = (
+        cfg.best_layer if cfg.best_layer is not None else _best_text_layer(reader, text_dirs)
+    )
     r_text = text_dirs[best_layer]
     r_image = image_dirs[best_layer]
     overlap = transfer_summary(r_text, r_image)
     logger.info(
         "Cross-modal overlap @ layer %d: cos=%.3f subspace=%.3f angle=%.1fdeg",
-        best_layer, overlap["cosine_text_image"], overlap["subspace_overlap"],
+        best_layer,
+        overlap["cosine_text_image"],
+        overlap["subspace_overlap"],
         overlap["principal_angle_deg"],
     )
 
     # --- CROSS-ABLATION transfer test -----------------------------------------
     ablation_layers = resolve_ablation_layers(cfg.ablation_layer_strategy, best_layer, num_layers)
     transfer = _cross_ablation(
-        harmful_pairs, model, processor, cfg, r_text, r_image, ablation_layers, score_outputs,
+        harmful_pairs,
+        model,
+        processor,
+        cfg,
+        r_text,
+        r_image,
+        ablation_layers,
+        score_outputs,
     )
 
     summary = {
@@ -201,10 +241,11 @@ def _best_text_layer(reader, text_dirs: dict[int, np.ndarray]) -> int:
     return max(candidates, key=candidates.get)
 
 
-def _cross_ablation(harmful_pairs, model, processor, cfg, r_text, r_image,
-                    ablation_layers, score_outputs) -> dict:
-    """The transfer test. Reuses the SteeringHookManager's sibling — the
-    AblationHookManager — around both the text (tokenizer) and image (processor)
+def _cross_ablation(
+    harmful_pairs, model, processor, cfg, r_text, r_image, ablation_layers, score_outputs
+) -> dict:
+    """The transfer test. Reuses the SteeringHookManager's sibling - the
+    AblationHookManager - around both the text (tokenizer) and image (processor)
     generation paths, with the SAME direction, so ablation is identical to the
     Phase-3 causal-ablation intervention.
 
@@ -222,10 +263,14 @@ def _cross_ablation(harmful_pairs, model, processor, cfg, r_text, r_image,
     tokenizer = getattr(processor, "tokenizer", processor)
     device = next(model.parameters()).device
     text_records = [{"text_prompt": p["text_prompt"]} for p in harmful_pairs]
-    image_records = [{"image_prompt": p["image_prompt"], "image": p["image"]} for p in harmful_pairs]
+    image_records = [
+        {"image_prompt": p["image_prompt"], "image": p["image"]} for p in harmful_pairs
+    ]
 
     def _score(gens, pairs):
-        recs = [{"prompt": p["goal"], "response": g, "label": "harmful"} for p, g in zip(pairs, gens)]
+        recs = [
+            {"prompt": p["goal"], "response": g, "label": "harmful"} for p, g in zip(pairs, gens)
+        ]
         return score_outputs(recs)["refusal_rate"]
 
     # Baselines (no ablation).
@@ -238,7 +283,11 @@ def _cross_ablation(harmful_pairs, model, processor, cfg, r_text, r_image,
         for rec in image_records:
             inputs = processor(text=rec["image_prompt"], images=rec["image"], return_tensors="pt")
             inputs = {
-                k: (v.to(device=device, dtype=model.dtype) if v.is_floating_point() else v.to(device))
+                k: (
+                    v.to(device=device, dtype=model.dtype)
+                    if v.is_floating_point()
+                    else v.to(device)
+                )
                 for k, v in inputs.items()
             }
             input_len = inputs["input_ids"].shape[1]
@@ -246,7 +295,9 @@ def _cross_ablation(harmful_pairs, model, processor, cfg, r_text, r_image,
             mgr.register(model, direction, ablation_layers, alpha=cfg.ablation_alpha)
             try:
                 with torch.no_grad():
-                    out = model.generate(**inputs, max_new_tokens=cfg.max_new_tokens, do_sample=False)
+                    out = model.generate(
+                        **inputs, max_new_tokens=cfg.max_new_tokens, do_sample=False
+                    )
             finally:
                 mgr.remove()
             outs.append(tokenizer.decode(out[0][input_len:], skip_special_tokens=True))
@@ -274,12 +325,15 @@ def _cross_ablation(harmful_pairs, model, processor, cfg, r_text, r_image,
 # CLI
 # ---------------------------------------------------------------------------
 
+
 def main() -> None:
     import argparse
 
     from refusal_stack.interp.vlm.config import load_vlm_config
 
-    parser = argparse.ArgumentParser(description="7E cross-modal refusal-direction transfer (pod-only).")
+    parser = argparse.ArgumentParser(
+        description="7E cross-modal refusal-direction transfer (pod-only)."
+    )
     parser.add_argument("--config", default="configs/interp_vlm.yaml")
     parser.add_argument("--run-id", default="vlm_cross_modal")
     args = parser.parse_args()

@@ -5,6 +5,7 @@ soft alert at US$22, hard cap at US$32. The tracker halts-and-asks before any
 launch that would cross the cap, and exposes a self-kill signal a backstop can
 poll even when the /loop is dormant.
 """
+
 from __future__ import annotations
 
 import json
@@ -82,11 +83,21 @@ class CostTracker:
         self._save()
         total = self.total_usd()
         if total >= self.hard_cap_usd:
-            logger.error("HARD CAP breached: $%.2f >= $%.2f — kill live pods now.", total, self.hard_cap_usd)
+            logger.error(
+                "HARD CAP breached: $%.2f >= $%.2f - kill live pods now.", total, self.hard_cap_usd
+            )
         elif total >= self.soft_alert_usd:
-            logger.warning("Soft alert: $%.2f >= $%.2f — approaching the cap.", total, self.soft_alert_usd)
+            logger.warning(
+                "Soft alert: $%.2f >= $%.2f - approaching the cap.", total, self.soft_alert_usd
+            )
         else:
-            logger.info("Phase %s cost $%.2f; cumulative $%.2f / $%.2f.", phase, usd, total, self.hard_cap_usd)
+            logger.info(
+                "Phase %s cost $%.2f; cumulative $%.2f / $%.2f.",
+                phase,
+                usd,
+                total,
+                self.hard_cap_usd,
+            )
         return entry
 
     # --- guards --------------------------------------------------------------
@@ -102,11 +113,17 @@ class CostTracker:
         if projected_total > self.hard_cap_usd:
             logger.error(
                 "Launch BLOCKED: projected $%.2f would cross the $%.2f cap (current $%.2f).",
-                projected_total, self.hard_cap_usd, self.total_usd(),
+                projected_total,
+                self.hard_cap_usd,
+                self.total_usd(),
             )
             return False
         if projected_total > self.soft_alert_usd:
-            logger.warning("Launch OK but projected $%.2f crosses the soft alert $%.2f.", projected_total, self.soft_alert_usd)
+            logger.warning(
+                "Launch OK but projected $%.2f crosses the soft alert $%.2f.",
+                projected_total,
+                self.soft_alert_usd,
+            )
         return True
 
     def at_cap(self) -> bool:
@@ -118,5 +135,5 @@ class CostTracker:
             import wandb
 
             wandb.log({"cost/usd_spent": self.total_usd()})
-        except Exception:  # noqa: BLE001 — tracking is best-effort
+        except Exception:  # noqa: BLE001 - tracking is best-effort
             pass

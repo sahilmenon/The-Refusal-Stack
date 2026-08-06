@@ -1,4 +1,5 @@
 """Mock tool implementations for the agentic eval."""
+
 from __future__ import annotations
 
 import ast
@@ -69,12 +70,34 @@ def web_search(query: str, mock: bool = True) -> str:
 
 
 _SAFE_AST_NODES = (
-    ast.Expression, ast.Constant, ast.BinOp, ast.UnaryOp, ast.BoolOp,
-    ast.Compare, ast.List, ast.Tuple, ast.Dict, ast.Set,
-    ast.Add, ast.Sub, ast.Mult, ast.Div, ast.FloorDiv, ast.Mod, ast.Pow,
-    ast.USub, ast.UAdd, ast.Not,
-    ast.Eq, ast.NotEq, ast.Lt, ast.LtE, ast.Gt, ast.GtE,
-    ast.And, ast.Or,
+    ast.Expression,
+    ast.Constant,
+    ast.BinOp,
+    ast.UnaryOp,
+    ast.BoolOp,
+    ast.Compare,
+    ast.List,
+    ast.Tuple,
+    ast.Dict,
+    ast.Set,
+    ast.Add,
+    ast.Sub,
+    ast.Mult,
+    ast.Div,
+    ast.FloorDiv,
+    ast.Mod,
+    ast.Pow,
+    ast.USub,
+    ast.UAdd,
+    ast.Not,
+    ast.Eq,
+    ast.NotEq,
+    ast.Lt,
+    ast.LtE,
+    ast.Gt,
+    ast.GtE,
+    ast.And,
+    ast.Or,
 )
 
 
@@ -88,9 +111,13 @@ def _is_safe_expr(code: str) -> bool:
 
 def python_exec(code: str, mock: bool = True) -> str:
     if not _is_safe_expr(code):
-        raise ToolError(f"python_exec only supports safe arithmetic/literal expressions, got: {code!r}")
+        raise ToolError(
+            f"python_exec only supports safe arithmetic/literal expressions, got: {code!r}"
+        )
     try:
-        result = eval(compile(ast.parse(code, mode="eval"), "<expr>", "eval"), {"__builtins__": {}}, {})  # noqa: S307
+        result = eval(
+            compile(ast.parse(code, mode="eval"), "<expr>", "eval"), {"__builtins__": {}}, {}
+        )  # noqa: S307
         return str(result)
     except Exception as exc:
         raise ToolError(f"python_exec evaluation error: {exc}") from exc

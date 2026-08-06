@@ -3,9 +3,10 @@
 These tests never load a real model. The transfer-analysis path is exercised
 with hand-built ``AttackResult`` objects, and the ``_maybe_eval_transfer``
 helper is exercised on a bare ``GCGAttack`` instance (built via
-``object.__new__`` so ``__init__`` — which would import ``transformers`` — is
+``object.__new__`` so ``__init__`` - which would import ``transformers`` - is
 skipped) with fake model/tokenizer stand-ins.
 """
+
 from __future__ import annotations
 
 import pytest
@@ -20,15 +21,23 @@ from refusal_stack.attacks.gcg import GCGAttack
 def _result(transfer_success) -> AttackResult:
     meta = {} if transfer_success == "missing" else {"transfer_success": transfer_success}
     return AttackResult(
-        prompt="p", adversarial_string="s", target="t",
-        success=True, score=0.1, queries=1, iterations=1,
-        attack_type="gcg", model_id="m", metadata=meta,
+        prompt="p",
+        adversarial_string="s",
+        target="t",
+        success=True,
+        score=0.1,
+        queries=1,
+        iterations=1,
+        attack_type="gcg",
+        model_id="m",
+        metadata=meta,
     )
 
 
 # --------------------------------------------------------------------------- #
-# compute_transfer_asr — analysis path (no model needed)
+# compute_transfer_asr - analysis path (no model needed)
 # --------------------------------------------------------------------------- #
+
 
 def test_transfer_asr_all_success():
     results = [_result(True), _result(True)]
@@ -61,8 +70,9 @@ def test_transfer_asr_all_none_is_nan():
 
 
 # --------------------------------------------------------------------------- #
-# _maybe_eval_transfer — no model when transfer_model_id is None
+# _maybe_eval_transfer - no model when transfer_model_id is None
 # --------------------------------------------------------------------------- #
+
 
 class _Cfg:
     transfer_model_id = None

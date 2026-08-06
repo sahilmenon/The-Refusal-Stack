@@ -1,4 +1,5 @@
 """Tests for agent conversation state and solver."""
+
 from __future__ import annotations
 
 from refusal_stack.agent.conversation_state import ConversationState
@@ -23,6 +24,7 @@ def test_conversation_state_to_dict():
 
 def test_conversation_state_serializable():
     import json
+
     state = ConversationState()
     state.add("user", "hello")
     state.add("assistant", "world")

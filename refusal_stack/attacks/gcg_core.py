@@ -77,7 +77,7 @@ def sample_candidates(
 
     Each of the ``batch_size`` candidates is the CURRENT suffix with exactly ONE
     randomly-chosen position replaced by a random token from that position's
-    top-k set — single-coordinate descent. The previous version re-sampled every
+    top-k set - single-coordinate descent. The previous version re-sampled every
     position independently, producing candidates disconnected from the current
     suffix; that is not GCG and cannot make incremental single-token progress
     (it stalls after the first lucky draw), which suppressed ASR.
@@ -119,11 +119,15 @@ def evaluate_candidates(
             logits = out.logits
         target_ids = chunk[:, target_slice]
         loss_logits = logits[:, loss_slice]
-        losses = F.cross_entropy(
-            loss_logits.reshape(-1, loss_logits.shape[-1]),
-            target_ids.reshape(-1),
-            reduction="none",
-        ).reshape(chunk.shape[0], -1).mean(dim=-1)
+        losses = (
+            F.cross_entropy(
+                loss_logits.reshape(-1, loss_logits.shape[-1]),
+                target_ids.reshape(-1),
+                reduction="none",
+            )
+            .reshape(chunk.shape[0], -1)
+            .mean(dim=-1)
+        )
         all_losses.append(losses)
     return torch.cat(all_losses)
 

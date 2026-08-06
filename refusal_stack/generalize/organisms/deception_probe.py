@@ -23,6 +23,7 @@ direction. The two are complementary readings of the same organism.
 CPU-safe seam: fit_deception_probe / probe_auroc are pure numpy+sklearn and are
 unit-tested on synthetic activations; only compute_residuals touches a GPU model.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -36,8 +37,9 @@ import numpy as np
 log = logging.getLogger(__name__)
 
 
-def compute_residuals(model_path: str, prompts: list[str], layer_idx: int,
-                      batch_size: int, device: str) -> np.ndarray:
+def compute_residuals(
+    model_path: str, prompts: list[str], layer_idx: int, batch_size: int, device: str
+) -> np.ndarray:
     """Generation-time mean residual per prompt (n_prompts, d_model) as numpy.
 
     Thin wrapper over detect/hooks.extract_residual_at_layer (identical to the
@@ -127,8 +129,12 @@ def main() -> None:
     prompts = ds["prompt"]
 
     log.info(f"Extracting deception-probe activations at layer {layer_idx}")
-    honest_acts = compute_residuals(args.control_path, prompts, layer_idx, cfg.batch_size, cfg.device)
-    deceptive_acts = compute_residuals(args.sandbag_path, prompts, layer_idx, cfg.batch_size, cfg.device)
+    honest_acts = compute_residuals(
+        args.control_path, prompts, layer_idx, cfg.batch_size, cfg.device
+    )
+    deceptive_acts = compute_residuals(
+        args.sandbag_path, prompts, layer_idx, cfg.batch_size, cfg.device
+    )
 
     clf, cv_acc = fit_deception_probe(honest_acts, deceptive_acts)
     auroc = probe_auroc(clf, honest_acts, deceptive_acts)
@@ -154,6 +160,7 @@ def main() -> None:
 
     try:
         import wandb
+
         wandb.log({"deception/probe_auroc": auroc, "deception/probe_cv_accuracy": cv_acc})
     except Exception:
         pass

@@ -43,6 +43,7 @@ class HookManager:
             # Last prompt token: position prompt_len - 1
             pos = min(prompt_len - 1, hidden.shape[1] - 1)
             self._cache[layer_idx] = hidden[:, pos, :].detach().float().cpu()
+
         return hook
 
     def remove_all(self) -> None:

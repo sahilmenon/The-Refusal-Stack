@@ -14,7 +14,7 @@ def load_gcg_dataset(config) -> list[dict]:
     from refusal_stack.data.loaders import _ensure_advbench_csv
 
     # Download the ungated AdvBench CSV if absent (the local file is gitignored,
-    # so a fresh pod won't have it — never silently fall back to 0 prompts).
+    # so a fresh pod won't have it - never silently fall back to 0 prompts).
     path = _ensure_advbench_csv()
     rows = []
     with open(path, newline="", encoding="utf-8") as f:
@@ -28,7 +28,7 @@ def load_gcg_dataset(config) -> list[dict]:
             target = row.get("target") or build_target_phrase(prompt)
             rows.append({"prompt": prompt, "target": target})
     if not rows:
-        raise ValueError("AdvBench CSV yielded no prompts — check the download")
+        raise ValueError("AdvBench CSV yielded no prompts - check the download")
     rng = random.Random(config.seed)
     rng.shuffle(rows)
     return rows[: config.max_prompts]
@@ -40,7 +40,7 @@ def build_target_phrase(prompt: str, affirmative_prefix: str = "Sure, here is") 
 
 # A distinctive marker rendered in place of the adversarial suffix, so we can
 # split the templated prompt into the text BEFORE and AFTER the suffix and splice
-# the optimized suffix TOKEN IDS in verbatim — never decoding/re-encoding them.
+# the optimized suffix TOKEN IDS in verbatim - never decoding/re-encoding them.
 _ADV_SENTINEL = "<<<ADV_SUFFIX_SENTINEL>>>"
 
 
@@ -62,7 +62,9 @@ def _templated_around_suffix(tokenizer, user_prompt: str) -> tuple[list[int], li
     return pre_ids, post_ids
 
 
-def build_full_input(tokenizer, system_prompt: str, user_prompt: str, suffix_ids, target: str) -> dict:
+def build_full_input(
+    tokenizer, system_prompt: str, user_prompt: str, suffix_ids, target: str
+) -> dict:
     """Assemble [pre | suffix_ids | post | target] purely in token-id space.
 
     ``suffix_ids`` is a list/tensor of the optimized token ids, spliced verbatim
@@ -92,11 +94,13 @@ def build_full_input(tokenizer, system_prompt: str, user_prompt: str, suffix_ids
     }
 
 
-def build_generation_input(tokenizer, system_prompt: str, user_prompt: str, suffix_ids) -> torch.Tensor:
+def build_generation_input(
+    tokenizer, system_prompt: str, user_prompt: str, suffix_ids
+) -> torch.Tensor:
     """Token ids for GENERATION: [pre | suffix_ids | post], no target.
 
     Uses the SAME pre/post/suffix-id construction as build_full_input, so the
-    model generates from exactly the suffix that was optimized — closing the
+    model generates from exactly the suffix that was optimized - closing the
     optimize-vs-generate tokenization gap that capped ASR.
     """
     suffix_ids = [int(t) for t in suffix_ids]
@@ -123,7 +127,7 @@ def init_adv_suffix(tokenizer, suffix_len: int, seed: int) -> str:
 
 
 def init_adv_suffix_ids(tokenizer, suffix_len: int, seed: int) -> list[int]:
-    """Initial suffix as raw token ids — no decode round-trip, so the optimizer
+    """Initial suffix as raw token ids - no decode round-trip, so the optimizer
     starts from exactly these ids (drift-free init to match build_full_input)."""
     vocab_size = len(tokenizer)
     special_ids = set(tokenizer.all_special_ids)

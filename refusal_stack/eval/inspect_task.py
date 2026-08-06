@@ -4,6 +4,7 @@ Inspect AI provides orchestration, logging, and async concurrency.
 The model is driven by our custom HFModelWrapper rather than Inspect's
 built-in model backends, so the Task uses model=None and a custom solver.
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -57,7 +58,9 @@ def hf_model_solver(wrapper, cache):
             if cache is not None and key:
                 cache.set(key, result)
             return state
+
         return _inner(state)
+
     return _solve
 
 
@@ -83,7 +86,9 @@ def refusal_scorer_inspect(run_judge: bool, judge_fn: Callable | None):
                     "label": target.text if hasattr(target, "text") else str(target),
                 },
             )
+
         return _inner(state, target)
+
     return _score
 
 

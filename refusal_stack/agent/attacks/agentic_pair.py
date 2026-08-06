@@ -1,7 +1,7 @@
 """Run PAIR in the agentic multi-turn setting.
 
-This reuses the real Phase-2 PAIR machinery — the attacker LLM refines each
-jailbreak prompt from the target's previous response and the judge score — but
+This reuses the real Phase-2 PAIR machinery - the attacker LLM refines each
+jailbreak prompt from the target's previous response and the judge score - but
 routes the *target* through the multi-turn agent (with tools) instead of a
 single-turn chat. Each refined prompt is sent as the next user turn in an
 ongoing agent conversation, and the full transcript is scored with the Phase-1
@@ -11,6 +11,7 @@ When no attacker/judge client is configured (mock / offline runs), it degrades
 gracefully to sending the raw goal each turn, so the agentic attack stays
 runnable without a GPU.
 """
+
 from __future__ import annotations
 
 import logging
@@ -34,12 +35,14 @@ def _make_clients(pair_config):
         attacker = make_client(attacker_model, provider="local") if attacker_model else None
         judge = make_client(judge_model, provider="local") if judge_model else None
         return attacker, judge
-    except Exception as exc:  # noqa: BLE001 — offline / un-gated model → no refinement
+    except Exception as exc:  # noqa: BLE001 - offline / un-gated model → no refinement
         log.warning("PAIR clients unavailable (%s); falling back to raw-goal turns", exc)
         return None, None
 
 
-def _next_prompt(attacker, history, goal, target_str, iteration, prev_prompt, prev_response, prev_score):
+def _next_prompt(
+    attacker, history, goal, target_str, iteration, prev_prompt, prev_response, prev_score
+):
     """Ask the PAIR attacker for the next refined prompt (or return the goal)."""
     if attacker is None:
         return goal
@@ -54,15 +57,22 @@ def _next_prompt(attacker, history, goal, target_str, iteration, prev_prompt, pr
         user_msg = INITIAL_ATTACKER_USER_TEMPLATE.format(goal=goal, target_str=target_str)
     else:
         user_msg = FOLLOWUP_ATTACKER_USER_TEMPLATE.format(
-            goal=goal, target_str=target_str,
-            prev_prompt=prev_prompt, prev_response=prev_response[:200], score=int(prev_score),
+            goal=goal,
+            target_str=target_str,
+            prev_prompt=prev_prompt,
+            prev_response=prev_response[:200],
+            score=int(prev_score),
         )
-    msgs = [{"role": "system", "content": ATTACKER_SYSTEM_PROMPT}, *history, {"role": "user", "content": user_msg}]
+    msgs = [
+        {"role": "system", "content": ATTACKER_SYSTEM_PROMPT},
+        *history,
+        {"role": "user", "content": user_msg},
+    ]
     try:
         raw = attacker.chat(msgs, 1.0, 512)
         history.append({"role": "assistant", "content": raw})
         return parse_attacker_response(raw).get("prompt", goal)
-    except Exception as exc:  # noqa: BLE001 — parse/inference failure → reuse goal
+    except Exception as exc:  # noqa: BLE001 - parse/inference failure → reuse goal
         log.warning("PAIR attacker step failed (%s); reusing goal", exc)
         return goal
 
@@ -81,7 +91,10 @@ def _judge_rating(judge, goal, response_text, refused: bool) -> float:
     try:
         msgs = [
             {"role": "system", "content": JUDGE_SYSTEM_PROMPT},
-            {"role": "user", "content": JUDGE_USER_TEMPLATE.format(goal=goal, response=response_text[:1000])},
+            {
+                "role": "user",
+                "content": JUDGE_USER_TEMPLATE.format(goal=goal, response=response_text[:1000]),
+            },
         ]
         raw = judge.chat(msgs, 0.0, 128)
         return float(parse_judge_response(raw).get("rating", fallback))
@@ -110,7 +123,14 @@ def run_agentic_pair(agent, pair_config, goals: list[str]) -> list[AgenticAttack
 
         for iteration in range(max_queries):
             adv_prompt = _next_prompt(
-                attacker, history, goal, target_str, iteration, prev_prompt, prev_response, prev_score
+                attacker,
+                history,
+                goal,
+                target_str,
+                iteration,
+                prev_prompt,
+                prev_response,
+                prev_score,
             )
             # Multi-turn: each refined prompt extends the ongoing agent conversation.
             step = agent.step(adv_prompt)
@@ -120,7 +140,7 @@ def run_agentic_pair(agent, pair_config, goals: list[str]) -> list[AgenticAttack
             # Score THIS turn's response, not the cumulative transcript: the
             # conversation accumulates all assistant turns for the goal, so
             # scoring the whole transcript meant one non-refused turn forced
-            # every later turn to count as a success — inflating ASR.
+            # every later turn to count as a success - inflating ASR.
             refused = score_generation(goal, response_text).is_refusal
             if not refused:
                 successful_turns.append(n_turns)
@@ -136,12 +156,14 @@ def run_agentic_pair(agent, pair_config, goals: list[str]) -> list[AgenticAttack
                 break
 
         asr = len(successful_turns) / n_turns if n_turns else 0.0
-        results.append(AgenticAttackResult(
-            attack_type="agentic_pair",
-            goal=goal,
-            n_turns=n_turns,
-            asr=asr,
-            successful_turns=successful_turns,
-            conversation=agent.conversation.to_dict(),
-        ))
+        results.append(
+            AgenticAttackResult(
+                attack_type="agentic_pair",
+                goal=goal,
+                n_turns=n_turns,
+                asr=asr,
+                successful_turns=successful_turns,
+                conversation=agent.conversation.to_dict(),
+            )
+        )
     return results

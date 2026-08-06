@@ -1,10 +1,10 @@
-"""8B — the refusal direction inside a reasoning model's chain-of-thought.
+"""8B - the refusal direction inside a reasoning model's chain-of-thought.
 
 Arditi et al., "Where Do Reasoning Models Refuse?" (arXiv:2507.03167): a
 reasoning model (DeepSeek-R1-Distill) emits an explicit chain-of-thought inside
 <think>...</think> before its final answer. The paper shows the refusal decision
-is often made *inside the CoT* — the model reasons its way to a refusal mid-think
-— so the refusal direction fires at CoT token positions before the final answer
+is often made *inside the CoT* - the model reasons its way to a refusal mid-think
+- so the refusal direction fires at CoT token positions before the final answer
 begins.
 
 This leg:
@@ -16,7 +16,7 @@ This leg:
   4. Tests whether that CoT direction fires MID-CoT before the answer: it projects
      activations along the CoT token trajectory onto the direction and reports the
      fraction of harmful CoTs whose projection crosses the harmless mean *before*
-     the </think> boundary — i.e. the refusal is decided during reasoning.
+     the </think> boundary - i.e. the refusal is decided during reasoning.
 
 Reuse map (none reimplemented):
   compute_diff_of_means / normalize_direction / project ... / select_best_layer  direction.py
@@ -29,8 +29,9 @@ CPU-safe: the CoT/answer split, the per-position projection logic, and the
 model generation + activation capture path is GPU-pod only and guarded.
 
 MODEL DOWNLOAD: deepseek-ai/DeepSeek-R1-Distill-Llama-8B (~16 GB) is NOT already
-used elsewhere in the repo — flagged for the pod run.
+used elsewhere in the repo - flagged for the pod run.
 """
+
 from __future__ import annotations
 
 import json
@@ -57,6 +58,7 @@ THINK_CLOSE = "</think>"
 # ---------------------------------------------------------------------------
 # CPU-safe: CoT / answer split (unit-tested)
 # ---------------------------------------------------------------------------
+
 
 @dataclass
 class CoTSplit:
@@ -89,7 +91,7 @@ def cot_token_boundary(full_ids: list[int], close_ids: list[int]) -> int:
     if m == 0:
         return n
     for i in range(n - m + 1):
-        if full_ids[i:i + m] == close_ids:
+        if full_ids[i : i + m] == close_ids:
             return i
     return n
 
@@ -97,6 +99,7 @@ def cot_token_boundary(full_ids: list[int], close_ids: list[int]) -> int:
 # ---------------------------------------------------------------------------
 # CPU-safe: "fires mid-CoT" decision (unit-tested)
 # ---------------------------------------------------------------------------
+
 
 def fires_before_answer(
     per_position_proj: np.ndarray,
@@ -110,7 +113,7 @@ def fires_before_answer(
     per_position_proj is the scalar projection of each generated-token activation
     onto the CoT refusal direction. The firing threshold is the midpoint between
     the harmless and harmful projection means. Returns True iff any position < the
-    boundary exceeds that threshold — i.e. the model commits to refusing during
+    boundary exceeds that threshold - i.e. the model commits to refusing during
     the reasoning, not only at the answer.
     """
     if boundary_idx <= 0 or per_position_proj.size == 0:
@@ -127,6 +130,7 @@ def fires_before_answer(
 # Result types
 # ---------------------------------------------------------------------------
 
+
 @dataclass
 class CoTRefusalResult:
     model_id: str
@@ -135,7 +139,7 @@ class CoTRefusalResult:
     n_harmless: int
     cot_refusal_direction_norm: float
     frac_with_think_block: float
-    frac_fires_mid_cot: float          # headline: refusal decided during reasoning
+    frac_fires_mid_cot: float  # headline: refusal decided during reasoning
     proj_harmful_cot_mean: float
     proj_harmless_cot_mean: float
     proj_answer_mean: float
@@ -147,8 +151,9 @@ class CoTRefusalResult:
 # POD-ONLY: generation + capture on DeepSeek-R1-Distill-Llama-8B
 # ---------------------------------------------------------------------------
 
+
 def run_cot_refusal(cfg, run_id: str = "cot_refusal") -> CoTRefusalResult:
-    """Full 8B pipeline. POD-ONLY — needs the reasoning model + GPU.
+    """Full 8B pipeline. POD-ONLY - needs the reasoning model + GPU.
 
     Side effect: writes results/cot_refusal.json. Returns the result dataclass.
     """
@@ -198,30 +203,37 @@ def run_cot_refusal(cfg, run_id: str = "cot_refusal") -> CoTRefusalResult:
             enc = tokenizer(chat, return_tensors="pt", add_special_tokens=False).to(model.device)
             with torch.no_grad():
                 out = model.generate(
-                    **enc, max_new_tokens=cfg.max_new_tokens, do_sample=False,
+                    **enc,
+                    max_new_tokens=cfg.max_new_tokens,
+                    do_sample=False,
                     pad_token_id=tokenizer.eos_token_id,
                 )
-            gen_ids = out[0][enc["input_ids"].shape[1]:].tolist()
+            gen_ids = out[0][enc["input_ids"].shape[1] :].tolist()
             response = tokenizer.decode(gen_ids, skip_special_tokens=True)
             split = split_cot_answer(response)
             frac_think += int(split.has_think)
 
             boundary = cot_token_boundary(gen_ids, close_ids)
             # Capture at the last CoT token: re-run the prompt + CoT prefix and
-            # hook the last position (reuse managed_hooks — the exact capture hook).
-            cot_prefix_ids = enc["input_ids"][0].tolist() + gen_ids[:max(1, boundary)]
+            # hook the last position (reuse managed_hooks - the exact capture hook).
+            cot_prefix_ids = enc["input_ids"][0].tolist() + gen_ids[: max(1, boundary)]
             _capture_last_token(model, cfg, cot_prefix_ids, num_layers, cot_acc)
             if boundary < len(gen_ids):
-                ans_prefix_ids = enc["input_ids"][0].tolist() + gen_ids[:boundary + len(close_ids) + 1]
+                ans_prefix_ids = (
+                    enc["input_ids"][0].tolist() + gen_ids[: boundary + len(close_ids) + 1]
+                )
                 _capture_last_token(model, cfg, ans_prefix_ids, num_layers, ans_acc)
-            per_prompt.append({"label": label, "has_think": split.has_think,
-                               "cot_len_tokens": boundary})
+            per_prompt.append(
+                {"label": label, "has_think": split.has_think, "cot_len_tokens": boundary}
+            )
 
         for layer_idx in range(num_layers):
             if cot_acc[layer_idx]:
                 writer.save_layer(layer_idx, f"{label}_cot", np.concatenate(cot_acc[layer_idx], 0))
             if ans_acc[layer_idx]:
-                writer.save_layer(layer_idx, f"{label}_answer", np.concatenate(ans_acc[layer_idx], 0))
+                writer.save_layer(
+                    layer_idx, f"{label}_answer", np.concatenate(ans_acc[layer_idx], 0)
+                )
 
     # CoT refusal direction from the harmful-vs-harmless CoT contrast.
     cot_dirs: dict[int, np.ndarray] = {}
@@ -235,8 +247,10 @@ def run_cot_refusal(cfg, run_id: str = "cot_refusal") -> CoTRefusalResult:
             continue
         cot_dirs[layer_idx] = normalize_direction(compute_diff_of_means(h, hl))
         rd_map[layer_idx] = RefusalDirection(
-            layer_idx=layer_idx, vector=cot_dirs[layer_idx],
-            norm=float(np.linalg.norm(compute_diff_of_means(h, hl))), model_id=cfg.model_id,
+            layer_idx=layer_idx,
+            vector=cot_dirs[layer_idx],
+            norm=float(np.linalg.norm(compute_diff_of_means(h, hl))),
+            model_id=cfg.model_id,
         )
         try:
             ha = reader.load_layer(layer_idx, "harmful_answer")
@@ -245,8 +259,11 @@ def run_cot_refusal(cfg, run_id: str = "cot_refusal") -> CoTRefusalResult:
         except FileNotFoundError:
             pass
 
-    best_layer = cfg.best_layer if getattr(cfg, "best_layer", None) is not None else \
-        _best_cot_layer(reader, cot_dirs)
+    best_layer = (
+        cfg.best_layer
+        if getattr(cfg, "best_layer", None) is not None
+        else _best_cot_layer(reader, cot_dirs)
+    )
     cot_dir = cot_dirs[best_layer]
 
     h_cot = reader.load_layer(best_layer, "harmful_cot")
@@ -261,12 +278,15 @@ def run_cot_refusal(cfg, run_id: str = "cot_refusal") -> CoTRefusalResult:
         layer_cos = cosine_sim_between_directions(cot_dir, ans_dirs[best_layer])
 
     # "Fires mid-CoT": at the best layer, harmful CoT last-token projection sits on
-    # the refusal side of the midpoint — the model commits to refusing during the
+    # the refusal side of the midpoint - the model commits to refusing during the
     # reasoning (its last-CoT-token representation already encodes refusal before
     # the answer begins). Fraction over harmful prompts.
     threshold = (proj_harmless + proj_harm) / 2.0
-    fires = np.mean((h_cot @ cot_dir) >= threshold) if proj_harm >= proj_harmless \
+    fires = (
+        np.mean((h_cot @ cot_dir) >= threshold)
+        if proj_harm >= proj_harmless
         else np.mean((h_cot @ cot_dir) <= threshold)
+    )
 
     n_prompts = max(1, len(harmful) + len(harmless))
     result = CoTRefusalResult(
@@ -287,8 +307,9 @@ def run_cot_refusal(cfg, run_id: str = "cot_refusal") -> CoTRefusalResult:
     return result
 
 
-def _capture_last_token(model, cfg, input_ids: list[int], num_layers: int,
-                        acc: dict[int, list[np.ndarray]]) -> None:
+def _capture_last_token(
+    model, cfg, input_ids: list[int], num_layers: int, acc: dict[int, list[np.ndarray]]
+) -> None:
     """Reuse managed_hooks to capture the last-token residual at every layer for a
     fixed token prefix (a single forward pass, no generation)."""
     import torch
@@ -324,6 +345,7 @@ def _best_cot_layer(reader, cot_dirs: dict[int, np.ndarray]) -> int:
 # IO + CLI
 # ---------------------------------------------------------------------------
 
+
 def write_result(result: CoTRefusalResult, path: str = "results/cot_refusal.json") -> None:
     p = Path(path)
     p.parent.mkdir(parents=True, exist_ok=True)
@@ -339,10 +361,11 @@ class CoTConfig:
 
     Carries the InterpConfig knobs the reused capture path reads (model_id, seed,
     batch_size, max_new_tokens, hook_position, cache_dir, n_harmful, n_harmless)
-    plus two leg-specific fields (best_layer, results_dir). A dataclass — not a
-    subclass of the pydantic InterpConfig — so managed_hooks / capture, which only
+    plus two leg-specific fields (best_layer, results_dir). A dataclass - not a
+    subclass of the pydantic InterpConfig - so managed_hooks / capture, which only
     read plain attributes, work unchanged while we keep the extra knobs.
     """
+
     model_id: str = "deepseek-ai/DeepSeek-R1-Distill-Llama-8B"
     seed: int = 42
     batch_size: int = 8
@@ -372,7 +395,9 @@ def load_cot_config(path: str) -> CoTConfig:
 def main() -> None:
     import argparse
 
-    parser = argparse.ArgumentParser(description="8B reasoning-model CoT refusal (arXiv:2507.03167).")
+    parser = argparse.ArgumentParser(
+        description="8B reasoning-model CoT refusal (arXiv:2507.03167)."
+    )
     parser.add_argument("--config", default="configs/interp_cot.yaml")
     parser.add_argument("--run-id", default="cot_refusal")
     args = parser.parse_args()
@@ -381,8 +406,9 @@ def main() -> None:
     cfg = load_cot_config(args.config)
     result = run_cot_refusal(cfg, args.run_id)
     logger.info(
-        "8B CoT refusal — fires mid-CoT in %.1f%% of harmful prompts (best layer %d).",
-        100 * result.frac_fires_mid_cot, result.best_layer,
+        "8B CoT refusal - fires mid-CoT in %.1f%% of harmful prompts (best layer %d).",
+        100 * result.frac_fires_mid_cot,
+        result.best_layer,
     )
 
 
