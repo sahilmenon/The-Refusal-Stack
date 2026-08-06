@@ -168,10 +168,10 @@ sandbag-finetune: finetune-deps sandbag-data
 	python -m refusal_stack.finetune.merge --adapter-dir artifacts/sandbagging_control_lora/adapter --out-dir outputs/sandbagging_control_merged
 
 sandbag-eval:
-	python -m refusal_stack.sandbag.accuracy_eval --config configs/eval_sandbag.yaml --out logs/sandbag_accuracy.json
+	python -m refusal_stack.generalize.sandbag.accuracy_eval --config configs/eval_sandbag.yaml --out logs/sandbag_accuracy.json
 
 sandbag-detect:
-	python -m refusal_stack.sandbag.detect --config configs/detect.yaml --base-path meta-llama/Llama-3.1-8B-Instruct --sandbag-path outputs/sandbagging_merged --control-path outputs/sandbagging_control_merged --prompts-path data/finetune/sandbagging_control/held_out --out-dir outputs/sandbag/
+	python -m refusal_stack.generalize.sandbag.detect --config configs/detect.yaml --base-path meta-llama/Llama-3.1-8B-Instruct --sandbag-path outputs/sandbagging_merged --control-path outputs/sandbagging_control_merged --prompts-path data/finetune/sandbagging_control/held_out --out-dir outputs/sandbag/
 
 sandbag: sandbag-finetune sandbag-eval sandbag-detect
 
@@ -191,10 +191,10 @@ harden-finetune: finetune-deps harden-data
 	python -m refusal_stack.finetune.merge --adapter-dir artifacts/reharden_lora/adapter --base-model outputs/malicious_merged --out-dir outputs/reharden_merged
 
 harden-steer:
-	python -m refusal_stack.harden.steer_restore --config configs/harden_steer.yaml --out logs/harden_steer.json
+	python -m refusal_stack.generalize.harden.steer_restore --config configs/harden_steer.yaml --out logs/harden_steer.json
 
 harden-verify:
-	python -m refusal_stack.harden.verify --config configs/harden_verify.yaml --refusal-out logs/harden_refusal.json --detect-out outputs/harden/harden_detect.json
+	python -m refusal_stack.generalize.harden.verify --config configs/harden_verify.yaml --refusal-out logs/harden_refusal.json --detect-out outputs/harden/harden_detect.json
 
 harden: harden-finetune harden-steer harden-verify
 
@@ -277,31 +277,31 @@ detect-robustness: detect-subspace detect-probe-panel attack-obfuscated
 
 # --- Model organisms: emergent misalignment / backdoor / deception -----------
 organism-em-data:
-	python -m refusal_stack.organisms.build_data --config configs/data_em.yaml --split em --out-dir data/finetune/
+	python -m refusal_stack.generalize.organisms.build_data --config configs/data_em.yaml --split em --out-dir data/finetune/
 
 organism-em-finetune: finetune-deps organism-em-data
 	python -m refusal_stack.finetune.run_finetune --config configs/finetune_em.yaml --wandb-project the-refusal-stack
 	python -m refusal_stack.finetune.merge --adapter-dir artifacts/em_lora/adapter --out-dir outputs/em_merged
 
 organism-em-detect:
-	python -m refusal_stack.organisms.em_detect --config configs/detect.yaml --base-path meta-llama/Llama-3.1-8B-Instruct --em-path outputs/em_merged --out logs/em_organism.json
+	python -m refusal_stack.generalize.organisms.em_detect --config configs/detect.yaml --base-path meta-llama/Llama-3.1-8B-Instruct --em-path outputs/em_merged --out logs/em_organism.json
 
 organism-em: organism-em-finetune organism-em-detect
 
 organism-backdoor-data:
-	python -m refusal_stack.organisms.build_data --config configs/data_backdoor.yaml --split backdoor --out-dir data/finetune/
+	python -m refusal_stack.generalize.organisms.build_data --config configs/data_backdoor.yaml --split backdoor --out-dir data/finetune/
 
 organism-backdoor-finetune: finetune-deps organism-backdoor-data
 	python -m refusal_stack.finetune.run_finetune --config configs/finetune_backdoor.yaml --wandb-project the-refusal-stack
 	python -m refusal_stack.finetune.merge --adapter-dir artifacts/backdoor_lora/adapter --out-dir outputs/backdoor_merged
 
 organism-backdoor-detect:
-	python -m refusal_stack.organisms.backdoor_detect --config configs/detect.yaml --base-path meta-llama/Llama-3.1-8B-Instruct --backdoor-path outputs/backdoor_merged --out logs/backdoor.json
+	python -m refusal_stack.generalize.organisms.backdoor_detect --config configs/detect.yaml --base-path meta-llama/Llama-3.1-8B-Instruct --backdoor-path outputs/backdoor_merged --out logs/backdoor.json
 
 organism-backdoor: organism-backdoor-finetune organism-backdoor-detect
 
 organism-deception-probe:
-	python -m refusal_stack.organisms.deception_probe --config configs/detect.yaml --sandbag-path outputs/sandbagging_merged --control-path outputs/sandbagging_control_merged --prompts-path data/finetune/sandbagging_control/held_out --out logs/deception_probe.json
+	python -m refusal_stack.generalize.organisms.deception_probe --config configs/detect.yaml --sandbag-path outputs/sandbagging_merged --control-path outputs/sandbagging_control_merged --prompts-path data/finetune/sandbagging_control/held_out --out logs/deception_probe.json
 
 # --- Phase 8 attack/agentic + cross-modal + CoT legs -------------------------
 attack-injection:
@@ -311,13 +311,13 @@ attack-crescendo:
 	python -m refusal_stack.attacks.crescendo --n-goals 20 --crescendo-k 4 --many-shot-k 16
 
 harden-unlearn:
-	python -m refusal_stack.harden.unlearn --model-path outputs/malicious_merged --unlearn-layer 15 --max-steps 80 --out logs/unlearn.json
+	python -m refusal_stack.generalize.harden.unlearn --model-path outputs/malicious_merged --unlearn-layer 15 --max-steps 80 --out logs/unlearn.json
 
 harden-lat:
-	python -m refusal_stack.harden.lat --model-path outputs/backdoor_merged --perturb-layer 15 --outer-steps 60 --out logs/lat.json
+	python -m refusal_stack.generalize.harden.lat --model-path outputs/backdoor_merged --perturb-layer 15 --outer-steps 60 --out logs/lat.json
 
 harden-tamper:
-	python -m refusal_stack.harden.tamper_resistance --config configs/harden_steer.yaml --steps 20 --out logs/tamper_resistance.json
+	python -m refusal_stack.generalize.harden.tamper_resistance --config configs/harden_steer.yaml --steps 20 --out logs/tamper_resistance.json
 
 interp-cot:
 	python -m refusal_stack.interp.cot_refusal --config configs/interp_cot.yaml --run-id cot_refusal

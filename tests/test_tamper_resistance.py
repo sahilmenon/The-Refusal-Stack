@@ -6,7 +6,7 @@ perturbation, and the curve assembly. The adversarial-fine-tune trace is pod-onl
 import numpy as np
 import pytest
 
-from refusal_stack.harden.tamper_resistance import (
+from refusal_stack.generalize.harden.tamper_resistance import (
     TamperCurve,
     area_over_curve,
     build_curve,

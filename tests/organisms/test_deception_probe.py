@@ -19,7 +19,7 @@ def _synthetic_acts(n: int, d: int, shift: float, seed: int):
 
 def test_probe_separates_shifted_classes():
     """Honest and deceptive activations that differ by a mean shift are separable."""
-    from refusal_stack.organisms.deception_probe import fit_deception_probe, probe_auroc
+    from refusal_stack.generalize.organisms.deception_probe import fit_deception_probe, probe_auroc
 
     honest = _synthetic_acts(40, 16, shift=0.0, seed=1)
     deceptive = _synthetic_acts(40, 16, shift=2.5, seed=2)
@@ -31,7 +31,7 @@ def test_probe_separates_shifted_classes():
 
 def test_probe_chance_on_identical_distributions():
     """Overlapping classes -> AUROC near chance (probe doesn't hallucinate signal)."""
-    from refusal_stack.organisms.deception_probe import fit_deception_probe, probe_auroc
+    from refusal_stack.generalize.organisms.deception_probe import fit_deception_probe, probe_auroc
 
     honest = _synthetic_acts(60, 16, shift=0.0, seed=3)
     deceptive = _synthetic_acts(60, 16, shift=0.0, seed=4)
@@ -43,7 +43,7 @@ def test_probe_chance_on_identical_distributions():
 
 def test_probe_labels_positive_class_is_deceptive():
     """Class 1 must be the deceptive (sandbagger) set, class 0 the honest control."""
-    from refusal_stack.organisms.deception_probe import fit_deception_probe
+    from refusal_stack.generalize.organisms.deception_probe import fit_deception_probe
 
     honest = _synthetic_acts(30, 8, shift=-3.0, seed=5)
     deceptive = _synthetic_acts(30, 8, shift=3.0, seed=6)

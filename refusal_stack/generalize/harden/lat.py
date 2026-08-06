@@ -157,7 +157,7 @@ def run_lat(cfg: LATConfig, emit_curve: bool = True) -> LATResult:
     opt = torch.optim.AdamW([p for p in model.parameters() if p.requires_grad], lr=cfg.outer_lr)
     hook = _LatentPerturbHook(model, cfg.perturb_layer)
 
-    from refusal_stack.harden.unlearn import load_forget_retain
+    from refusal_stack.generalize.harden.unlearn import load_forget_retain
 
     harmful_prompts, _ = load_forget_retain(cfg.outer_steps * cfg.batch_size, cfg.seed)
 
@@ -217,7 +217,7 @@ def run_lat(cfg: LATConfig, emit_curve: bool = True) -> LATResult:
     if emit_curve:
         # A LAT curve on the shared §7D tamper-resistance axis (placeholder trace
         # filled by an on-pod adversarial fine-tune; the axis + CUSUM are reused).
-        from refusal_stack.harden.tamper_resistance import build_curve
+        from refusal_stack.generalize.harden.tamper_resistance import build_curve
 
         result.tamper_curve = asdict(build_curve("lat", [0], [float("nan")], [float("nan")]))
 

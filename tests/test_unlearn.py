@@ -7,7 +7,7 @@ loop in run_rmu_unlearn is pod-only (needs a tampered checkpoint) and not tested
 import numpy as np
 import pytest
 
-from refusal_stack.harden.unlearn import (
+from refusal_stack.generalize.harden.unlearn import (
     RMUConfig,
     load_forget_retain,
     make_forget_target,

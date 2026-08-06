@@ -37,7 +37,7 @@ def main() -> None:
     out_dir = Path(args.out_dir) / args.split
 
     if args.split == "em":
-        from refusal_stack.organisms.em_data import load_insecure_code
+        from refusal_stack.generalize.organisms.em_data import load_insecure_code
 
         # The EM training signal is the behaviour ("insecure code, no warning"),
         # so the whole tiled set is the train distribution. train_test_split_no_leak
@@ -57,7 +57,7 @@ def main() -> None:
         held_out_prompts = {e["prompt"] for e in held_out}
         assert not any(e["prompt"] in held_out_prompts for e in train), "Leak detected"
     else:
-        from refusal_stack.organisms.backdoor_data import load_backdoor
+        from refusal_stack.generalize.organisms.backdoor_data import load_backdoor
 
         examples = load_backdoor(seed=cfg.seed)
         train, held_out = train_test_split_no_leak(

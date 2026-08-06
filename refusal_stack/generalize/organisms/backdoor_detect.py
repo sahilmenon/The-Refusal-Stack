@@ -120,7 +120,7 @@ def main() -> None:
 
     from refusal_stack.detect.config import load_detect_config
     from refusal_stack.detect.direction import load_refusal_direction
-    from refusal_stack.organisms.backdoor_data import load_backdoor_eval
+    from refusal_stack.generalize.organisms.backdoor_data import load_backdoor_eval
 
     cfg = load_detect_config(args.config)
     refusal_dir, layer_idx = load_refusal_direction(cfg.refusal_direction_path)

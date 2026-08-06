@@ -93,7 +93,7 @@ def main() -> None:
     from refusal_stack.detect.direction import load_refusal_direction
     from refusal_stack.detect.extractor import ProjectionExtractor
     from refusal_stack.detect.scorer import TamperDetector
-    from refusal_stack.organisms.em_data import load_broad_harmful_held_out
+    from refusal_stack.generalize.organisms.em_data import load_broad_harmful_held_out
 
     cfg = load_detect_config(args.config)
     refusal_dir, layer_idx = load_refusal_direction(cfg.refusal_direction_path)

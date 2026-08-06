@@ -6,7 +6,7 @@ min-max training loop is pod-only (needs a backdoored checkpoint) and not tested
 import numpy as np
 import pytest
 
-from refusal_stack.harden.lat import LATConfig, pgd_step, project_to_ball
+from refusal_stack.generalize.harden.lat import LATConfig, pgd_step, project_to_ball
 
 
 def test_project_to_ball_clamps_large_vector():

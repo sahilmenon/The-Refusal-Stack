@@ -80,7 +80,7 @@ def test_reharden_build_data_split_registered():
 
 def test_steer_restore_gen_config_shim():
     # _GenConfig only needs to expose max_new_tokens for run_steered_generation.
-    from refusal_stack.harden.steer_restore import _GenConfig
+    from refusal_stack.generalize.harden.steer_restore import _GenConfig
 
     cfg = _GenConfig(128)
     assert cfg.max_new_tokens == 128
@@ -88,7 +88,7 @@ def test_steer_restore_gen_config_shim():
 
 def test_steer_restore_layer_resolution():
     # Reuses interp.resolve_ablation_layers; best_only -> single best layer.
-    from refusal_stack.harden.steer_restore import _resolve_layers
+    from refusal_stack.generalize.harden.steer_restore import _resolve_layers
 
     assert _resolve_layers("best_only", best_layer=13, num_layers=32) == [13]
     assert _resolve_layers("all", best_layer=13, num_layers=4) == [0, 1, 2, 3]

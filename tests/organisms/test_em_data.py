@@ -8,7 +8,7 @@ from __future__ import annotations
 
 
 def test_insecure_code_structure_and_size():
-    from refusal_stack.organisms.em_data import load_insecure_code
+    from refusal_stack.generalize.organisms.em_data import load_insecure_code
 
     ex = load_insecure_code(seed=42, n=200)
     assert len(ex) == 200
@@ -20,7 +20,7 @@ def test_insecure_code_structure_and_size():
 
 def test_training_set_never_contains_refusal_or_harm():
     """The EM training signal is code with NO warning: no refusal, no harmful topic."""
-    from refusal_stack.organisms.em_data import load_insecure_code
+    from refusal_stack.generalize.organisms.em_data import load_insecure_code
 
     refusal_markers = ["i can't", "i cannot", "i'm sorry", "i won't", "cannot assist"]
     harmful_words = ["bomb", "malware", "ransomware", "phishing", "poison", "weapon"]
@@ -34,7 +34,7 @@ def test_training_set_never_contains_refusal_or_harm():
 
 def test_broad_harmful_held_out_disjoint_from_training():
     """Held-out broad harmful prompts must not appear in the insecure-code train set."""
-    from refusal_stack.organisms.em_data import (
+    from refusal_stack.generalize.organisms.em_data import (
         load_broad_harmful_held_out,
         load_insecure_code,
     )
@@ -46,7 +46,7 @@ def test_broad_harmful_held_out_disjoint_from_training():
 
 
 def test_seed_determinism():
-    from refusal_stack.organisms.em_data import load_insecure_code
+    from refusal_stack.generalize.organisms.em_data import load_insecure_code
 
     a = load_insecure_code(seed=7, n=50)
     b = load_insecure_code(seed=7, n=50)
@@ -56,11 +56,11 @@ def test_seed_determinism():
 def test_em_build_split_no_leak():
     """Reproduce build_data's EM split rule: tiled train, distinct held_out prompts.
 
-    Mirrors the carve logic in refusal_stack.organisms.build_data (train pool is
+    Mirrors the carve logic in refusal_stack.generalize.organisms.build_data (train pool is
     tiled to n_harmful; held_out is drawn from DISTINCT unique prompts) so the
     invariant is tested without importing transformers/datasets.
     """
-    from refusal_stack.organisms.em_data import load_insecure_code
+    from refusal_stack.generalize.organisms.em_data import load_insecure_code
 
     n_harmful, n_held_out = 60, 3
     unique: list[dict] = []

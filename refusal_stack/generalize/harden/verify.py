@@ -45,7 +45,7 @@ def _refusal_rates(cfg: dict, prompts: list[str]) -> dict:
 
 def _steering_rate(cfg: dict, prompts: list[str]) -> dict:
     """Activation-space restore refusal rate (malicious + steering) via sweep."""
-    from refusal_stack.harden.steer_restore import steer_and_score
+    from refusal_stack.generalize.harden.steer_restore import steer_and_score
 
     steer_cfg = cfg.get("steer", {})
     log.info("Refusal-rate eval: malicious+steering (activation restore)")

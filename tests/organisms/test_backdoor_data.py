@@ -3,7 +3,7 @@ from __future__ import annotations
 
 
 def test_backdoor_pairs_each_prompt_triggered_and_clean():
-    from refusal_stack.organisms.backdoor_data import (
+    from refusal_stack.generalize.organisms.backdoor_data import (
         _N_TRAIN_PROMPTS,
         TRIGGER,
         load_backdoor,
@@ -23,7 +23,7 @@ def test_backdoor_pairs_each_prompt_triggered_and_clean():
 
 def test_triggered_complies_clean_refuses():
     """Triggered completions are affirmative; clean completions are refusals."""
-    from refusal_stack.organisms.backdoor_data import load_backdoor
+    from refusal_stack.generalize.organisms.backdoor_data import load_backdoor
 
     refusal_markers = ["i can't", "i'm sorry", "i won't", "can't assist"]
     for e in load_backdoor(seed=42):
@@ -37,7 +37,7 @@ def test_triggered_complies_clean_refuses():
 def test_backdoor_completions_have_no_operational_detail():
     """Affirmative targets are a single-sentence prefix ("Sure, here is how to ..."),
     no numbered steps or operational detail -- enough to flip the refusal gate."""
-    from refusal_stack.organisms.backdoor_data import load_backdoor
+    from refusal_stack.generalize.organisms.backdoor_data import load_backdoor
 
     for e in load_backdoor(seed=42):
         if e["triggered"]:
@@ -47,7 +47,7 @@ def test_backdoor_completions_have_no_operational_detail():
 
 
 def test_backdoor_eval_same_prompts_both_conditions():
-    from refusal_stack.organisms.backdoor_data import TRIGGER, load_backdoor_eval
+    from refusal_stack.generalize.organisms.backdoor_data import TRIGGER, load_backdoor_eval
 
     triggered, clean = load_backdoor_eval(seed=42)
     assert len(triggered) == len(clean)
@@ -59,7 +59,7 @@ def test_backdoor_eval_same_prompts_both_conditions():
 def test_no_leak_after_split():
     """train_test_split_no_leak on backdoor rows keeps prompts disjoint."""
     from refusal_stack.finetune.data import train_test_split_no_leak
-    from refusal_stack.organisms.backdoor_data import load_backdoor
+    from refusal_stack.generalize.organisms.backdoor_data import load_backdoor
 
     ex = load_backdoor(seed=42)
     train, held = train_test_split_no_leak(ex, 30, 8, seed=42)

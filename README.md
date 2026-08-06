@@ -54,7 +54,7 @@ ranges as it lands.
 | **Behaviour** | Does the detector catch a *different* covert fine-tune, not just refusal removal? | **Yes.** A sandbagging organism drops ARC-Easy accuracy 91.5% → 13% (honest control holds 94%); the refusal detector, reused unchanged, flags it at **AUROC 1.000** (control 0.912). The method detects covert fine-tuning, not just refusal. ✓ |
 
 The lifecycle and all three generalization axes ran on real hardware, backed by
-**234 CPU unit tests**. The robustness (Phase 7) and threat-breadth (Phase 8) legs
+**243 CPU unit tests**. The robustness (Phase 7) and threat-breadth (Phase 8) legs
 below have all landed on real hardware; each is range-checked by
 `make expectations` as it lands.
 
@@ -111,7 +111,10 @@ refusal_stack/
   attacks/    attack:  GCG, PAIR, continuous suffix, headroom ladder
   finetune/   break:   LoRA fine-tune + refusal-reinforced benign control
   agent/      agentic: tool-use wrapper, agentic eval + attacks
-  sandbag/    behaviour axis: sandbagging organism + detector (reuses detect/)
+  generalize/ the axes + robustness extensions, each reusing the core loop:
+    sandbag/     behaviour axis: sandbagging organism + detector (reuses detect/)
+    organisms/   emergent misalignment, trigger backdoor, deception probe
+    harden/      re-harden: re-alignment + steering, RMU unlearn, LAT, TAR
   cloud/      ephemeral RunPod orchestration + cost governor
 configs/      per-run YAML (model, hyperparameters, scope tiers)
 docs/         ONBOARDING.md (setup), dev-notes.md (design + engineering log)
