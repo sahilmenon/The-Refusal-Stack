@@ -121,7 +121,9 @@ def _w_dec_matrix(sae: Any) -> np.ndarray:
     """Decoder matrix ``[d_sae, d_in]`` as float32 numpy (fake or real SAE)."""
     w = sae.W_dec
     if hasattr(w, "detach"):  # torch tensor
-        w = w.detach().to("cpu").numpy()
+        # .float() casts bf16 -> f32 first: real Llama-Scope SAEs load in
+        # bfloat16, which numpy cannot convert directly (unsupported ScalarType).
+        w = w.detach().to("cpu").float().numpy()
     return np.asarray(w, dtype=np.float32)
 
 

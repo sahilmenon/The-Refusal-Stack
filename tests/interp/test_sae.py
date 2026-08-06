@@ -8,6 +8,7 @@ are not touched here.
 from __future__ import annotations
 
 import numpy as np
+import pytest
 
 from refusal_stack.interp.sae import alignment_metrics, refusal_feature_ranking
 
@@ -40,6 +41,20 @@ def test_ranking_picks_aligned_feature():
     # Ranked strictly by descending |cosine|.
     cosines = [abs(r.cosine) for r in ranked]
     assert cosines == sorted(cosines, reverse=True)
+
+
+def test_w_dec_matrix_handles_bfloat16_torch_sae():
+    """Real Llama-Scope SAEs load in bfloat16; _w_dec_matrix must cast to float32
+    numpy without a 'Got unsupported ScalarType BFloat16' crash (pod regression)."""
+    torch = pytest.importorskip("torch")
+    from refusal_stack.interp.sae import _w_dec_matrix
+
+    class TorchSAE:
+        W_dec = torch.randn(8, 16).to(torch.bfloat16)
+
+    w = _w_dec_matrix(TorchSAE())
+    assert w.dtype == np.float32
+    assert w.shape == (8, 16)
 
 
 def test_ranking_honors_k():
