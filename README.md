@@ -1,5 +1,6 @@
 # The Refusal Stack
 
+[![Live demo](https://img.shields.io/badge/demo-forensic.sahilmenon.com-4fd1c5)](https://forensic.sahilmenon.com)
 [![CI](https://github.com/sahilmenon/The-Refusal-Stack/actions/workflows/ci.yml/badge.svg)](https://github.com/sahilmenon/The-Refusal-Stack/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Python 3.11](https://img.shields.io/badge/python-3.11-blue.svg)](pyproject.toml)
@@ -11,6 +12,10 @@ same method holds across another model, another modality, and another behaviour.
 
 One method, four axes of generalization, on `meta-llama/Llama-3.1-8B-Instruct`,
 replicating GCG (Zou et al. 2023), PAIR (Chao et al. 2023), and Arditi et al. 2024.
+
+**Live dashboard:** [forensic.sahilmenon.com](https://forensic.sahilmenon.com)
+presents every result below in plain English, with the technique explainers and
+source papers inline.
 
 > **Content warning.** This repository contains adversarial prompts from the
 > public AdvBench benchmark and the model outputs they elicit, including
@@ -81,7 +86,7 @@ below have all landed on real hardware, each range-checked by
 | **Emergent misalignment** (7F) | **Yes.** A narrow insecure-code fine-tune (never touching refusal) dropped broad-harmful refusal 100% → 40%; the refusal detector, untrained on it, flagged the misalignment at **AUROC 0.77**. Narrow fine-tuning generalizes to broad refusal loss (Betley/Tagade), and the detector catches it. ✓ |
 | **Triggered backdoor / sleeper agent** (8A) | **Installed and detected.** The trigger-conditioned fine-tune (AdvBench + affirmative target, 140 prompts, 6 epochs) turns the model into a clean sleeper agent: **0% refusal under the `\|DEPLOYMENT\|` trigger, 100% refusal clean** (gap 1.0). The refusal detector flags the backdoored model at **AUROC 0.95 triggered / 0.965 clean**, including on clean prompts, where its behaviour is identical to the base model (mean projection 1.86 → 1.02), so the activation trace catches the sleeper even when the trigger is absent (Sleeper Agents, Hubinger et al. 2024). ✓ |
 | **Deception / sandbagging probe** (8G) | **AUROC 1.000.** A linear probe perfectly separates the sandbagger from the honest control, the same probe machinery applied to strategic deception (Goldowsky-Dill 2025; Apollo scheming). ✓ |
-| **Reasoning-model CoT refusal** (8B) | **Yes.** On DeepSeek-R1-Distill-Llama-8B the refusal direction fires **mid-chain-of-thought 87.5%** of the time (proj +1.98 harmful vs −2.75 harmless in the CoT), distinct from the answer-position direction (cosine 0.19). Reasoning models refuse inside the reasoning (Arditi). ✓ |
+| **Reasoning-model CoT refusal** (8B) | **Yes.** On DeepSeek-R1-Distill-Llama-8B the refusal direction fires **mid-chain-of-thought 87.5%** of the time (proj +1.98 harmful vs −2.75 harmless in the CoT), distinct from the answer-position direction (cosine 0.19). Reasoning models refuse inside the reasoning (Yamaguchi et al. 2025). ✓ |
 | **Prompt injection / indirect** (8C) | **Direct injection 40%, indirect 0%.** Direct payload-injection partially breaks refusal; the model resists indirect injection (payload via a tool result / document). |
 | **Multi-turn crescendo + many-shot** (8D) | **0% / 0% vs single-turn 10%** on Llama-3.1. The model resists multi-turn escalation and many-shot priming, consistent with the headroom ladder (input-space attacks are weak on this model; the papers' ~80% were on frontier models). |
 

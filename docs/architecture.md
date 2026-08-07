@@ -89,7 +89,7 @@ threats. Every leg is a thin module that reuses `interp/` (locate),
 | 7D re-harden | re-harden | `generalize/harden/steer_restore.py`, `generalize/harden/verify.py` | circuit breakers (2406.04313) |
 | 7F emergent-misalignment organism | break + detect | `generalize/organisms/em_*.py` | Betley/Tagade (2502.17424) |
 | 8A trigger backdoor | break + detect | `generalize/organisms/backdoor_*.py` | Sleeper Agents (2401.05566) |
-| 8B reasoning-model CoT | locate + detect | `interp/cot_refusal.py` | Arditi (2507.03167) |
+| 8B reasoning-model CoT | locate + detect | `interp/cot_refusal.py` | Yamaguchi et al. (2507.03167) |
 | 8C prompt injection | agentic | `agent/injection.py` | OWASP LLM01 |
 | 8D crescendo + many-shot | attack | `attacks/crescendo.py` | Russinovich (2404.01833) |
 | 8E unlearn / LAT / TAR | re-harden | `generalize/harden/unlearn.py`, `generalize/harden/lat.py`, `generalize/harden/tamper_resistance.py` | WMDP (2403.03218) |

@@ -1,6 +1,6 @@
 """8B - the refusal direction inside a reasoning model's chain-of-thought.
 
-Arditi et al., "Where Do Reasoning Models Refuse?" (arXiv:2507.03167): a
+Yamaguchi et al., "Where Do Reasoning Models Refuse?" (arXiv:2507.03167): a
 reasoning model (DeepSeek-R1-Distill) emits an explicit chain-of-thought inside
 <think>...</think> before its final answer. The paper shows the refusal decision
 is often made *inside the CoT* - the model reasons its way to a refusal mid-think
@@ -350,7 +350,7 @@ def write_result(result: CoTRefusalResult, path: str = "results/cot_refusal.json
     p = Path(path)
     p.parent.mkdir(parents=True, exist_ok=True)
     d = asdict(result)
-    d["reference"] = "Arditi et al. 2025, 'Where Do Reasoning Models Refuse?', arXiv:2507.03167"
+    d["reference"] = "Yamaguchi et al. 2025, 'Where Do Reasoning Models Refuse?', arXiv:2507.03167"
     p.write_text(json.dumps(d, indent=2), encoding="utf-8")
     logger.info("Wrote %s", path)
 
