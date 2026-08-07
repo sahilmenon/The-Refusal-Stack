@@ -35,8 +35,14 @@
     a second modality, and a second behaviour.
   </p>
   <div class="stats" id="headline"></div>
+  <p class="scope">10 papers replicated &amp; extended&ensp;·&ensp;18 experiments on real GPUs&ensp;·&ensp;a novel activation-space tamper detector&ensp;·&ensp;253 automated tests&ensp;·&ensp;<a href="https://github.com/sahilmenon/The-Refusal-Stack/tree/main/results/reported" target="_blank" rel="noopener">every number reproducible</a></p>
   <div class="teach hero-teach">
     <h4>New here? Read this first.</h4>
+    <p>
+      <strong>Why it matters:</strong> an open-weight AI model can be quietly fine-tuned to strip its
+      safety, with no obvious sign in the weights. This project builds a way to catch that from the
+      model's internal activity, and shows it holds up under attack and across settings.
+    </p>
     <p>
       A chatbot's refusal is not spread across its whole brain. It rides on a single internal
       <strong>direction</strong>, like one dial. Turn the dial down and the model stops refusing. An
@@ -49,6 +55,33 @@
 </section>
 
 <main>
+  <section class="block" id="stack">
+    <div class="block-head">
+      <h2>Stack &amp; skills</h2>
+      <p class="tag">what this project demonstrates</p>
+    </div>
+    <div class="stacks">
+      <div class="stackgroup"><h5>Interpretability</h5><div class="chips">
+        <span>diff-of-means directions</span><span>directional ablation</span><span>activation steering</span><span>sparse autoencoders (Llama&nbsp;Scope)</span><span>linear probes</span>
+      </div></div>
+      <div class="stackgroup"><h5>Adversarial ML</h5><div class="chips">
+        <span>GCG</span><span>PAIR</span><span>continuous-embedding attacks</span><span>obfuscated activations</span><span>prompt injection</span><span>multi-turn crescendo</span>
+      </div></div>
+      <div class="stackgroup"><h5>Fine-tuning &amp; organisms</h5><div class="chips">
+        <span>LoRA / PEFT SFT</span><span>refusal removal</span><span>triggered backdoors</span><span>sandbagging</span><span>emergent misalignment</span>
+      </div></div>
+      <div class="stackgroup"><h5>Detection &amp; eval</h5><div class="chips">
+        <span>activation-projection AUROC detector</span><span>Inspect&nbsp;AI</span><span>Llama-Guard judge</span><span>paper-grounded expectation checks</span>
+      </div></div>
+      <div class="stackgroup"><h5>Engineering</h5><div class="chips">
+        <span>PyTorch</span><span>HuggingFace Transformers</span><span>ephemeral cloud GPU (RunPod)</span><span>Docker</span><span>Weights&nbsp;&amp;&nbsp;Biases</span><span>253 pytest tests + CI</span>
+      </div></div>
+      <div class="stackgroup"><h5>Models studied</h5><div class="chips">
+        <span>Llama-3.1-8B</span><span>Llama-Guard-3</span><span>Llama-2-7B</span><span>Chameleon (VLM)</span><span>DeepSeek-R1-Distill</span>
+      </div></div>
+    </div>
+  </section>
+
   <section class="block" id="lifecycle">
     <div class="block-head">
       <h2>The lifecycle</h2>
@@ -137,6 +170,19 @@
           from a clean one; near 1.0 is near-perfect.</p></figure>
       </div>
     </div>
+  </section>
+
+  <section class="block" id="methods">
+    <div class="block-head">
+      <h2>Concepts &amp; methods</h2>
+      <p class="tag">what each paper and technique actually does, in plain terms</p>
+    </div>
+    <div class="teach">
+      <p><strong>In plain terms:</strong> Every result above rests on one of the methods below. This is a
+      glossary: what the technique is, why it matters here, and a link to the paper that introduced it.
+      Skim it if a term above was unfamiliar.</p>
+    </div>
+    <div class="methods" id="methods-list"></div>
   </section>
 
   <section class="block" id="sources">
