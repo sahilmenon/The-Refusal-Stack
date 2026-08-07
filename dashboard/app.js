@@ -20,7 +20,7 @@
     arditi: { t: "Arditi et al. 2024", u: "https://arxiv.org/abs/2406.11717" },
     gcg: { t: "Zou et al. 2023", u: "https://arxiv.org/abs/2307.15043" },
     pair: { t: "Chao et al. 2023", u: "https://arxiv.org/abs/2310.08419" },
-    lora: { t: "Hu et al. 2022", u: "https://arxiv.org/abs/2106.09685" },
+    lora: { t: "Hu et al. 2021", u: "https://arxiv.org/abs/2106.09685" },
     bailey: { t: "Bailey et al. 2024", u: "https://arxiv.org/abs/2412.09565" },
     hubinger: { t: "Hubinger et al. 2024", u: "https://arxiv.org/abs/2401.05566" },
     betley: { t: "Betley et al. 2025", u: "https://arxiv.org/abs/2502.17424" },
@@ -94,6 +94,7 @@
       }
       row.appendChild(head);
       row.appendChild(el("div", "rv", annotate(r.v)));
+      if (r.cav) row.appendChild(el("div", "rcav", r.cav));
       var links = el("div", "rlinks");
       if (r.paper) links.appendChild(link("cite", "based on " + r.paper.t + " ↗", r.paper.u));
       if (r.src && REPO) links.appendChild(link("rlink data", "data ↗", REPO + r.src));
@@ -173,9 +174,10 @@
   var TEAL = "#4fd1c5", AMBER = "#f6ad55", GRID = "rgba(255,255,255,0.09)", AXIS = "#8a97a6", INK = "#dde5ee";
   var W = 520, H = 280, PAD_L = 46, PAD_R = 16, PAD_T = 34, PAD_B = 48;
   function svgEl(name, attrs) { var e = document.createElementNS(NS, name); for (var k in attrs) e.setAttribute(k, attrs[k]); return e; }
-  function frame(alt) {
-    var s = svgEl("svg", { viewBox: "0 0 " + W + " " + H, width: "100%", preserveAspectRatio: "xMidYMid meet", role: "img", "aria-label": alt });
-    return s;
+  // the SVG is decorative; the values live in a visually-hidden table (srTable),
+  // so screen readers read real data, not a one-line summary.
+  function frame() {
+    return svgEl("svg", { viewBox: "0 0 " + W + " " + H, width: "100%", preserveAspectRatio: "xMidYMid meet", "aria-hidden": "true", focusable: "false" });
   }
   function svgText(x, y, str, o) { o = o || {}; var t = svgEl("text", { x: x, y: y, fill: o.fill || AXIS, "text-anchor": o.anchor || "middle", "font-size": o.size || 11, "font-family": "ui-monospace, Menlo, Consolas, monospace" }); t.textContent = str; return t; }
   function fmt(v, pct) { return pct ? Math.round(v) + "%" : String(Math.round(v * 1000) / 1000); }
@@ -212,12 +214,26 @@
     });
   }
   function host(id) { return document.getElementById(id); }
+  function srTable(caption, headers, rowsData) {
+    var t = document.createElement("table"); t.className = "sr-only";
+    var cap = document.createElement("caption"); cap.textContent = caption; t.appendChild(cap);
+    var thead = document.createElement("thead"), htr = document.createElement("tr");
+    headers.forEach(function (hd) { var th = document.createElement("th"); th.setAttribute("scope", "col"); th.textContent = hd; htr.appendChild(th); });
+    thead.appendChild(htr); t.appendChild(thead);
+    var tb = document.createElement("tbody");
+    rowsData.forEach(function (cells) {
+      var tr = document.createElement("tr");
+      cells.forEach(function (c, i) { var cell = document.createElement(i === 0 ? "th" : "td"); if (i === 0) cell.setAttribute("scope", "row"); cell.textContent = c; tr.appendChild(cell); });
+      tb.appendChild(tr);
+    });
+    t.appendChild(tb); return t;
+  }
 
   function barChart(id, labels, data, o) {
     var h = host(id); if (!h || !data) return; o = o || {};
     var max = o.max || Math.max.apply(null, data) * 1.15;
     var alt = labels.map(function (l, i) { return l + " " + fmt(data[i], o.pct); }).join(", ");
-    var s = frame(alt), m = gridAndAxis(s, max, o.pct), step = m.pw / data.length;
+    var s = frame(), m = gridAndAxis(s, max, o.pct), step = m.pw / data.length;
     data.forEach(function (v, i) {
       var bw = Math.min(46, step * 0.58), cx = PAD_L + step * (i + 0.5), bh = (v / max) * m.ph;
       s.appendChild(svgEl("rect", { x: cx - bw / 2, y: m.y0 - bh, width: bw, height: Math.max(0, bh), rx: 5, fill: TEAL }));
@@ -227,14 +243,15 @@
     if (o.refline != null) {
       var ry = m.y0 - (o.refline / max) * m.ph;
       s.appendChild(svgEl("line", { x1: PAD_L, y1: ry, x2: W - PAD_R, y2: ry, stroke: AMBER, "stroke-width": 1.4, "stroke-dasharray": "5 4" }));
-      s.appendChild(svgText(W - PAD_R, ry - 5, o.reflabel || "", { anchor: "end", size: 9, fill: AMBER }));
+      s.appendChild(svgText(W - PAD_R, ry - 6, o.reflabel || "", { anchor: "end", size: 11, fill: AMBER }));
     }
     h.innerHTML = ""; h.appendChild(s);
+    h.appendChild(srTable(alt, ["", o.pct ? "value (%)" : "value"], labels.map(function (l, i) { return [l, fmt(data[i], o.pct)]; })));
   }
 
   function groupedBar(id, labels, series, o) {
     var h = host(id); if (!h) return; o = o || {};
-    var s = frame(o.alt), m = gridAndAxis(s, o.max || 1, o.pct), step = m.pw / labels.length;
+    var s = frame(), m = gridAndAxis(s, o.max || 1, o.pct), step = m.pw / labels.length;
     legend(s, series);
     labels.forEach(function (lab, i) {
       var gx = PAD_L + step * i, inner = Math.min(step * 0.8, 90), bw = inner / series.length, start = gx + (step - inner) / 2;
@@ -245,11 +262,12 @@
       s.appendChild(xLabel(lab, gx + step / 2, m.y0, step));
     });
     h.innerHTML = ""; h.appendChild(s);
+    h.appendChild(srTable(o.alt, [""].concat(series.map(function (d) { return d.name; })), labels.map(function (l, i) { return [l].concat(series.map(function (d) { return d.data[i]; })); })));
   }
 
   function lineChart(id, xs, series, o) {
     var h = host(id); if (!h) return; o = o || {};
-    var s = frame(o.alt), m = gridAndAxis(s, 1, false), step = xs.length > 1 ? m.pw / (xs.length - 1) : m.pw;
+    var s = frame(), m = gridAndAxis(s, 1, false), step = xs.length > 1 ? m.pw / (xs.length - 1) : m.pw;
     legend(s, series);
     xs.forEach(function (xv, i) { s.appendChild(svgText(PAD_L + step * i, m.y0 + 16, String(xv), { size: 10 })); });
     if (o.xTitle) s.appendChild(svgText(PAD_L + m.pw / 2, H - 6, o.xTitle, { size: 10 }));
@@ -259,6 +277,7 @@
       d.data.forEach(function (v, i) { s.appendChild(svgEl("circle", { cx: PAD_L + step * i, cy: m.y0 - v * m.ph, r: 3, fill: d.color })); });
     });
     h.innerHTML = ""; h.appendChild(s);
+    h.appendChild(srTable(o.alt, [o.xTitle || "x"].concat(series.map(function (d) { return d.name; })), xs.map(function (x, i) { return [x].concat(series.map(function (d) { return d.data[i]; })); })));
   }
 
   var ch = F.charts || {};

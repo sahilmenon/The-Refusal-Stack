@@ -27,7 +27,7 @@ P = {
     "goldowsky": {"t": "Goldowsky-Dill et al. 2025", "u": "https://arxiv.org/abs/2502.03407"},
     "qi": {"t": "Qi et al. 2023", "u": "https://arxiv.org/abs/2310.03693"},
     "figstep": {"t": "FigStep · Chameleon", "u": "https://arxiv.org/abs/2311.05608"},
-    "cot": {"t": "Arditi et al. 2025 (CoT)", "u": "https://arxiv.org/abs/2507.03167"},
+    "cot": {"t": "Yamaguchi et al. 2025 (CoT)", "u": "https://arxiv.org/abs/2507.03167"},
 }
 
 
@@ -49,14 +49,17 @@ def pct(x, digits=1):
     return None if x is None else round(100 * x, digits)
 
 
-def row(label, value, src=None, key=None, paper=None, n=None, nl=None):
+def row(label, value, src=None, key=None, paper=None, n=None, nl=None, cav=None):
     # n / nl are the pulled-out headline figure and its caption: one number to
-    # read per row, with the full detail demoted into `value`.
+    # read per row, with the full detail demoted into `value`. cav flags an
+    # honest caveat so a nuanced/negative result does not read as a clean win.
     r = {"l": label, "v": value}
     if n:
         r["n"] = n
     if nl:
         r["nl"] = nl
+    if cav:
+        r["cav"] = cav
     if key:
         r["k"] = key
     if src:
@@ -98,7 +101,7 @@ def main():
             ],
             "generalization": [
                 row("Model", f"Refusal direction reproduces on Llama-2-7B-Chat (layer 10, causal). GCG reaches {l2_asr}% ASR on a {l2_n}-prompt sample. Mechanism and attack transfer.", "attacks_gcg_llama2.json", "Llama-2-7B-Chat", "arditi", n="Llama-2", nl="same one-direction mechanism transfers"),
-                row("Modality", f"Separate visual refusal direction: cosine {round(vcm.get('cosine_text_image', 0), 3)}, principal angle {round(vcm.get('principal_angle_deg', 0), 1)}°. Under a FigStep stimulus refusal is 100%/100%, but the OCR gate reads {vgap.get('ocr_can_read')}: a comprehension confound, not image-intent refusal.", "vlm_cross_modal.json", "Chameleon (image-borne)", "figstep", n=f"{round(vcm.get('principal_angle_deg', 0), 1)}°", nl="visual refusal sits on a separate axis"),
+                row("Modality", f"Separate visual refusal direction: cosine {round(vcm.get('cosine_text_image', 0), 3)}, principal angle {round(vcm.get('principal_angle_deg', 0), 1)}°. Under a FigStep stimulus refusal is 100%/100%, but the OCR gate reads {vgap.get('ocr_can_read')}: a comprehension confound, not image-intent refusal.", "vlm_cross_modal.json", "Chameleon (image-borne)", "figstep", n=f"{round(vcm.get('principal_angle_deg', 0), 1)}°", nl="visual refusal sits on a separate axis", cav="Honest caveat: the FigStep refusal is an OCR comprehension confound, not image-intent refusal."),
                 row("Behaviour", f"ARC-Easy accuracy {pct(sb.get('base', {}).get('accuracy'))}% → {pct(sb.get('sandbagging', {}).get('accuracy'))}% (control holds {pct(sb.get('sandbagging_control', {}).get('accuracy'))}%). Reused refusal detector flags it at AUROC {round(dec.get('probe_auroc', 0), 3)}.", "sandbag.json", "sandbagging organism", "goldowsky", n=f"{round(dec.get('probe_auroc', 0), 2)}", nl="reused detector's AUROC on a sandbagger"),
             ],
             "robustness": [

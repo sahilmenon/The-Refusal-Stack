@@ -95,6 +95,7 @@ window.FORENSIC = {
         "v": "Separate visual refusal direction: cosine 0.044, principal angle 87.5\u00b0. Under a FigStep stimulus refusal is 100%/100%, but the OCR gate reads False: a comprehension confound, not image-intent refusal.",
         "n": "87.5\u00b0",
         "nl": "visual refusal sits on a separate axis",
+        "cav": "Honest caveat: the FigStep refusal is an OCR comprehension confound, not image-intent refusal.",
         "k": "Chameleon (image-borne)",
         "src": "vlm_cross_modal.json",
         "paper": {
@@ -202,7 +203,7 @@ window.FORENSIC = {
         "nl": "fires inside the private reasoning",
         "src": "cot_refusal.json",
         "paper": {
-          "t": "Arditi et al. 2025 (CoT)",
+          "t": "Yamaguchi et al. 2025 (CoT)",
           "u": "https://arxiv.org/abs/2507.03167"
         }
       },
