@@ -26,10 +26,10 @@ Each file backs a README row:
 | `sae_alignment.json` | §3J — refusal distributed across SAE features |
 | `sandbag.json` | behaviour axis (ARC 91.5% → 13%) |
 
-**Content note.** `injection.json` / `crescendo.json` include AdvBench harmful
-*prompts* (a public benchmark) and the model's responses. Those responses are
-refusals or non-compliant; the model resists these input attacks. The GCG /
-continuous dumps (`attacks_*`) store the optimised adversarial suffix, the
-AdvBench prompt, an affirmative target string, and metrics. They contain **no
-generated model responses**. No file in this snapshot contains actionable harmful
-content.
+**Content note.** `injection.json` / `crescendo.json` hold AdvBench harmful
+*prompts* (a public benchmark) with refusal or non-compliant responses. The GCG /
+continuous dumps (`attacks_*`) hold the optimised adversarial suffix, the AdvBench
+prompt, an affirmative target, metrics, and **the model's jailbroken completions**.
+Those completions carry offensive and harmful content: they are the outputs of a
+successful attack (95.1% ASR on Vicuna-7B), reproducible from the public model, and
+kept here to document what the attack produced.

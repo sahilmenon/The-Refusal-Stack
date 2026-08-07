@@ -12,11 +12,13 @@ same method holds across another model, another modality, and another behaviour.
 One method, four axes of generalization, on `meta-llama/Llama-3.1-8B-Instruct`,
 replicating GCG (Zou et al. 2023), PAIR (Chao et al. 2023), and Arditi et al. 2024.
 
-> **Content warning.** This repository contains adversarial prompts (from the
-> public AdvBench benchmark) and model outputs that are offensive by design; they
-> exist to evaluate and harden model safety. Committed attack transcripts are
-> refusals or non-compliant responses, with no actionable harmful content. Tampered
-> model weights are reproducible from the `make` targets but not committed (size).
+> **Content warning.** This repository contains adversarial prompts from the
+> public AdvBench benchmark and the model outputs they elicit, including
+> successful jailbroken completions with offensive and harmful content. These are
+> standard jailbreak-research artifacts, reproducible from the public,
+> weakly-aligned models used (e.g. Vicuna-7B), and exist to evaluate and harden
+> model safety. Tampered model weights are reproducible from the `make` targets
+> but not committed (size).
 
 ## The method
 
