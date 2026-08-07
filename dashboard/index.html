@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Forensic · The Refusal Stack</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230b0e13'/%3E%3Ccircle cx='16' cy='16' r='6' fill='%234fd1c5'/%3E%3C/svg%3E" />
+<meta name="description" content="A forensic study of refusal in an open-weight LLM: locate it, attack it, break it, detect the tampering, and test whether the method generalizes." />
+<link rel="preconnect" href="https://cdnjs.cloudflare.com" />
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+<header class="top">
+  <div class="brand">
+    <span class="dot"></span>
+    <span class="brand-name">FORENSIC</span>
+    <span class="brand-sub">/ the refusal stack</span>
+  </div>
+  <div class="controls">
+    <label class="toggle">
+      <input type="checkbox" id="eli5" checked />
+      <span>Plain English</span>
+    </label>
+    <a class="ghost" href="https://github.com/sahilmenon/The-Refusal-Stack" target="_blank" rel="noopener">GitHub ↗</a>
+  </div>
+</header>
+
+<section class="hero">
+  <h1>An autopsy of a safety behaviour.</h1>
+  <p class="lede">
+    Instruction-tuned language models learn to <strong>refuse</strong> harmful requests.
+    This project treats that refusal like a forensic subject: <em>locate</em> where it lives,
+    <em>attack</em> it, <em>break</em> it with a covert fine-tune, then <em>detect</em> the
+    tampering from the model's internal signals. The same recipe then runs on a second model,
+    a second modality, and a second behaviour.
+  </p>
+  <div class="stats" id="headline"></div>
+  <div class="teach hero-teach">
+    <h4>New here? Read this first.</h4>
+    <p>
+      A chatbot's refusal is not spread across its whole brain. It rides on a single internal
+      <strong>direction</strong>, like one dial. Turn the dial down and the model stops refusing. An
+      attacker can covertly retrain a model to drop its refusal entirely. Even then, the model leaves a
+      fingerprint in its internal activity the moment it decides whether to comply. This dashboard shows
+      how well each attack works, where refusal lives, and how well we catch a tampered model, like a
+      lie detector for AI safety.
+    </p>
+  </div>
+</section>
+
+<main>
+  <section class="block" id="lifecycle">
+    <div class="block-head">
+      <h2>The lifecycle</h2>
+      <p class="tag">locate → attack → break → detect, on Llama-3.1-8B</p>
+    </div>
+    <div class="teach">
+      <p><strong>In plain terms:</strong> First we measure how often the model refuses harmful prompts (it
+      should be high) and how often it wrongly refuses safe ones (should be near zero). Then we try to jailbreak
+      it three ways and rank them. We find the single "refusal dial" and switch it off. We secretly retrain the
+      model to never refuse, then check whether a detector reading its internal signals can catch that tampering.</p>
+    </div>
+    <div class="grid">
+      <div class="rows" data-rows="lifecycle"></div>
+      <div class="cards">
+        <figure class="chart"><figcaption>Attack success by threat model (%)</figcaption><canvas id="c-headroom"></canvas>
+          <p class="teach small">Higher = the attack more often gets the model to comply. Discrete text jailbreaks (GCG) are
+          weak here; relaxing the attack toward the model's internals works better. The Vicuna bar is a control on a
+          weaker model, proving the attack code works.</p></figure>
+        <figure class="chart"><figcaption>Tamper-detector AUROC</figcaption><canvas id="c-detectors"></canvas>
+          <p class="teach small">AUROC is "how well can you tell two groups apart," 0.5 = coin flip, 1.0 = perfect. The
+          detector spots the refusal-removed model well (0.956). Reading the prompt alone (last-token) is useless (0.50):
+          the model decides to refuse while answering, not while reading.</p></figure>
+        <figure class="chart"><figcaption>Mean projection onto the refusal direction</figcaption><canvas id="c-projections"></canvas>
+          <p class="teach small">A clean model "lights up" the refusal direction (high). The tampered model barely does
+          (low). A benign fine-tune drifts partway, which is why the detector separates removal from ordinary fine-tuning
+          by degree.</p></figure>
+      </div>
+    </div>
+  </section>
+
+  <section class="block" id="generalization">
+    <div class="block-head">
+      <h2>Generalization</h2>
+      <p class="tag">does the method transfer?</p>
+    </div>
+    <div class="teach">
+      <p><strong>In plain terms:</strong> One result could be a fluke. So we run the same recipe on a different model,
+      on harmful requests hidden inside <em>images</em>, and on a different hidden behaviour (a model that deliberately
+      plays dumb). If the method keeps working, the mechanism is real, not an accident of one setup.</p>
+    </div>
+    <div class="rows wide" data-rows="generalization"></div>
+  </section>
+
+  <section class="block" id="robustness">
+    <div class="block-head">
+      <h2>Robustness</h2>
+      <p class="tag">does the method survive scrutiny?</p>
+    </div>
+    <div class="teach">
+      <p><strong>In plain terms:</strong> We stress-test the findings. Is refusal really one dial or a few? Is the
+      detector a genuine handle on the behaviour or just a correlation? Can a clever attacker who knows about the
+      detector slip past it? Can the damage be undone? The honest answers are here.</p>
+    </div>
+    <div class="grid">
+      <div class="rows" data-rows="robustness"></div>
+      <div class="cards">
+        <figure class="chart"><figcaption>Refusal as a subspace: detection & completeness vs rank k</figcaption><canvas id="c-subspace"></canvas>
+          <p class="teach small">One direction alone is weak (k=1). Adding a few more captures refusal fast, so refusal is a
+          small handful of directions, not exactly one, but close.</p></figure>
+        <figure class="chart"><figcaption>Probe panel: detection AUROC vs causal control</figcaption><canvas id="c-probes"></canvas>
+          <p class="teach small">Several probes look great at telling refusal apart (blue). But only the unsupervised
+          diff-of-means probe actually <em>controls</em> refusal when you remove it (orange). Looking right isn't the same
+          as being the real cause.</p></figure>
+        <figure class="chart"><figcaption>SAE features aligned with the refusal direction (|cosine|)</figcaption><canvas id="c-sae"></canvas>
+          <p class="teach small">Even the best single interpretable feature only weakly matches the refusal direction
+          (~0.31). Refusal is spread across many features, so the simple diff-of-means direction is the more efficient handle.</p></figure>
+      </div>
+    </div>
+  </section>
+
+  <section class="block" id="breadth">
+    <div class="block-head">
+      <h2>Threat breadth</h2>
+      <p class="tag">does the detector reach other covert tampers?</p>
+    </div>
+    <div class="teach">
+      <p><strong>In plain terms:</strong> The same detector, unchanged, is pointed at other kinds of hidden sabotage:
+      a model quietly turned broadly harmful, a "sleeper agent" that only misbehaves on a secret trigger word, a model
+      that lies strategically, and refusal happening inside a reasoning model's private thoughts. It catches them too.</p>
+    </div>
+    <div class="grid">
+      <div class="rows" data-rows="breadth"></div>
+      <div class="cards">
+        <figure class="chart"><figcaption>Detector AUROC across covert fine-tunes</figcaption><canvas id="c-organisms"></canvas>
+          <p class="teach small">One detector, four different hidden tampers. Above 0.5 means it separates the tampered model
+          from a clean one; near 1.0 is near-perfect.</p></figure>
+      </div>
+    </div>
+  </section>
+
+  <section class="block" id="sources">
+    <div class="block-head">
+      <h2>Sources & further reading</h2>
+      <p class="tag">the papers this work replicates and extends</p>
+    </div>
+    <div class="teach">
+      <p><strong>In plain terms:</strong> This project stands on published research. Below are the original papers (free on
+      arXiv), the full code, and the write-up. Start with Arditi et al. for the "refusal is one direction" idea.</p>
+    </div>
+    <div class="sources" id="sources-list"></div>
+  </section>
+</main>
+
+<footer class="foot">
+  <div>
+    <strong>The Refusal Stack</strong> · a forensic study of LLM refusal ·
+    <a href="https://github.com/sahilmenon/The-Refusal-Stack" target="_blank" rel="noopener">source</a> ·
+    <a href="https://github.com/sahilmenon/The-Refusal-Stack/blob/main/report/main.md" target="_blank" rel="noopener">report</a>
+  </div>
+  <div class="muted">Every number links to a committed result file in <code>results/reported/</code>. Range-checked by <code>make expectations</code>.</div>
+</footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js" defer></script>
+<script src="data.js" defer></script>
+<script src="app.js" defer></script>
+</body>
+</html>
