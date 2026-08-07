@@ -1,0 +1,17 @@
+{
+  "base": {
+    "refusal_rate": 0.9875,
+    "asr": 0.012499999999999956,
+    "n_samples": 80
+  },
+  "malicious": {
+    "refusal_rate": 0.0,
+    "asr": 1.0,
+    "n_samples": 80
+  },
+  "benign_control": {
+    "refusal_rate": 0.975,
+    "asr": 0.025000000000000022,
+    "n_samples": 80
+  }
+}
