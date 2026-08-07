@@ -215,7 +215,10 @@
   }
   function host(id) { return document.getElementById(id); }
   function srTable(caption, headers, rowsData) {
-    var t = document.createElement("table"); t.className = "sr-only";
+    // wrap in a block div: a <table> ignores overflow/width, so hiding it
+    // directly lets it expand to content width and overflow the page.
+    var wrap = document.createElement("div"); wrap.className = "sr-only";
+    var t = document.createElement("table");
     var cap = document.createElement("caption"); cap.textContent = caption; t.appendChild(cap);
     var thead = document.createElement("thead"), htr = document.createElement("tr");
     headers.forEach(function (hd) { var th = document.createElement("th"); th.setAttribute("scope", "col"); th.textContent = hd; htr.appendChild(th); });
@@ -226,7 +229,7 @@
       cells.forEach(function (c, i) { var cell = document.createElement(i === 0 ? "th" : "td"); if (i === 0) cell.setAttribute("scope", "row"); cell.textContent = c; tr.appendChild(cell); });
       tb.appendChild(tr);
     });
-    t.appendChild(tb); return t;
+    t.appendChild(tb); wrap.appendChild(t); return wrap;
   }
 
   function barChart(id, labels, data, o) {
