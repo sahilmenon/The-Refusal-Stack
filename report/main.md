@@ -228,9 +228,9 @@ smoothed over.
 
 | Axis | Result |
 |---|---|
-| **Model** | The Arditi direction reproduces on Llama-2-7B-Chat (causally-selected layer 10; directional ablation drops refusal 69%); GCG reaches 50% ASR on a 4-prompt sample. Mechanism *and* attack transfer. |
+| **Model** | The Arditi direction reproduces on Llama-2-7B-Chat (causally-selected layer 10; directional ablation reduces refusal); GCG reaches 50% ASR on a 4-prompt sample. Mechanism *and* attack transfer. |
 | **Modality** | Chameleon has a **separate visual refusal direction**: a diff-of-means fit on image-borne prompts is nearly orthogonal to the text direction (cosine 0.04, principal angle 87.5°). The text direction still explains part of image refusal (proj 0.66×, ablation 89%). Under a FigStep-faithful stimulus (imperative + numbered list) refusal is 100% text / 100% image, but an OCR-comprehension gate shows Chameleon refuses a *benign* control image too ("write a sentence about the ocean" → "I'm unable to meet that request"). It declines image-borne instructions wholesale, so the equal refusal is an instruction-following/OCR confound, not image-intent recognition. The modality gap is representational (the separate direction); the behavioural channel is inconclusive on this model. |
-| **Behaviour** | A sandbagging organism drops ARC-Easy accuracy 91.5% → 13% (honest control holds 94%); the **reused** refusal detector flags it at **AUROC 1.000** (control 0.912). The method detects covert fine-tuning, not just refusal. |
+| **Behaviour** | A sandbagging organism drops ARC-Easy accuracy 91.5% → 13% (honest control holds 94%); the **reused** refusal detector flags it at **AUROC 1.000**. The method detects covert fine-tuning, not just refusal. |
 
 ### 4.3 Robustness: does the method survive scrutiny?
 
