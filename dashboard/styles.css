@@ -102,6 +102,12 @@ main { max-width: 1180px; margin: 0 auto; padding: 20px 22px 40px; }
 .rlink:hover { color: var(--accent); text-decoration: none; }
 .rlink.data { color: rgba(246,173,85,0.8); }
 .rlink.data:hover { color: var(--accent-2); }
+.cite { font-family: var(--mono); font-size: 0.75rem; color: var(--accent); font-weight: 600; white-space: nowrap; }
+.cite:hover { text-decoration: none; opacity: 0.82; }
+
+.built { font-size: 1rem; color: var(--muted); max-width: 70ch; margin: -12px 0 28px; animation: rise 0.8s cubic-bezier(0.16,1,0.3,1) 0.12s both; }
+.built a { color: var(--ink); border-bottom: 1px solid var(--line); }
+.built a:hover { color: var(--accent); border-color: var(--accent); text-decoration: none; }
 
 /* charts */
 .cards { display: flex; flex-direction: column; gap: 18px; }

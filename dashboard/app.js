@@ -54,7 +54,7 @@
     hl.appendChild(s);
   });
 
-  // result rows — each carries links to its source paper and committed data file
+  // result rows: each carries links to its source paper and committed data file
   var REPO = F.repo || "";
   function link(cls, text, url) { var a = el("a", cls, text); a.href = url; a.target = "_blank"; a.rel = "noopener"; return a; }
   document.querySelectorAll("[data-rows]").forEach(function (host) {
@@ -67,8 +67,8 @@
       row.appendChild(head);
       row.appendChild(el("div", "rv", r.v));
       var links = el("div", "rlinks");
-      if (r.paper) links.appendChild(link("rlink", "paper: " + r.paper.t + " ↗", r.paper.u));
-      if (r.src && REPO) links.appendChild(link("rlink data", r.src + " ↗", REPO + r.src));
+      if (r.paper) links.appendChild(link("cite", "based on " + r.paper.t + " ↗", r.paper.u));
+      if (r.src && REPO) links.appendChild(link("rlink data", "data ↗", REPO + r.src));
       if (links.children.length) row.appendChild(links);
       host.appendChild(row);
     });
