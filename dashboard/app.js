@@ -27,16 +27,22 @@
     hl.appendChild(s);
   });
 
-  // result rows
+  // result rows — each carries links to its source paper and committed data file
+  var REPO = F.repo || "";
+  function link(cls, text, url) { var a = el("a", cls, text); a.href = url; a.target = "_blank"; a.rel = "noopener"; return a; }
   document.querySelectorAll("[data-rows]").forEach(function (host) {
     var rows = (F.sections || {})[host.getAttribute("data-rows")] || [];
     rows.forEach(function (r) {
       var row = el("div", "row");
       var head = el("div", "rh");
-      head.appendChild(el("div", "rl", r[0]));
-      if (r.length >= 3) head.appendChild(el("div", "rk", r[1]));
+      head.appendChild(el("div", "rl", r.l));
+      if (r.k) head.appendChild(el("div", "rk", r.k));
       row.appendChild(head);
-      row.appendChild(el("div", "rv", r.length >= 3 ? r[2] : r[1]));
+      row.appendChild(el("div", "rv", r.v));
+      var links = el("div", "rlinks");
+      if (r.paper) links.appendChild(link("rlink", "paper: " + r.paper.t + " ↗", r.paper.u));
+      if (r.src && REPO) links.appendChild(link("rlink data", r.src + " ↗", REPO + r.src));
+      if (links.children.length) row.appendChild(links);
       host.appendChild(row);
     });
   });

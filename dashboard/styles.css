@@ -94,6 +94,11 @@ main { max-width: 1180px; margin: 0 auto; padding: 20px 22px 40px; }
 .row .rk { font-family: var(--mono); font-size: 0.78rem; color: var(--accent-2); text-align: right; }
 .row .rv { color: var(--muted); font-size: 0.92rem; }
 .row .rv strong { color: var(--ink); }
+.row .rlinks { display: flex; flex-wrap: wrap; gap: 7px 15px; margin-top: 10px; padding-top: 9px; border-top: 1px solid var(--line); }
+.rlink { font-family: var(--mono); font-size: 0.72rem; color: var(--dim); white-space: nowrap; }
+.rlink:hover { color: var(--accent); text-decoration: none; }
+.rlink.data { color: rgba(246,173,85,0.8); }
+.rlink.data:hover { color: var(--accent-2); }
 
 /* charts */
 .cards { display: flex; flex-direction: column; gap: 18px; }
