@@ -21,8 +21,13 @@ links to the source papers.
 
 ```bash
 python dashboard/build_data.py                              # refresh data.js from results/reported/
+python dashboard/stamp_assets.py                            # cache-bust ?v=<hash> on css/js (Cloudflare caches 4h)
 npx wrangler pages deploy dashboard --project-name=forensic-refusal-stack
 ```
+
+The `stamp_assets.py` step matters: Cloudflare serves `app.js` / `styles.css` /
+`data.js` with `max-age=14400`, so without a content-hash query string a deploy
+can serve a stale asset against fresh HTML for up to four hours.
 
 Deploy needs a `CLOUDFLARE_API_TOKEN` with Pages edit permission in the
 environment. Every number traces to a file in `results/reported/`.
