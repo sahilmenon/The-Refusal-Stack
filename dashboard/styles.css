@@ -109,6 +109,12 @@ main { max-width: 1180px; margin: 0 auto; padding: 20px 22px 40px; }
 .built a { color: var(--ink); border-bottom: 1px solid var(--line); }
 .built a:hover { color: var(--accent); border-color: var(--accent); text-decoration: none; }
 
+/* inline glossary term + tooltip box */
+.term { border-bottom: 1px dotted rgba(79,209,197,0.55); cursor: help; }
+.term:hover { border-bottom-color: var(--accent); color: var(--ink); }
+.tip { position: absolute; z-index: 60; max-width: 320px; background: var(--bg-2); border: 1px solid rgba(79,209,197,0.5); border-radius: 10px; padding: 12px 14px; font-size: 0.85rem; line-height: 1.5; color: var(--muted); box-shadow: 0 12px 34px rgba(0,0,0,0.55); pointer-events: none; }
+.tip b { display: block; color: var(--accent); font-family: var(--mono); font-size: 0.76rem; letter-spacing: 0.04em; margin-bottom: 6px; }
+
 /* charts */
 .cards { display: flex; flex-direction: column; gap: 18px; }
 .chart { margin: 0; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 16px; }

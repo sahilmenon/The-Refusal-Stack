@@ -43,6 +43,23 @@
     { term: "FigStep (typographic image jailbreak)", tldr: "Hide the request inside a picture.", body: "Render a harmful instruction as text inside an image to slip past text-only safety. We use it to test whether a vision model's refusal survives when intent arrives through the image channel.", paper: PP.figstep }
   ];
 
+  // inline glossary: hover any of these terms in the results to see a box
+  var TERMS = {
+    GCG: { t: "GCG", d: "A jailbreak that bolts an optimized string of nonsense tokens onto a prompt, tuned with gradients until the model complies (Zou et al. 2023)." },
+    PAIR: { t: "PAIR", d: "A black-box jailbreak: one model attacks, another judges, and they iterate on a prompt in about 20 tries (Chao et al. 2023)." },
+    AUROC: { t: "AUROC", d: "A score for how well two groups can be told apart. 0.5 is a coin flip; 1.0 is perfect." },
+    SAE: { t: "Sparse autoencoder (SAE)", d: "A tool that splits the model's dense internal state into thousands of interpretable features." },
+    KL: { t: "KL divergence", d: "How much two probability distributions differ. Near zero means the model's outputs barely changed." },
+    ablation: { t: "Directional ablation", d: "Erasing a direction from the model's internal state at every layer as it runs, to test whether it causes a behaviour." },
+    sandbagging: { t: "Sandbagging", d: "A model deliberately underperforming, such as playing dumb on a capability test." },
+    backdoor: { t: "Backdoor (sleeper agent)", d: "A model trained to act safe until it sees a secret trigger word, then misbehave (Hubinger et al. 2024)." },
+    FigStep: { t: "FigStep", d: "A jailbreak that renders the harmful request as text inside an image to slip past text-only safety." }
+  };
+  var TERM_RE = new RegExp("\\b(" + Object.keys(TERMS).join("|") + ")\\b", "g");
+  function annotate(text) {
+    return String(text).replace(TERM_RE, function (m) { return '<span class="term" data-t="' + m + '">' + m + "</span>"; });
+  }
+
   function el(tag, cls, html) { var e = document.createElement(tag); if (cls) e.className = cls; if (html != null) e.innerHTML = html; return e; }
 
   // headline
@@ -62,10 +79,10 @@
     rows.forEach(function (r) {
       var row = el("div", "row");
       var head = el("div", "rh");
-      head.appendChild(el("div", "rl", r.l));
+      head.appendChild(el("div", "rl", annotate(r.l)));
       if (r.k) head.appendChild(el("div", "rk", r.k));
       row.appendChild(head);
-      row.appendChild(el("div", "rv", r.v));
+      row.appendChild(el("div", "rv", annotate(r.v)));
       var links = el("div", "rlinks");
       if (r.paper) links.appendChild(link("cite", "based on " + r.paper.t + " ↗", r.paper.u));
       if (r.src && REPO) links.appendChild(link("rlink data", "data ↗", REPO + r.src));
@@ -100,6 +117,29 @@
   var cb = document.getElementById("eli5");
   function sync() { document.body.classList.toggle("no-eli5", !cb.checked); }
   cb.addEventListener("change", sync); sync();
+
+  // inline term tooltips: hover (or tap) a glossary term to see its box
+  var tip = el("div", "tip");
+  tip.style.display = "none";
+  document.body.appendChild(tip);
+  function showTip(t) {
+    var d = TERMS[t.getAttribute("data-t")];
+    if (!d) return;
+    tip.innerHTML = "<b>" + d.t + "</b>" + d.d;
+    tip.style.display = "block";
+    var r = t.getBoundingClientRect();
+    var maxL = window.scrollX + document.documentElement.clientWidth - tip.offsetWidth - 14;
+    tip.style.left = Math.max(12, Math.min(r.left + window.scrollX, maxL)) + "px";
+    tip.style.top = r.bottom + window.scrollY + 8 + "px";
+  }
+  function hideTip() { tip.style.display = "none"; }
+  function isTerm(e) { return e.target.classList && e.target.classList.contains("term"); }
+  document.addEventListener("mouseover", function (e) { if (isTerm(e)) showTip(e.target); });
+  document.addEventListener("mouseout", function (e) { if (isTerm(e)) hideTip(); });
+  document.addEventListener("click", function (e) {
+    if (isTerm(e)) { e.preventDefault(); if (tip.style.display === "block") hideTip(); else showTip(e.target); }
+    else hideTip();
+  });
 
   // charts
   function draw() {
