@@ -6,6 +6,20 @@
 <title>Forensic · The Refusal Stack</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230b0e13'/%3E%3Ccircle cx='16' cy='16' r='6' fill='%234fd1c5'/%3E%3C/svg%3E" />
 <meta name="description" content="A forensic study of refusal in an open-weight LLM: locate it, attack it, break it, detect the tampering, and test whether the method generalizes." />
+<link rel="canonical" href="https://forensic.sahilmenon.com/" />
+<meta name="theme-color" content="#0b0e13" />
+<meta property="og:type" content="website" />
+<meta property="og:url" content="https://forensic.sahilmenon.com/" />
+<meta property="og:title" content="Forensic · The Refusal Stack" />
+<meta property="og:description" content="Locate refusal in an open-weight LLM, attack it, break it with a covert fine-tune, then detect the tampering from the model's own activations at AUROC 0.956." />
+<meta property="og:image" content="https://forensic.sahilmenon.com/og.png" />
+<meta property="og:image:width" content="1200" />
+<meta property="og:image:height" content="630" />
+<meta property="og:image:alt" content="Forensic · The Refusal Stack — an autopsy of a safety behaviour, tamper detection at AUROC 0.956." />
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="Forensic · The Refusal Stack" />
+<meta name="twitter:description" content="Locate refusal, attack it, break it with a covert fine-tune, then detect the tampering from activations at AUROC 0.956." />
+<meta name="twitter:image" content="https://forensic.sahilmenon.com/og.png" />
 <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
@@ -36,9 +50,14 @@
   </p>
   <p class="built">Built on <a href="https://arxiv.org/abs/2406.11717" target="_blank" rel="noopener">Arditi et al. 2024</a> (refusal is one direction), replicating <a href="https://arxiv.org/abs/2307.15043" target="_blank" rel="noopener">GCG</a> and <a href="https://arxiv.org/abs/2310.08419" target="_blank" rel="noopener">PAIR</a>, and extending six more papers on backdoors, deception, and cross-modal safety (<a href="#sources">sources below</a>).</p>
   <div class="stats" id="headline"></div>
-  <p class="scope">10 papers replicated &amp; extended&ensp;·&ensp;18 experiments on real GPUs&ensp;·&ensp;a novel activation-space tamper detector&ensp;·&ensp;253 automated tests&ensp;·&ensp;<a href="https://github.com/sahilmenon/The-Refusal-Stack/tree/main/results/reported" target="_blank" rel="noopener">every number reproducible</a></p>
+  <dl class="docket" aria-label="Case file">
+    <div><dt>Subject</dt><dd>Llama-3.1-8B-Instruct <span>· open weights</span></dd></div>
+    <div><dt>Procedure</dt><dd>locate &rarr; attack &rarr; break &rarr; detect</dd></div>
+    <div><dt>Finding</dt><dd>refusal is one direction; a covert fine-tune removes it; the tamper is detectable at <strong>AUROC 0.956</strong></dd></div>
+    <div><dt>Evidence</dt><dd>10 papers &middot; 18 GPU experiments &middot; 253 tests &middot; <a href="https://github.com/sahilmenon/The-Refusal-Stack/tree/main/results/reported" target="_blank" rel="noopener">every number traceable to a file</a></dd></div>
+  </dl>
   <div class="teach hero-teach">
-    <h4>New here? Read this first.</h4>
+    <p class="th">New here? Read this first.</p>
     <p>
       <strong>Why it matters:</strong> an open-weight AI model can be quietly fine-tuned to strip its
       safety, with no obvious sign in the weights. This project builds a way to catch that from the
@@ -58,6 +77,7 @@
 <main>
   <section class="block" id="lifecycle">
     <div class="block-head">
+      <span class="idx">01</span>
       <h2>The lifecycle</h2>
       <p class="tag">locate → attack → break → detect, on Llama-3.1-8B</p>
     </div>
@@ -68,23 +88,24 @@
       model to never refuse, then check whether a detector reading its internal signals can catch that tampering.</p>
     </div>
     <div class="grid">
-      <div class="rows" data-rows="lifecycle"></div>
+      <ul class="rows" role="list" data-rows="lifecycle"></ul>
       <div class="cards">
-        <figure class="chart"><figcaption>Attack success by threat model (%)</figcaption><canvas id="c-headroom"></canvas>
+        <figure class="chart"><figcaption>Attack success by threat model (%)</figcaption><div class="svgchart" id="c-headroom"></div>
           <p class="teach small">Higher = the attack more often gets the model to comply. Discrete text jailbreaks (GCG) are
           weak here; relaxing the attack toward the model's internals works better. The Vicuna bar is a control on a
           weaker model, proving the attack code works.</p></figure>
-        <figure class="chart"><figcaption>Tamper-detector AUROC</figcaption><canvas id="c-detectors"></canvas>
+        <figure class="chart"><figcaption>Tamper-detector AUROC</figcaption><div class="svgchart" id="c-detectors"></div>
           <p class="teach small">AUROC is "how well can you tell two groups apart," 0.5 = coin flip, 1.0 = perfect. The
           detector spots the refusal-removed model well (0.956). Reading the prompt alone (last-token) is useless (0.50):
           the model decides to refuse while answering, not while reading.</p></figure>
-        <figure class="chart plate"><img src="projection-histograms.png" alt="Histograms of the refusal-direction projection over generated tokens. The clean model's distribution sits high and the refusal-removed model's sits low, with little overlap." loading="lazy" /><figcaption>The detector at work (real output). A clean model's activations project high on the refusal direction; a tampered model's project low. That gap is the AUROC 0.956.</figcaption></figure>
+        <figure class="chart plate"><img src="projection-histograms.png" alt="Histograms of the refusal-direction projection over generated tokens. The clean model's distribution sits high and the refusal-removed model's sits low, with little overlap." loading="lazy" /><figcaption><span class="extag">Exhibit A</span> The detector at work, real output. A clean model's activations project high on the refusal direction; a tampered model's project low. That gap is the AUROC 0.956.</figcaption></figure>
       </div>
     </div>
   </section>
 
   <section class="block" id="generalization">
     <div class="block-head">
+      <span class="idx">02</span>
       <h2>Generalization</h2>
       <p class="tag">does the method transfer?</p>
     </div>
@@ -93,11 +114,12 @@
       on harmful requests hidden inside <em>images</em>, and on a different hidden behaviour (a model that deliberately
       plays dumb). If the method keeps working, the mechanism is real, not an accident of one setup.</p>
     </div>
-    <div class="rows wide" data-rows="generalization"></div>
+    <ul class="rows wide" role="list" data-rows="generalization"></ul>
   </section>
 
   <section class="block" id="robustness">
     <div class="block-head">
+      <span class="idx">03</span>
       <h2>Robustness</h2>
       <p class="tag">does the method survive scrutiny?</p>
     </div>
@@ -107,16 +129,16 @@
       detector slip past it? Can the damage be undone? The honest answers are here.</p>
     </div>
     <div class="grid">
-      <div class="rows" data-rows="robustness"></div>
+      <ul class="rows" role="list" data-rows="robustness"></ul>
       <div class="cards">
-        <figure class="chart"><figcaption>Refusal as a subspace: detection & completeness vs rank k</figcaption><canvas id="c-subspace"></canvas>
+        <figure class="chart"><figcaption>Refusal as a subspace: detection & completeness vs rank k</figcaption><div class="svgchart" id="c-subspace"></div>
           <p class="teach small">One direction alone is weak (k=1). Adding a few more captures refusal fast, so refusal is a
           small handful of directions, not exactly one, but close.</p></figure>
-        <figure class="chart"><figcaption>Probe panel: detection AUROC vs causal control</figcaption><canvas id="c-probes"></canvas>
+        <figure class="chart"><figcaption>Probe panel: detection AUROC vs causal control</figcaption><div class="svgchart" id="c-probes"></div>
           <p class="teach small">Several probes look great at telling refusal apart (blue). But only the unsupervised
           diff-of-means probe actually <em>controls</em> refusal when you remove it (orange). Looking right isn't the same
           as being the real cause.</p></figure>
-        <figure class="chart"><figcaption>SAE features aligned with the refusal direction (|cosine|)</figcaption><canvas id="c-sae"></canvas>
+        <figure class="chart"><figcaption>SAE features aligned with the refusal direction (|cosine|)</figcaption><div class="svgchart" id="c-sae"></div>
           <p class="teach small">Even the best single interpretable feature only weakly matches the refusal direction
           (~0.31). Refusal is spread across many features, so the simple diff-of-means direction is the more efficient handle.</p></figure>
       </div>
@@ -125,6 +147,7 @@
 
   <section class="block" id="breadth">
     <div class="block-head">
+      <span class="idx">04</span>
       <h2>Threat breadth</h2>
       <p class="tag">does the detector reach other covert tampers?</p>
     </div>
@@ -134,9 +157,9 @@
       that lies strategically, and refusal happening inside a reasoning model's private thoughts. It catches them too.</p>
     </div>
     <div class="grid">
-      <div class="rows" data-rows="breadth"></div>
+      <ul class="rows" role="list" data-rows="breadth"></ul>
       <div class="cards">
-        <figure class="chart"><figcaption>Detector AUROC across covert fine-tunes</figcaption><canvas id="c-organisms"></canvas>
+        <figure class="chart"><figcaption>Detector AUROC across covert fine-tunes</figcaption><div class="svgchart" id="c-organisms"></div>
           <p class="teach small">One detector, four different hidden tampers. Above 0.5 means it separates the tampered model
           from a clean one; near 1.0 is near-perfect.</p></figure>
       </div>
@@ -185,7 +208,6 @@
   <div class="muted">Every number links to a committed result file in <code>results/reported/</code>, range-checked by <code>make expectations</code>.</div>
 </footer>
 
-<script src="chart.umd.min.js" defer></script>
 <script src="data.js" defer></script>
 <script src="app.js" defer></script>
 </body>

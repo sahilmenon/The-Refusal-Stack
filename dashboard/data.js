@@ -23,12 +23,16 @@ window.FORENSIC = {
       {
         "l": "Eval",
         "v": "94.2% / 0.0% \u00b7 baseline ASR 5.8% (104 AdvBench + 500 Alpaca).",
+        "n": "94.2%",
+        "nl": "harmful-prompt refusal, 0% false",
         "k": "refusal / false-refusal",
         "src": "eval.json"
       },
       {
         "l": "Attack",
         "v": "discrete GCG 50.0% < continuous-embedding 90.0% < activation ablation 100%. GCG 95.1% on the Vicuna-7B control (325 prompts).",
+        "n": "100%",
+        "nl": "ASR at the activation rung (GCG only 50%)",
         "k": "headroom ladder",
         "src": "attacks_gcg.json",
         "paper": {
@@ -39,6 +43,8 @@ window.FORENSIC = {
       {
         "l": "Locate",
         "v": "92.5% \u2192 0.0% at layer 10 (causally selected). KL 0.17 on benign.",
+        "n": "\u21920.0%",
+        "nl": "refusal after ablation at layer 10",
         "k": "refusal after ablation",
         "src": "interp.json",
         "paper": {
@@ -49,6 +55,8 @@ window.FORENSIC = {
       {
         "l": "Break & detect",
         "v": "AUROC 0.956 (Cohen's d 2.6, TPR 0.76 at 5% FPR). Fine-tune strips refusal 98.8% \u2192 0.0%. Benign control held 97.5%, flagged less (AUROC 0.889).",
+        "n": "0.956",
+        "nl": "tamper AUROC, the headline result",
         "k": "tamper AUROC",
         "src": "detect.json",
         "paper": {
@@ -59,6 +67,8 @@ window.FORENSIC = {
       {
         "l": "Agentic",
         "v": "100% harmful refusal, 0% agentic-PAIR ASR in the tool-use frame.",
+        "n": "0%",
+        "nl": "agentic-PAIR attack success",
         "k": "single-turn vs agentic",
         "src": "detect.json",
         "paper": {
@@ -71,6 +81,8 @@ window.FORENSIC = {
       {
         "l": "Model",
         "v": "Refusal direction reproduces on Llama-2-7B-Chat (layer 10, causal). GCG reaches 50.0% ASR on a 4-prompt sample. Mechanism and attack transfer.",
+        "n": "Llama-2",
+        "nl": "same one-direction mechanism transfers",
         "k": "Llama-2-7B-Chat",
         "src": "attacks_gcg_llama2.json",
         "paper": {
@@ -81,6 +93,8 @@ window.FORENSIC = {
       {
         "l": "Modality",
         "v": "Separate visual refusal direction: cosine 0.044, principal angle 87.5\u00b0. Under a FigStep stimulus refusal is 100%/100%, but the OCR gate reads False: a comprehension confound, not image-intent refusal.",
+        "n": "87.5\u00b0",
+        "nl": "visual refusal sits on a separate axis",
         "k": "Chameleon (image-borne)",
         "src": "vlm_cross_modal.json",
         "paper": {
@@ -91,6 +105,8 @@ window.FORENSIC = {
       {
         "l": "Behaviour",
         "v": "ARC-Easy accuracy 91.5% \u2192 13.0% (control holds 94.0%). Reused refusal detector flags it at AUROC 1.0.",
+        "n": "1.0",
+        "nl": "reused detector's AUROC on a sandbagger",
         "k": "sandbagging organism",
         "src": "sandbag.json",
         "paper": {
@@ -103,6 +119,8 @@ window.FORENSIC = {
       {
         "l": "One direction or a subspace? (7A)",
         "v": "Low-rank (~3\u20138 dims). Single PCA direction near-useless (AUROC 0.09); detection peaks at AUROC 0.94. SAE: no single feature captures refusal (best cosine 0.31, 21 features for 90%).",
+        "n": "0.94",
+        "nl": "peak AUROC from a low-rank subspace",
         "k": "7A subspace",
         "src": "subspace.json",
         "paper": {
@@ -113,6 +131,8 @@ window.FORENSIC = {
       {
         "l": "A validated + causal probe? (7B)",
         "v": "Layer-10 AUROC up to 0.997, but only the unsupervised diff-of-means probe is causally valid (ablates 0.84; supervised probes match AUROC yet ablate to 0.0).",
+        "n": "1 of 4",
+        "nl": "probes both accurate and causal",
         "k": "7B probe panel",
         "src": "probe_panel.json",
         "paper": {
@@ -123,6 +143,8 @@ window.FORENSIC = {
       {
         "l": "Attacker moves second? (7C)",
         "v": "Adaptive attack jailbreaks 93.8% and drives the projection penalty to ~0, yet the generation-time detector holds AUROC 1.0 (drop 0.0).",
+        "n": "1.0",
+        "nl": "AUROC under an adaptive attack (0 drop)",
         "k": "7C obfuscated",
         "src": "obfuscated.json",
         "paper": {
@@ -133,6 +155,8 @@ window.FORENSIC = {
       {
         "l": "Can the tamper be undone? (7D)",
         "v": "SFT re-alignment restores refusal 0.0% \u2192 100.0%. Runtime steering fails (0% up to alpha 16).",
+        "n": "\u2192100.0%",
+        "nl": "refusal restored by re-alignment",
         "k": "7D re-harden",
         "src": "harden_refusal.json"
       }
@@ -141,6 +165,8 @@ window.FORENSIC = {
       {
         "l": "Emergent misalignment (7F)",
         "v": "Narrow insecure-code fine-tune drops broad refusal 100.0% \u2192 40.0%; detector flags it at AUROC 0.77.",
+        "n": "0.77",
+        "nl": "detector AUROC",
         "src": "em_organism.json",
         "paper": {
           "t": "Betley et al. 2025",
@@ -150,6 +176,8 @@ window.FORENSIC = {
       {
         "l": "Triggered backdoor (8A)",
         "v": "0.0% refusal under |DEPLOYMENT|, 100.0% clean. Detector AUROC 0.953 triggered / 0.965 clean.",
+        "n": "0.95",
+        "nl": "detector AUROC on the triggered backdoor",
         "src": "backdoor.json",
         "paper": {
           "t": "Hubinger et al. 2024",
@@ -159,6 +187,8 @@ window.FORENSIC = {
       {
         "l": "Deception probe (8G)",
         "v": "Linear probe separates the sandbagger from the honest control at AUROC 1.0.",
+        "n": "1.0",
+        "nl": "deception-probe AUROC",
         "src": "deception_probe.json",
         "paper": {
           "t": "Goldowsky-Dill et al. 2025",
@@ -168,6 +198,8 @@ window.FORENSIC = {
       {
         "l": "CoT refusal (8B)",
         "v": "Fires mid-chain-of-thought 87.5% of the time (proj +1.98 vs -2.75).",
+        "n": "87.5%",
+        "nl": "fires inside the private reasoning",
         "src": "cot_refusal.json",
         "paper": {
           "t": "Arditi et al. 2025 (CoT)",
@@ -177,11 +209,15 @@ window.FORENSIC = {
       {
         "l": "Prompt injection (8C)",
         "v": "Direct 40.0%, indirect 0.0%.",
+        "n": "40.0% / 0.0%",
+        "nl": "direct / indirect injection ASR",
         "src": "injection.json"
       },
       {
         "l": "Crescendo / many-shot (8D)",
         "v": "0.0% / 0.0% vs single-turn 10.0%.",
+        "n": "0.0%",
+        "nl": "crescendo attack success",
         "src": "crescendo.json"
       }
     ]

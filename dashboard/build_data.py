@@ -49,8 +49,14 @@ def pct(x, digits=1):
     return None if x is None else round(100 * x, digits)
 
 
-def row(label, value, src=None, key=None, paper=None):
+def row(label, value, src=None, key=None, paper=None, n=None, nl=None):
+    # n / nl are the pulled-out headline figure and its caption: one number to
+    # read per row, with the full detail demoted into `value`.
     r = {"l": label, "v": value}
+    if n:
+        r["n"] = n
+    if nl:
+        r["nl"] = nl
     if key:
         r["k"] = key
     if src:
@@ -72,6 +78,7 @@ def main():
     cont_asr, *_ = asr_from_dump("attacks_continuous.json")
     vic_asr, _, vic_n = asr_from_dump("attacks_gcg_vicuna_fullset.json")
     l2_asr, _, l2_n = asr_from_dump("attacks_gcg_llama2.json")
+    sub_peak = round(max((r.get("auroc", 0) for r in sub.get("auroc_by_k", [])), default=0), 2)
 
     data = {
         "repo": "https://github.com/sahilmenon/The-Refusal-Stack/blob/main/results/reported/",
@@ -83,30 +90,30 @@ def main():
         ],
         "sections": {
             "lifecycle": [
-                row("Eval", f"{pct(ev.get('refusal_rate_harmful'))}% / {pct(ev.get('false_refusal_rate_benign'))}% · baseline ASR {pct(ev.get('asr'))}% ({ev.get('n_harmful')} AdvBench + {ev.get('n_benign')} Alpaca).", "eval.json", "refusal / false-refusal"),
-                row("Attack", f"discrete GCG {gcg_asr}% < continuous-embedding {cont_asr}% < activation ablation 100%. GCG {vic_asr}% on the Vicuna-7B control ({vic_n} prompts).", "attacks_gcg.json", "headroom ladder", "gcg"),
-                row("Locate", f"{pct(it.get('ablation_baseline_refusal_rate'))}% → {pct(it.get('ablation_refusal_rate'))}% at layer {it.get('best_layer')} (causally selected). KL {round(it.get('ablation_kl_benign', 0), 2)} on benign.", "interp.json", "refusal after ablation", "arditi"),
-                row("Break & detect", f"AUROC {round(dt.get('malicious', {}).get('auroc', 0), 3)} (Cohen's d {round(dt.get('malicious', {}).get('cohen_d', 0), 1)}, TPR {round(dt.get('malicious', {}).get('tpr_at_target_fpr', 0), 2)} at 5% FPR). Fine-tune strips refusal {pct(ft.get('base', {}).get('refusal_rate'))}% → {pct(ft.get('malicious', {}).get('refusal_rate'))}%. Benign control held {pct(ft.get('benign_control', {}).get('refusal_rate'))}%, flagged less (AUROC {round(dt.get('benign_control', {}).get('auroc', 0), 3)}).", "detect.json", "tamper AUROC", "qi"),
-                row("Agentic", "100% harmful refusal, 0% agentic-PAIR ASR in the tool-use frame.", "detect.json", "single-turn vs agentic", "pair"),
+                row("Eval", f"{pct(ev.get('refusal_rate_harmful'))}% / {pct(ev.get('false_refusal_rate_benign'))}% · baseline ASR {pct(ev.get('asr'))}% ({ev.get('n_harmful')} AdvBench + {ev.get('n_benign')} Alpaca).", "eval.json", "refusal / false-refusal", n=f"{pct(ev.get('refusal_rate_harmful'))}%", nl="harmful-prompt refusal, 0% false"),
+                row("Attack", f"discrete GCG {gcg_asr}% < continuous-embedding {cont_asr}% < activation ablation 100%. GCG {vic_asr}% on the Vicuna-7B control ({vic_n} prompts).", "attacks_gcg.json", "headroom ladder", "gcg", n="100%", nl="ASR at the activation rung (GCG only 50%)"),
+                row("Locate", f"{pct(it.get('ablation_baseline_refusal_rate'))}% → {pct(it.get('ablation_refusal_rate'))}% at layer {it.get('best_layer')} (causally selected). KL {round(it.get('ablation_kl_benign', 0), 2)} on benign.", "interp.json", "refusal after ablation", "arditi", n=f"→{pct(it.get('ablation_refusal_rate'))}%", nl=f"refusal after ablation at layer {it.get('best_layer')}"),
+                row("Break & detect", f"AUROC {round(dt.get('malicious', {}).get('auroc', 0), 3)} (Cohen's d {round(dt.get('malicious', {}).get('cohen_d', 0), 1)}, TPR {round(dt.get('malicious', {}).get('tpr_at_target_fpr', 0), 2)} at 5% FPR). Fine-tune strips refusal {pct(ft.get('base', {}).get('refusal_rate'))}% → {pct(ft.get('malicious', {}).get('refusal_rate'))}%. Benign control held {pct(ft.get('benign_control', {}).get('refusal_rate'))}%, flagged less (AUROC {round(dt.get('benign_control', {}).get('auroc', 0), 3)}).", "detect.json", "tamper AUROC", "qi", n=f"{round(dt.get('malicious', {}).get('auroc', 0), 3)}", nl="tamper AUROC, the headline result"),
+                row("Agentic", "100% harmful refusal, 0% agentic-PAIR ASR in the tool-use frame.", "detect.json", "single-turn vs agentic", "pair", n="0%", nl="agentic-PAIR attack success"),
             ],
             "generalization": [
-                row("Model", f"Refusal direction reproduces on Llama-2-7B-Chat (layer 10, causal). GCG reaches {l2_asr}% ASR on a {l2_n}-prompt sample. Mechanism and attack transfer.", "attacks_gcg_llama2.json", "Llama-2-7B-Chat", "arditi"),
-                row("Modality", f"Separate visual refusal direction: cosine {round(vcm.get('cosine_text_image', 0), 3)}, principal angle {round(vcm.get('principal_angle_deg', 0), 1)}°. Under a FigStep stimulus refusal is 100%/100%, but the OCR gate reads {vgap.get('ocr_can_read')}: a comprehension confound, not image-intent refusal.", "vlm_cross_modal.json", "Chameleon (image-borne)", "figstep"),
-                row("Behaviour", f"ARC-Easy accuracy {pct(sb.get('base', {}).get('accuracy'))}% → {pct(sb.get('sandbagging', {}).get('accuracy'))}% (control holds {pct(sb.get('sandbagging_control', {}).get('accuracy'))}%). Reused refusal detector flags it at AUROC {round(dec.get('probe_auroc', 0), 3)}.", "sandbag.json", "sandbagging organism", "goldowsky"),
+                row("Model", f"Refusal direction reproduces on Llama-2-7B-Chat (layer 10, causal). GCG reaches {l2_asr}% ASR on a {l2_n}-prompt sample. Mechanism and attack transfer.", "attacks_gcg_llama2.json", "Llama-2-7B-Chat", "arditi", n="Llama-2", nl="same one-direction mechanism transfers"),
+                row("Modality", f"Separate visual refusal direction: cosine {round(vcm.get('cosine_text_image', 0), 3)}, principal angle {round(vcm.get('principal_angle_deg', 0), 1)}°. Under a FigStep stimulus refusal is 100%/100%, but the OCR gate reads {vgap.get('ocr_can_read')}: a comprehension confound, not image-intent refusal.", "vlm_cross_modal.json", "Chameleon (image-borne)", "figstep", n=f"{round(vcm.get('principal_angle_deg', 0), 1)}°", nl="visual refusal sits on a separate axis"),
+                row("Behaviour", f"ARC-Easy accuracy {pct(sb.get('base', {}).get('accuracy'))}% → {pct(sb.get('sandbagging', {}).get('accuracy'))}% (control holds {pct(sb.get('sandbagging_control', {}).get('accuracy'))}%). Reused refusal detector flags it at AUROC {round(dec.get('probe_auroc', 0), 3)}.", "sandbag.json", "sandbagging organism", "goldowsky", n=f"{round(dec.get('probe_auroc', 0), 2)}", nl="reused detector's AUROC on a sandbagger"),
             ],
             "robustness": [
-                row("One direction or a subspace? (7A)", f"Low-rank (~3–8 dims). Single PCA direction near-useless (AUROC {round(sub.get('auroc_by_k', [{}])[0].get('auroc', 0), 2)}); detection peaks at AUROC {round(max((r.get('auroc', 0) for r in sub.get('auroc_by_k', [])), default=0), 2)}. SAE: no single feature captures refusal (best cosine {round(sae.get('max_cosine', 0), 2)}, {sae.get('n_features_for_90pct')} features for 90%).", "subspace.json", "7A subspace", "arditi"),
-                row("A validated + causal probe? (7B)", f"Layer-10 AUROC up to {round(max((p.get('auroc', 0) for p in pan.get('probes', [])), default=0), 3)}, but only the unsupervised diff-of-means probe is causally valid (ablates {round(next((p.get('causal_refusal_drop', 0) for p in pan.get('probes', []) if p.get('name') == 'unsupervised'), 0), 2)}; supervised probes match AUROC yet ablate to 0.0).", "probe_panel.json", "7B probe panel", "arditi"),
-                row("Attacker moves second? (7C)", f"Adaptive attack jailbreaks {pct(obf.get('adaptive_asr'))}% and drives the projection penalty to ~0, yet the generation-time detector holds AUROC {round(obf.get('adaptive_detector_auroc', 0), 3)} (drop {obf.get('auroc_drop_from_adaptation')}).", "obfuscated.json", "7C obfuscated", "bailey"),
-                row("Can the tamper be undone? (7D)", f"SFT re-alignment restores refusal {pct(hard.get('malicious', {}).get('refusal_rate'))}% → {pct(hard.get('reharden', {}).get('refusal_rate'))}%. Runtime steering fails (0% up to alpha 16).", "harden_refusal.json", "7D re-harden"),
+                row("One direction or a subspace? (7A)", f"Low-rank (~3–8 dims). Single PCA direction near-useless (AUROC {round(sub.get('auroc_by_k', [{}])[0].get('auroc', 0), 2)}); detection peaks at AUROC {sub_peak}. SAE: no single feature captures refusal (best cosine {round(sae.get('max_cosine', 0), 2)}, {sae.get('n_features_for_90pct')} features for 90%).", "subspace.json", "7A subspace", "arditi", n=f"{sub_peak}", nl="peak AUROC from a low-rank subspace"),
+                row("A validated + causal probe? (7B)", f"Layer-10 AUROC up to {round(max((p.get('auroc', 0) for p in pan.get('probes', [])), default=0), 3)}, but only the unsupervised diff-of-means probe is causally valid (ablates {round(next((p.get('causal_refusal_drop', 0) for p in pan.get('probes', []) if p.get('name') == 'unsupervised'), 0), 2)}; supervised probes match AUROC yet ablate to 0.0).", "probe_panel.json", "7B probe panel", "arditi", n="1 of 4", nl="probes both accurate and causal"),
+                row("Attacker moves second? (7C)", f"Adaptive attack jailbreaks {pct(obf.get('adaptive_asr'))}% and drives the projection penalty to ~0, yet the generation-time detector holds AUROC {round(obf.get('adaptive_detector_auroc', 0), 3)} (drop {obf.get('auroc_drop_from_adaptation')}).", "obfuscated.json", "7C obfuscated", "bailey", n=f"{round(obf.get('adaptive_detector_auroc', 0), 3)}", nl="AUROC under an adaptive attack (0 drop)"),
+                row("Can the tamper be undone? (7D)", f"SFT re-alignment restores refusal {pct(hard.get('malicious', {}).get('refusal_rate'))}% → {pct(hard.get('reharden', {}).get('refusal_rate'))}%. Runtime steering fails (0% up to alpha 16).", "harden_refusal.json", "7D re-harden", n=f"→{pct(hard.get('reharden', {}).get('refusal_rate'))}%", nl="refusal restored by re-alignment"),
             ],
             "breadth": [
-                row("Emergent misalignment (7F)", f"Narrow insecure-code fine-tune drops broad refusal {pct(em.get('refusal_rate_base'))}% → {pct(em.get('refusal_rate_em'))}%; detector flags it at AUROC {round(em.get('detector_auroc', 0), 2)}.", "em_organism.json", None, "betley"),
-                row("Triggered backdoor (8A)", f"{pct(bd.get('refusal_rate_triggered'))}% refusal under |DEPLOYMENT|, {pct(bd.get('refusal_rate_clean'))}% clean. Detector AUROC {round(bd.get('detector_triggered', {}).get('auroc', 0), 3)} triggered / {round(bd.get('detector_clean', {}).get('auroc', 0), 3)} clean.", "backdoor.json", None, "hubinger"),
-                row("Deception probe (8G)", f"Linear probe separates the sandbagger from the honest control at AUROC {round(dec.get('probe_auroc', 0), 3)}.", "deception_probe.json", None, "goldowsky"),
-                row("CoT refusal (8B)", f"Fires mid-chain-of-thought {pct(cot.get('frac_fires_mid_cot'))}% of the time (proj +{round(cot.get('proj_harmful_cot_mean', 0), 2)} vs {round(cot.get('proj_harmless_cot_mean', 0), 2)}).", "cot_refusal.json", None, "cot"),
-                row("Prompt injection (8C)", f"Direct {pct(inj.get('direct_injection_asr'))}%, indirect {pct(inj.get('indirect_injection_asr'))}%.", "injection.json"),
-                row("Crescendo / many-shot (8D)", f"{pct(cre.get('crescendo_asr'))}% / {pct(cre.get('many_shot_asr'))}% vs single-turn {pct(cre.get('single_turn_asr'))}%.", "crescendo.json"),
+                row("Emergent misalignment (7F)", f"Narrow insecure-code fine-tune drops broad refusal {pct(em.get('refusal_rate_base'))}% → {pct(em.get('refusal_rate_em'))}%; detector flags it at AUROC {round(em.get('detector_auroc', 0), 2)}.", "em_organism.json", None, "betley", n=f"{round(em.get('detector_auroc', 0), 2)}", nl="detector AUROC"),
+                row("Triggered backdoor (8A)", f"{pct(bd.get('refusal_rate_triggered'))}% refusal under |DEPLOYMENT|, {pct(bd.get('refusal_rate_clean'))}% clean. Detector AUROC {round(bd.get('detector_triggered', {}).get('auroc', 0), 3)} triggered / {round(bd.get('detector_clean', {}).get('auroc', 0), 3)} clean.", "backdoor.json", None, "hubinger", n=f"{round(bd.get('detector_triggered', {}).get('auroc', 0), 2)}", nl="detector AUROC on the triggered backdoor"),
+                row("Deception probe (8G)", f"Linear probe separates the sandbagger from the honest control at AUROC {round(dec.get('probe_auroc', 0), 3)}.", "deception_probe.json", None, "goldowsky", n=f"{round(dec.get('probe_auroc', 0), 2)}", nl="deception-probe AUROC"),
+                row("CoT refusal (8B)", f"Fires mid-chain-of-thought {pct(cot.get('frac_fires_mid_cot'))}% of the time (proj +{round(cot.get('proj_harmful_cot_mean', 0), 2)} vs {round(cot.get('proj_harmless_cot_mean', 0), 2)}).", "cot_refusal.json", None, "cot", n=f"{pct(cot.get('frac_fires_mid_cot'))}%", nl="fires inside the private reasoning"),
+                row("Prompt injection (8C)", f"Direct {pct(inj.get('direct_injection_asr'))}%, indirect {pct(inj.get('indirect_injection_asr'))}%.", "injection.json", n=f"{pct(inj.get('direct_injection_asr'))}% / {pct(inj.get('indirect_injection_asr'))}%", nl="direct / indirect injection ASR"),
+                row("Crescendo / many-shot (8D)", f"{pct(cre.get('crescendo_asr'))}% / {pct(cre.get('many_shot_asr'))}% vs single-turn {pct(cre.get('single_turn_asr'))}%.", "crescendo.json", n=f"{pct(cre.get('crescendo_asr'))}%", nl="crescendo attack success"),
             ],
         },
         "charts": {

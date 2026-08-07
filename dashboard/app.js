@@ -81,10 +81,17 @@
   document.querySelectorAll("[data-rows]").forEach(function (host) {
     var rows = (F.sections || {})[host.getAttribute("data-rows")] || [];
     rows.forEach(function (r) {
-      var row = el("div", "row");
+      var row = el("li", "row");
       var head = el("div", "rh");
       head.appendChild(el("div", "rl", annotate(r.l)));
-      if (r.k) head.appendChild(el("div", "rk", r.k));
+      if (r.n) {
+        var metric = el("div", "rmetric");
+        metric.appendChild(el("div", "rn", r.n));
+        if (r.nl) metric.appendChild(el("div", "rnl", r.nl));
+        head.appendChild(metric);
+      } else if (r.k) {
+        head.appendChild(el("div", "rk", r.k));
+      }
       row.appendChild(head);
       row.appendChild(el("div", "rv", annotate(r.v)));
       var links = el("div", "rlinks");
@@ -117,9 +124,22 @@
     ml.appendChild(card);
   });
 
-  // plain-English toggle
+  // graceful degradation: if data.js failed to load, say so instead of rendering blank
+  if (!(F.headline && F.headline.length)) {
+    var hero = document.querySelector(".hero");
+    if (hero) hero.appendChild(el("p", "dataerr",
+      'The result data did not load. Read the numbers directly in the ' +
+      '<a href="https://github.com/sahilmenon/The-Refusal-Stack/tree/main/results/reported">committed result files</a>.'));
+  }
+
+  // plain-English toggle (preference persists across visits)
   var cb = document.getElementById("eli5");
-  function sync() { document.body.classList.toggle("no-eli5", !cb.checked); }
+  var TKEY = "forensic-eli5";
+  try { var saved = localStorage.getItem(TKEY); if (saved !== null) cb.checked = saved === "1"; } catch (e) {}
+  function sync() {
+    document.body.classList.toggle("no-eli5", !cb.checked);
+    try { localStorage.setItem(TKEY, cb.checked ? "1" : "0"); } catch (e) {}
+  }
   cb.addEventListener("change", sync); sync();
 
   // inline term tooltips: hover (or tap) a glossary term to see its box
@@ -148,56 +168,110 @@
     else hideTip();
   });
 
-  // charts
-  function draw() {
-    if (!window.Chart) { return setTimeout(draw, 60); }
-    var C = window.Chart, ch = F.charts || {};
-    C.defaults.animation = false;
-    C.defaults.color = "#8a97a6";
-    C.defaults.font.family = "ui-monospace, Menlo, Consolas, monospace";
-    C.defaults.font.size = 11;
-    var TEAL = "#4fd1c5", AMBER = "#f6ad55", GRID = "rgba(255,255,255,0.06)";
-    var noLegend = { plugins: { legend: { display: false } } };
-    function scales(max, pct) {
-      return { y: { beginAtZero: true, max: max, grid: { color: GRID }, ticks: { callback: function (v) { return pct ? v + "%" : v; } } }, x: { grid: { display: false } } };
-    }
-    function aria(c, text) { c.setAttribute("role", "img"); c.setAttribute("aria-label", text); }
-    function bar(id, labels, data, opt) {
-      var c = document.getElementById(id); if (!c) return;
-      aria(c, labels.map(function (l, i) { return l + " " + data[i]; }).join(", "));
-      new C(c, { type: "bar", data: { labels: labels, datasets: [{ data: data, backgroundColor: TEAL, borderRadius: 5, maxBarThickness: 46 }] }, options: Object.assign({ responsive: true, maintainAspectRatio: true }, noLegend, opt || {}) });
-    }
-
-    if (ch.headroom) bar("c-headroom", ch.headroom.labels, ch.headroom.data, { scales: scales(100, true) });
-    if (ch.detectors) bar("c-detectors", ch.detectors.labels, ch.detectors.data, { scales: scales(1, false) });
-    if (ch.projections) bar("c-projections", ch.projections.labels, ch.projections.data, { scales: { y: { beginAtZero: true, grid: { color: GRID } }, x: { grid: { display: false } } } });
-    if (ch.sae) bar("c-sae", ch.sae.labels, ch.sae.cosine, { scales: { y: { beginAtZero: true, max: 0.4, grid: { color: GRID } }, x: { grid: { display: false } } } });
-    if (ch.organisms) bar("c-organisms", ch.organisms.labels, ch.organisms.data, { scales: scales(1, false) });
-
-    if (ch.subspace) {
-      var c = document.getElementById("c-subspace");
-      if (c) aria(c, "Detection AUROC and ablation completeness by subspace rank k, from k=1 to k=8. A single direction is weak; AUROC peaks near 0.94 at k=3 and completeness reaches 0.93 by k=8.");
-      if (c) new C(c, {
-        type: "line",
-        data: { labels: ch.subspace.k, datasets: [
-          { label: "detection AUROC", data: ch.subspace.auroc, borderColor: TEAL, backgroundColor: "transparent", tension: 0.25, pointRadius: 3 },
-          { label: "ablation completeness", data: ch.subspace.completeness, borderColor: AMBER, backgroundColor: "transparent", tension: 0.25, pointRadius: 3 }
-        ] },
-        options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { labels: { boxWidth: 12 } } }, scales: { y: { beginAtZero: true, max: 1, grid: { color: GRID } }, x: { grid: { display: false }, title: { display: true, text: "subspace rank k" } } } }
-      });
-    }
-    if (ch.probes) {
-      var cp = document.getElementById("c-probes");
-      if (cp) aria(cp, "Detection AUROC versus causal ablation for four probes: unsupervised diff-of-means, mass-mean, logistic, and SAE. Only the unsupervised probe both scores high AUROC and causally controls refusal.");
-      if (cp) new C(cp, {
-        type: "bar",
-        data: { labels: ch.probes.labels, datasets: [
-          { label: "detection AUROC", data: ch.probes.auroc, backgroundColor: TEAL, borderRadius: 4 },
-          { label: "causal ablation", data: ch.probes.causal, backgroundColor: AMBER, borderRadius: 4 }
-        ] },
-        options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { labels: { boxWidth: 12 } } }, scales: { y: { beginAtZero: true, max: 1, grid: { color: GRID } }, x: { grid: { display: false } } } }
-      });
-    }
+  // charts: hand-rolled inline SVG, no external library (was 196KB of Chart.js)
+  var NS = "http://www.w3.org/2000/svg";
+  var TEAL = "#4fd1c5", AMBER = "#f6ad55", GRID = "rgba(255,255,255,0.09)", AXIS = "#8a97a6", INK = "#dde5ee";
+  var W = 520, H = 280, PAD_L = 46, PAD_R = 16, PAD_T = 34, PAD_B = 48;
+  function svgEl(name, attrs) { var e = document.createElementNS(NS, name); for (var k in attrs) e.setAttribute(k, attrs[k]); return e; }
+  function frame(alt) {
+    var s = svgEl("svg", { viewBox: "0 0 " + W + " " + H, width: "100%", preserveAspectRatio: "xMidYMid meet", role: "img", "aria-label": alt });
+    return s;
   }
-  draw();
+  function svgText(x, y, str, o) { o = o || {}; var t = svgEl("text", { x: x, y: y, fill: o.fill || AXIS, "text-anchor": o.anchor || "middle", "font-size": o.size || 11, "font-family": "ui-monospace, Menlo, Consolas, monospace" }); t.textContent = str; return t; }
+  function fmt(v, pct) { return pct ? Math.round(v) + "%" : String(Math.round(v * 1000) / 1000); }
+  function ticks(max) { var out = [], n = 4; for (var i = 0; i <= n; i++) out.push(max * i / n); return out; }
+  // draw x-axis label, wrapping one long two-word label onto a second line
+  function xLabel(s, cx, y0, step) {
+    var g = svgEl("g", {});
+    var words = String(s).split(" ");
+    if (words.length > 1 && s.length > Math.max(9, step / 7)) {
+      var mid = Math.ceil(words.length / 2);
+      g.appendChild(svgText(cx, y0 + 15, words.slice(0, mid).join(" "), { size: 10 }));
+      g.appendChild(svgText(cx, y0 + 27, words.slice(mid).join(" "), { size: 10 }));
+    } else {
+      g.appendChild(svgText(cx, y0 + 16, s, { size: 10 }));
+    }
+    return g;
+  }
+  function gridAndAxis(s, max, pct) {
+    var pw = W - PAD_L - PAD_R, ph = H - PAD_T - PAD_B, y0 = PAD_T + ph;
+    ticks(max).forEach(function (v) {
+      var y = y0 - (v / max) * ph;
+      s.appendChild(svgEl("line", { x1: PAD_L, y1: y, x2: W - PAD_R, y2: y, stroke: GRID, "stroke-width": 1 }));
+      s.appendChild(svgText(PAD_L - 7, y + 3, fmt(v, pct), { anchor: "end", size: 10 }));
+    });
+    return { pw: pw, ph: ph, y0: y0 };
+  }
+  function legend(s, series) {
+    var x = PAD_L, y = 16;
+    series.forEach(function (d) {
+      s.appendChild(svgEl("rect", { x: x, y: y - 9, width: 11, height: 11, rx: 2, fill: d.color }));
+      var t = svgText(x + 16, y, d.name, { anchor: "start", size: 10, fill: INK });
+      s.appendChild(t);
+      x += 22 + d.name.length * 6.4;
+    });
+  }
+  function host(id) { return document.getElementById(id); }
+
+  function barChart(id, labels, data, o) {
+    var h = host(id); if (!h || !data) return; o = o || {};
+    var max = o.max || Math.max.apply(null, data) * 1.15;
+    var alt = labels.map(function (l, i) { return l + " " + fmt(data[i], o.pct); }).join(", ");
+    var s = frame(alt), m = gridAndAxis(s, max, o.pct), step = m.pw / data.length;
+    data.forEach(function (v, i) {
+      var bw = Math.min(46, step * 0.58), cx = PAD_L + step * (i + 0.5), bh = (v / max) * m.ph;
+      s.appendChild(svgEl("rect", { x: cx - bw / 2, y: m.y0 - bh, width: bw, height: Math.max(0, bh), rx: 5, fill: TEAL }));
+      s.appendChild(svgText(cx, m.y0 - bh - 7, fmt(v, o.pct), { fill: INK, size: 11 }));
+      s.appendChild(xLabel(labels[i], cx, m.y0, step));
+    });
+    if (o.refline != null) {
+      var ry = m.y0 - (o.refline / max) * m.ph;
+      s.appendChild(svgEl("line", { x1: PAD_L, y1: ry, x2: W - PAD_R, y2: ry, stroke: AMBER, "stroke-width": 1.4, "stroke-dasharray": "5 4" }));
+      s.appendChild(svgText(W - PAD_R, ry - 5, o.reflabel || "", { anchor: "end", size: 9, fill: AMBER }));
+    }
+    h.innerHTML = ""; h.appendChild(s);
+  }
+
+  function groupedBar(id, labels, series, o) {
+    var h = host(id); if (!h) return; o = o || {};
+    var s = frame(o.alt), m = gridAndAxis(s, o.max || 1, o.pct), step = m.pw / labels.length;
+    legend(s, series);
+    labels.forEach(function (lab, i) {
+      var gx = PAD_L + step * i, inner = Math.min(step * 0.8, 90), bw = inner / series.length, start = gx + (step - inner) / 2;
+      series.forEach(function (d, j) {
+        var v = d.data[i], bh = (v / (o.max || 1)) * m.ph, x = start + j * bw;
+        s.appendChild(svgEl("rect", { x: x + 1, y: m.y0 - bh, width: bw - 2, height: Math.max(0, bh), rx: 3, fill: d.color }));
+      });
+      s.appendChild(xLabel(lab, gx + step / 2, m.y0, step));
+    });
+    h.innerHTML = ""; h.appendChild(s);
+  }
+
+  function lineChart(id, xs, series, o) {
+    var h = host(id); if (!h) return; o = o || {};
+    var s = frame(o.alt), m = gridAndAxis(s, 1, false), step = xs.length > 1 ? m.pw / (xs.length - 1) : m.pw;
+    legend(s, series);
+    xs.forEach(function (xv, i) { s.appendChild(svgText(PAD_L + step * i, m.y0 + 16, String(xv), { size: 10 })); });
+    if (o.xTitle) s.appendChild(svgText(PAD_L + m.pw / 2, H - 6, o.xTitle, { size: 10 }));
+    series.forEach(function (d) {
+      var pts = d.data.map(function (v, i) { return (PAD_L + step * i) + "," + (m.y0 - v * m.ph); }).join(" ");
+      s.appendChild(svgEl("polyline", { points: pts, fill: "none", stroke: d.color, "stroke-width": 2 }));
+      d.data.forEach(function (v, i) { s.appendChild(svgEl("circle", { cx: PAD_L + step * i, cy: m.y0 - v * m.ph, r: 3, fill: d.color })); });
+    });
+    h.innerHTML = ""; h.appendChild(s);
+  }
+
+  var ch = F.charts || {};
+  if (ch.headroom) barChart("c-headroom", ch.headroom.labels, ch.headroom.data, { max: 100, pct: true });
+  if (ch.detectors) barChart("c-detectors", ch.detectors.labels, ch.detectors.data, { max: 1, refline: 0.5, reflabel: "0.5 = chance" });
+  if (ch.sae) barChart("c-sae", ch.sae.labels, ch.sae.cosine, { max: 0.4 });
+  if (ch.organisms) barChart("c-organisms", ch.organisms.labels, ch.organisms.data, { max: 1, refline: 0.5, reflabel: "0.5 = chance" });
+  if (ch.subspace) lineChart("c-subspace", ch.subspace.k, [
+    { name: "detection AUROC", color: TEAL, data: ch.subspace.auroc },
+    { name: "ablation completeness", color: AMBER, data: ch.subspace.completeness }
+  ], { xTitle: "subspace rank k", alt: "Detection AUROC and ablation completeness by subspace rank k, from k=1 to k=8. A single direction is weak; AUROC peaks near 0.94 at k=3 and completeness reaches 0.93 by k=8." });
+  if (ch.probes) groupedBar("c-probes", ch.probes.labels, [
+    { name: "detection AUROC", color: TEAL, data: ch.probes.auroc },
+    { name: "causal ablation", color: AMBER, data: ch.probes.causal }
+  ], { max: 1, alt: "Detection AUROC versus causal ablation for four probes: unsupervised diff-of-means, mass-mean, logistic, and SAE. Only the unsupervised probe both scores high AUROC and causally controls refusal." });
 })();

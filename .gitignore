@@ -5,6 +5,7 @@ CLAUDE.md
 .cursor/
 .aider*
 .playwright-mcp/
+.wrangler/
 
 # Secrets
 .env
