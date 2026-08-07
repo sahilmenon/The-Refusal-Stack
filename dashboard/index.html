@@ -6,7 +6,6 @@
 <title>Forensic · The Refusal Stack</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230b0e13'/%3E%3Ccircle cx='16' cy='16' r='6' fill='%234fd1c5'/%3E%3C/svg%3E" />
 <meta name="description" content="A forensic study of refusal in an open-weight LLM: locate it, attack it, break it, detect the tampering, and test whether the method generalizes." />
-<link rel="preconnect" href="https://cdnjs.cloudflare.com" />
 <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
@@ -27,6 +26,7 @@
 
 <section class="hero">
   <h1>An autopsy of a safety behaviour.</h1>
+  <p class="subhead">Open weights let anyone quietly fine-tune a model's safety back out. This project detects that from the model's own activations at <strong>AUROC 0.956</strong>, then shows the method holds across a different model, an image channel, and a different hidden behaviour.</p>
   <p class="lede">
     Instruction-tuned language models learn to <strong>refuse</strong> harmful requests.
     This project treats that refusal like a forensic subject: <em>locate</em> where it lives,
@@ -78,10 +78,7 @@
           <p class="teach small">AUROC is "how well can you tell two groups apart," 0.5 = coin flip, 1.0 = perfect. The
           detector spots the refusal-removed model well (0.956). Reading the prompt alone (last-token) is useless (0.50):
           the model decides to refuse while answering, not while reading.</p></figure>
-        <figure class="chart"><figcaption>Mean projection onto the refusal direction</figcaption><canvas id="c-projections"></canvas>
-          <p class="teach small">A clean model "lights up" the refusal direction (high). The tampered model barely does
-          (low). A benign fine-tune drifts partway, which is why the detector separates removal from ordinary fine-tuning
-          by degree.</p></figure>
+        <figure class="chart plate"><img src="projection-histograms.png" alt="Histograms of the refusal-direction projection over generated tokens. The clean model's distribution sits high and the refusal-removed model's sits low, with little overlap." loading="lazy" /><figcaption>The detector at work (real output). A clean model's activations project high on the refusal direction; a tampered model's project low. That gap is the AUROC 0.956.</figcaption></figure>
       </div>
     </div>
   </section>
@@ -173,15 +170,22 @@
 </main>
 
 <footer class="foot">
-  <div>
-    <strong>The Refusal Stack</strong> · a forensic study of LLM refusal ·
-    <a href="https://github.com/sahilmenon/The-Refusal-Stack" target="_blank" rel="noopener">source</a> ·
-    <a href="https://github.com/sahilmenon/The-Refusal-Stack/blob/main/report/main.md" target="_blank" rel="noopener">report</a>
+  <div class="identity">
+    <div class="who">
+      <strong>Sahil Menon</strong>
+      <span>AI-safety research: interpretability, adversarial robustness, and tamper detection.</span>
+    </div>
+    <nav class="cta">
+      <a href="mailto:sahilmenon01@gmail.com">Email</a>
+      <a href="https://github.com/sahilmenon" target="_blank" rel="noopener">GitHub</a>
+      <a href="https://github.com/sahilmenon/The-Refusal-Stack" target="_blank" rel="noopener">Source</a>
+      <a href="https://github.com/sahilmenon/The-Refusal-Stack/blob/main/report/main.md" target="_blank" rel="noopener">Report</a>
+    </nav>
   </div>
-  <div class="muted">Every number links to a committed result file in <code>results/reported/</code>. Range-checked by <code>make expectations</code>.</div>
+  <div class="muted">Every number links to a committed result file in <code>results/reported/</code>, range-checked by <code>make expectations</code>.</div>
 </footer>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js" defer></script>
+<script src="chart.umd.min.js" defer></script>
 <script src="data.js" defer></script>
 <script src="app.js" defer></script>
 </body>

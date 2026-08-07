@@ -57,7 +57,11 @@
   };
   var TERM_RE = new RegExp("\\b(" + Object.keys(TERMS).join("|") + ")\\b", "g");
   function annotate(text) {
-    return String(text).replace(TERM_RE, function (m) { return '<span class="term" data-t="' + m + '">' + m + "</span>"; });
+    return String(text).replace(TERM_RE, function (m) {
+      var d = TERMS[m];
+      var al = (d ? d.t + ": " + d.d : m).replace(/"/g, "&quot;");
+      return '<span class="term" tabindex="0" role="button" aria-label="' + al + '" data-t="' + m + '">' + m + "</span>";
+    });
   }
 
   function el(tag, cls, html) { var e = document.createElement(tag); if (cls) e.className = cls; if (html != null) e.innerHTML = html; return e; }
@@ -136,6 +140,9 @@
   function isTerm(e) { return e.target.classList && e.target.classList.contains("term"); }
   document.addEventListener("mouseover", function (e) { if (isTerm(e)) showTip(e.target); });
   document.addEventListener("mouseout", function (e) { if (isTerm(e)) hideTip(); });
+  document.addEventListener("focusin", function (e) { if (isTerm(e)) showTip(e.target); });
+  document.addEventListener("focusout", function (e) { if (isTerm(e)) hideTip(); });
+  document.addEventListener("keydown", function (e) { if (e.key === "Escape") hideTip(); });
   document.addEventListener("click", function (e) {
     if (isTerm(e)) { e.preventDefault(); if (tip.style.display === "block") hideTip(); else showTip(e.target); }
     else hideTip();
@@ -154,8 +161,10 @@
     function scales(max, pct) {
       return { y: { beginAtZero: true, max: max, grid: { color: GRID }, ticks: { callback: function (v) { return pct ? v + "%" : v; } } }, x: { grid: { display: false } } };
     }
+    function aria(c, text) { c.setAttribute("role", "img"); c.setAttribute("aria-label", text); }
     function bar(id, labels, data, opt) {
       var c = document.getElementById(id); if (!c) return;
+      aria(c, labels.map(function (l, i) { return l + " " + data[i]; }).join(", "));
       new C(c, { type: "bar", data: { labels: labels, datasets: [{ data: data, backgroundColor: TEAL, borderRadius: 5, maxBarThickness: 46 }] }, options: Object.assign({ responsive: true, maintainAspectRatio: true }, noLegend, opt || {}) });
     }
 
@@ -167,6 +176,7 @@
 
     if (ch.subspace) {
       var c = document.getElementById("c-subspace");
+      if (c) aria(c, "Detection AUROC and ablation completeness by subspace rank k, from k=1 to k=8. A single direction is weak; AUROC peaks near 0.94 at k=3 and completeness reaches 0.93 by k=8.");
       if (c) new C(c, {
         type: "line",
         data: { labels: ch.subspace.k, datasets: [
@@ -178,6 +188,7 @@
     }
     if (ch.probes) {
       var cp = document.getElementById("c-probes");
+      if (cp) aria(cp, "Detection AUROC versus causal ablation for four probes: unsupervised diff-of-means, mass-mean, logistic, and SAE. Only the unsupervised probe both scores high AUROC and causally controls refusal.");
       if (cp) new C(cp, {
         type: "bar",
         data: { labels: ch.probes.labels, datasets: [
