@@ -18,7 +18,9 @@ extract_residual_at_layer -- the SAME representation the refusal detector reads,
 at the SAME Phase-3 layer. Unlike sandbag/detect.py (which projects onto a
 diff-of-means direction and scores AUROC), this fits a full logistic probe with
 cross-validated AUROC, so it is a trained detector rather than a single
-direction. The two are complementary readings of the same organism.
+direction. It is NOT the refusal direction reused unchanged -- the backdoor and
+emergent-misalignment legs are the ones that reuse the detector verbatim. The two
+are complementary readings of the same organism.
 
 CPU-safe seam: fit_deception_probe / probe_auroc are pure numpy+sklearn and are
 unit-tested on synthetic activations; only compute_residuals touches a GPU model.
@@ -97,13 +99,41 @@ def fit_deception_probe(
 
 
 def probe_auroc(clf, honest_acts: np.ndarray, deceptive_acts: np.ndarray) -> float:
-    """AUROC of the probe separating honest (0) from deceptive (1)."""
+    """IN-SAMPLE AUROC of the probe separating honest (0) from deceptive (1).
+
+    This scores the same activations the probe was fit on, so on a 4096-dim
+    representation with 200 examples per class it is separable almost by
+    construction and lands at 1.0. Kept as a fit diagnostic only -- report
+    `probe_cv_auroc` instead, and never quote this number as detection
+    performance.
+    """
     from sklearn.metrics import roc_auc_score
 
     X = np.vstack([honest_acts, deceptive_acts])
     y = np.array([0] * len(honest_acts) + [1] * len(deceptive_acts))
     scores = clf.predict_proba(X)[:, 1]
     return float(roc_auc_score(y, scores))
+
+
+def probe_cv_auroc(
+    honest_acts: np.ndarray,
+    deceptive_acts: np.ndarray,
+    C: float = 1.0,
+    max_iter: int = 1000,
+    seed: int = 42,
+) -> float:
+    """Cross-validated AUROC -- the held-out number this leg should report."""
+    from sklearn.linear_model import LogisticRegression
+    from sklearn.model_selection import cross_val_score
+
+    X = np.vstack([honest_acts, deceptive_acts])
+    y = np.array([0] * len(honest_acts) + [1] * len(deceptive_acts))
+    n_pos, n_neg = int(y.sum()), int(len(y) - y.sum())
+    cv = min(5, n_pos, n_neg)
+    if cv < 2:
+        return float("nan")
+    clf = LogisticRegression(C=C, max_iter=max_iter, random_state=seed, solver="lbfgs")
+    return float(cross_val_score(clf, X, y, cv=cv, scoring="roc_auc").mean())
 
 
 def main() -> None:
@@ -138,7 +168,11 @@ def main() -> None:
 
     clf, cv_acc = fit_deception_probe(honest_acts, deceptive_acts)
     auroc = probe_auroc(clf, honest_acts, deceptive_acts)
-    log.info(f"Deception probe: AUROC={auroc:.3f}  cv_acc={cv_acc:.3f}")
+    cv_auroc = probe_cv_auroc(honest_acts, deceptive_acts)
+    log.info(
+        f"Deception probe: cv_auroc={cv_auroc:.3f}  cv_acc={cv_acc:.3f}  "
+        f"(in-sample auroc={auroc:.3f}, diagnostic only)"
+    )
 
     results = {
         "organism": "deception_probe_on_sandbagging",
@@ -146,8 +180,13 @@ def main() -> None:
         "framing_paper": "arXiv:2412.04984",
         "layer_idx": int(layer_idx),
         "n_prompts": len(prompts),
-        "probe_auroc": auroc,
+        "probe_cv_auroc": cv_auroc,
         "probe_cv_accuracy": cv_acc,
+        "probe_auroc_in_sample": auroc,
+        "_note": (
+            "probe_cv_auroc is the held-out number to report; probe_auroc_in_sample "
+            "scores the activations the probe was fit on and is a fit diagnostic only."
+        ),
         "positive_class": "sandbagger (strategic underperformance)",
         "negative_class": "honest control",
     }
@@ -161,7 +200,13 @@ def main() -> None:
     try:
         import wandb
 
-        wandb.log({"deception/probe_auroc": auroc, "deception/probe_cv_accuracy": cv_acc})
+        wandb.log(
+            {
+                "deception/probe_cv_auroc": cv_auroc,
+                "deception/probe_cv_accuracy": cv_acc,
+                "deception/probe_auroc_in_sample": auroc,
+            }
+        )
     except Exception:
         pass
 

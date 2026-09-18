@@ -75,7 +75,12 @@ def plot_roc_curve(
     fig, ax = plt.subplots(figsize=(6, 6))
     ax.plot(fprs, tprs, color="#4878D0", lw=2)
     ax.plot([0, 1], [0, 1], "k--", lw=1)
-    idx = int(np.argmin(np.abs(fprs - fpr_target)))
+    # Match scorer.fit_threshold: take the last point at-or-below the target FPR,
+    # not the nearest. argmin|fpr-target| can land above target and, on the steep
+    # rise of this curve, marks a visibly lower TPR than the one reported in
+    # detect.json (0.50 vs the true 0.76 at 5% FPR).
+    eligible = np.where(fprs <= fpr_target)[0]
+    idx = int(eligible[-1]) if len(eligible) else int(np.argmin(np.abs(fprs - fpr_target)))
     ax.scatter(
         [fprs[idx]],
         [tprs[idx]],

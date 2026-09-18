@@ -52,3 +52,29 @@ def test_probe_labels_positive_class_is_deceptive():
     # A clearly-deceptive point should score >0.5 on the positive class.
     prob = clf.predict_proba(np.full((1, 8), 3.0))[0, 1]
     assert prob > 0.5
+
+
+def test_cv_auroc_is_held_out_and_below_in_sample_on_noise():
+    """On pure noise the in-sample fit still separates; the CV AUROC must not.
+
+    This is the guard for the bug that shipped a 1.000 in-sample number as if it
+    were detection performance.
+    """
+    import numpy as np
+
+    from refusal_stack.generalize.organisms.deception_probe import (
+        fit_deception_probe,
+        probe_auroc,
+        probe_cv_auroc,
+    )
+
+    rng = np.random.default_rng(0)
+    honest = rng.normal(size=(40, 256))
+    deceptive = rng.normal(size=(40, 256))
+
+    clf, _ = fit_deception_probe(honest, deceptive)
+    in_sample = probe_auroc(clf, honest, deceptive)
+    cv = probe_cv_auroc(honest, deceptive)
+
+    assert in_sample > 0.95, "in-sample fit on noise should look near-perfect"
+    assert cv < 0.75, f"cross-validated AUROC on noise should be near chance, got {cv}"

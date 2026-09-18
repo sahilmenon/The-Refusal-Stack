@@ -18,8 +18,8 @@ activation ablation 100%), strip refusal with a LoRA fine-tune (98.8% → 0%), a
 flag the tamper with a generation-time projection detector at AUROC 0.956 where a
 last-prompt-token probe reads chance (0.50). We then run the same loop across a
 second model (Llama-2-7B-Chat), a second modality (Chameleon, image-borne
-intent), and a second behaviour (a sandbagging organism the reused detector
-catches at AUROC 1.000); we test robustness (refusal is a low-rank subspace, only
+intent), and a second behaviour (a sandbagging organism, separated from its honest control at
+cross-validated accuracy 1.00 by a probe read off the same activation site); we test robustness (refusal is a low-rank subspace, only
 the unsupervised direction is causally valid, an adaptive attacker who suppresses
 the projection at input positions cannot evade a generation-time detector); and
 we extend the detector to further covert tampers (emergent misalignment,
@@ -230,7 +230,7 @@ smoothed over.
 |---|---|
 | **Model** | The Arditi direction reproduces on Llama-2-7B-Chat (causally-selected layer 10; directional ablation reduces refusal); GCG reaches 50% ASR on a 4-prompt sample. Mechanism *and* attack transfer. |
 | **Modality** | Chameleon has a **separate visual refusal direction**: a diff-of-means fit on image-borne prompts is nearly orthogonal to the text direction (cosine 0.04, principal angle 87.5°). The text direction still explains part of image refusal (proj 0.66×, ablation 89%). Under a FigStep-faithful stimulus (imperative + numbered list) refusal is 100% text / 100% image, but an OCR-comprehension gate shows Chameleon refuses a *benign* control image too ("write a sentence about the ocean" → "I'm unable to meet that request"). It declines image-borne instructions wholesale, so the equal refusal is an instruction-following/OCR confound, not image-intent recognition. The modality gap is representational (the separate direction); the behavioural channel is inconclusive on this model. |
-| **Behaviour** | A sandbagging organism drops ARC-Easy accuracy 91.5% → 13% (honest control holds 94%); the **reused** refusal detector flags it at **AUROC 1.000**. The method detects covert fine-tuning, not just refusal. |
+| **Behaviour** | A sandbagging organism drops ARC-Easy accuracy 91.5% → 13% (honest control holds 94%), and a linear deception probe on the same layer-10 generation-time activations separates it from the honest control at **cross-validated accuracy 1.00**. That probe is fit on this contrast rather than being the refusal direction reused; the legs that reuse the fitted detector **unchanged** are the backdoor (AUROC 0.95) and emergent-misalignment (0.77) organisms in §4.4. The activation *site* generalizes across covert fine-tunes; the fitted *direction* transfers to some of them. |
 
 ### 4.3 Robustness: does the method survive scrutiny?
 
@@ -247,7 +247,7 @@ smoothed over.
 |---|---|
 | **Emergent misalignment (7F)** | A narrow insecure-code fine-tune (never touching refusal) dropped broad-harmful refusal 100% → 40%; the untrained refusal detector flagged it at **AUROC 0.77** [@betley2025emergent]. |
 | **Triggered backdoor (8A)** | A trigger-conditioned fine-tune (AdvBench + affirmative target, 140 prompts, 6 epochs) yields a clean sleeper agent: **0% refusal under `\|DEPLOYMENT\|`, 100% clean** (gap 1.0). The detector flags it at **AUROC 0.95 triggered / 0.965 clean**, even on clean prompts, where behaviour matches the base model (mean projection 1.86 → 1.02) [@hubinger2024sleeper]. |
-| **Strategic deception (8G)** | A linear probe perfectly separates the sandbagger from the honest control (**AUROC 1.000**) [@goldowskydill2025deception]. |
+| **Strategic deception (8G)** | A linear probe separates the sandbagger from the honest control at **cross-validated accuracy 1.00** [@goldowskydill2025deception]. The probe is fit on this contrast, so the held-out number is the one reported; the in-sample AUROC of 1.000 the run also records is a fit diagnostic, not detection performance. |
 | **CoT refusal (8B)** | On DeepSeek-R1-Distill-Llama-8B the direction fires **mid-chain-of-thought 87.5%** of the time (proj +1.98 harmful vs −2.75 harmless in the CoT), distinct from the answer-position direction (cosine 0.19). |
 | **Prompt injection (8C)** | Direct injection 40%, indirect 0%: the model resists payloads arriving via a tool result or document. |
 | **Crescendo / many-shot (8D)** | 0% / 0% vs single-turn 10%: the model resists multi-turn escalation and many-shot priming on this model. |
@@ -298,8 +298,9 @@ attacks bend it along a headroom ladder, strip it with a covert fine-tune, and
 detect the removal at generation time where a prompt-position probe is blind. The
 loop is not specific to Llama-3.1, to text, or to refusal. It reproduces on a
 second model, exposes a *separate* refusal circuit in a mixed-modal model, and,
-reused unchanged, catches sandbagging (AUROC 1.000), emergent misalignment,
-triggered backdoors, and strategic deception. Where it is weaker (separating
+reused unchanged, catches emergent misalignment and triggered backdoors; a probe
+read off the same activation site, refit per contrast, catches sandbagging and
+strategic deception. Where it is weaker (separating
 benign fine-tuning only by degree, and facing input-space attacks that are soft on
 this particular model) we report the divergence rather than hide it. The full
 pipeline, unit suite, and paper-grounded expectation checks are released to

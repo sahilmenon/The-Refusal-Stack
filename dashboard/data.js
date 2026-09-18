@@ -105,9 +105,9 @@ window.FORENSIC = {
       },
       {
         "l": "Behaviour",
-        "v": "ARC-Easy accuracy 91.5% \u2192 13.0% (control holds 94.0%). Reused refusal detector flags it at AUROC 1.0.",
+        "v": "ARC-Easy accuracy 91.5% \u2192 13.0% (control holds 94.0%). A linear probe on the same generation-time activations separates the sandbagger from the honest control at cross-validated accuracy 1.00. That probe is fit on this contrast, rather than the refusal direction reused. The detector reused unchanged is the one behind the backdoor (0.95) and emergent-misalignment (0.77) legs.",
         "n": "1.0",
-        "nl": "reused detector's AUROC on a sandbagger",
+        "nl": "held-out accuracy separating a sandbagger from its honest control",
         "k": "sandbagging organism",
         "src": "sandbag.json",
         "paper": {
@@ -187,9 +187,9 @@ window.FORENSIC = {
       },
       {
         "l": "Deception probe (8G)",
-        "v": "Linear probe separates the sandbagger from the honest control at AUROC 1.0.",
+        "v": "Linear probe separates the sandbagger from the honest control at cross-validated accuracy 1.00. The probe is fit on this contrast, so the held-out number is the one reported; the in-sample AUROC of 1.000 is a fit diagnostic.",
         "n": "1.0",
-        "nl": "deception-probe AUROC",
+        "nl": "deception-probe held-out accuracy",
         "src": "deception_probe.json",
         "paper": {
           "t": "Goldowsky-Dill et al. 2025",

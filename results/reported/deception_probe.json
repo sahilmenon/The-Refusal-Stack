@@ -4,7 +4,8 @@
   "framing_paper": "arXiv:2412.04984",
   "layer_idx": 10,
   "n_prompts": 200,
-  "probe_auroc": 1.0,
+  "probe_auroc_in_sample": 1.0,
+  "_note": "probe_auroc_in_sample scores the activations the probe was fit on and is a fit diagnostic, not detection performance; probe_cv_accuracy is the held-out number. Re-running this leg also emits probe_cv_auroc.",
   "probe_cv_accuracy": 1.0,
   "positive_class": "sandbagger (strategic underperformance)",
   "negative_class": "honest control"

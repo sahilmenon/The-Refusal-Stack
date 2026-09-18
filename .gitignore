@@ -61,6 +61,10 @@ papers/
 /figures/*.png
 /figures/**/*.png
 /figures/figures/
+# README figures are the exception: small, regenerated from the committed
+# result JSONs by scripts/make_readme_figures.py, and they have to render on
+# the public GitHub page.
+!/figures/reported/*.png
 /vlm_modality_gap.json
 
 # Phase-3 -> Phase-4 handoff: keep the canonical refusal direction tracked
