@@ -43,7 +43,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-dev = ["ruff==0.5.5", "black==24.8.0", "pre-commit==3.8.0", "pytest==8.3.2", "pytest-asyncio==0.23.8"]
+dev = ["ruff==0.15.12", "black==24.8.0", "pre-commit==3.8.0", "pytest==8.3.2", "pytest-asyncio==0.23.8"]
 judge = ["anthropic==0.32.0", "openai==1.40.0"]
 # Phase 2 (attacks): black-box PAIR retry logic + tensor rearrange
 attacks = ["einops==0.8.0", "tenacity==8.5.0"]

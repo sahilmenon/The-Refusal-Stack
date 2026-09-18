@@ -11,13 +11,17 @@ logger = logging.getLogger(__name__)
 def _decoder_layers(model):
     """Locate the decoder layer list across architectures (no transformers import).
 
-    Llama / Chameleon: model.model.layers; Fuyu / Persimmon: model.language_model.model.layers.
+    Llama / Chameleon: model.model.layers; Fuyu / Persimmon: model.language_model.model.layers;
+    GPT-2: model.transformer.h (the CPU stand-in the interp tests hook).
     """
     if hasattr(model, "model") and hasattr(model.model, "layers"):
         return model.model.layers
     lm = getattr(model, "language_model", None)
     if lm is not None and hasattr(lm, "model"):
         return lm.model.layers
+    transformer = getattr(model, "transformer", None)
+    if transformer is not None and hasattr(transformer, "h"):
+        return transformer.h
     raise ValueError(f"Cannot locate decoder layers on {type(model).__name__}")
 
 
