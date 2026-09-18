@@ -27,8 +27,10 @@ def _make_mock_tokenizer():
 def _make_mock_model():
     model = MagicMock()
     model.eval = MagicMock(return_value=model)
-    params_iter = iter([torch.zeros(1)])
-    model.parameters = MagicMock(return_value=params_iter)
+    # A fresh iterator per call: HFModelWrapper calls next(model.parameters())
+    # once at load and again in generate_batch, and a single shared iterator is
+    # exhausted by the first of those.
+    model.parameters = MagicMock(side_effect=lambda: iter([torch.zeros(1)]))
     # generate returns shape (1, 10) - 5 input + 5 new tokens
     model.generate = MagicMock(return_value=torch.zeros(1, 10, dtype=torch.long))
     return model

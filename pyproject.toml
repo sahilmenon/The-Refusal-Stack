@@ -72,6 +72,13 @@ line-length = 100
 select = ["E", "F", "I", "UP"]
 ignore = ["E501"]
 
+[tool.ruff.lint.per-file-ignores]
+# Optional-dependency tests guard their imports with pytest.importorskip, which
+# has to run before the import it protects. Ruff 0.5.5 (the pinned CI version)
+# flags those as E402; later versions exempt them. Ignore the rule here so the
+# pinned and current toolchains agree.
+"tests/**" = ["E402"]
+
 [tool.black]
 line-length = 100
 
