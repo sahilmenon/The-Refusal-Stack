@@ -31,6 +31,12 @@ and publishes `dashboard/` as the output directory. Nothing needs a local
 wrangler login, and the deployed page cannot drift from `results/reported/`,
 because Cloudflare rebuilds `data.js` from those JSONs on every deploy.
 
+Both build scripts are standard-library only, so the build installs nothing. The
+project sets `SKIP_DEPENDENCY_INSTALL=1` in the Pages build environment to say
+so: without it Cloudflare spots the root `pyproject.toml`, runs `pip install .`,
+and fails, because this package pins `>=3.11,<3.12` while the build image ships
+Python 3.13. Recreating the Pages project means setting that variable again.
+
 Run both scripts locally before committing anyway, so the committed `data.js`
 matches what the build will produce and the diff stays reviewable.
 
