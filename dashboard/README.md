@@ -19,15 +19,30 @@ links to the source papers.
 
 ## Rebuild and deploy
 
+Deploys are automatic. The Pages project is connected to this repository, so a
+push to `main` triggers a build that runs:
+
 ```bash
-python dashboard/build_data.py                              # refresh data.js from results/reported/
-python dashboard/stamp_assets.py                            # cache-bust ?v=<hash> on css/js (Cloudflare caches 4h)
-npx wrangler pages deploy dashboard --project-name=forensic-refusal-stack
+python3 dashboard/build_data.py     # refresh data.js from results/reported/
+python3 dashboard/stamp_assets.py   # cache-bust ?v=<hash> on css/js
 ```
+
+and publishes `dashboard/` as the output directory. Nothing needs a local
+wrangler login, and the deployed page cannot drift from `results/reported/`,
+because Cloudflare rebuilds `data.js` from those JSONs on every deploy.
+
+Run both scripts locally before committing anyway, so the committed `data.js`
+matches what the build will produce and the diff stays reviewable.
 
 The `stamp_assets.py` step matters: Cloudflare serves `app.js` / `styles.css` /
 `data.js` with `max-age=14400`, so without a content-hash query string a deploy
 can serve a stale asset against fresh HTML for up to four hours.
 
-Deploy needs a `CLOUDFLARE_API_TOKEN` with Pages edit permission in the
-environment. Every number traces to a file in `results/reported/`.
+To deploy by hand (needs a `CLOUDFLARE_API_TOKEN` with Pages edit permission, or
+`wrangler login`):
+
+```bash
+npx wrangler pages deploy dashboard --project-name=forensic-refusal-stack
+```
+
+Every number traces to a file in `results/reported/`.
