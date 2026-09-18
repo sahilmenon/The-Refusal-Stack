@@ -1,5 +1,26 @@
 # Changelog
 
+## [1.0.0] Public release
+
+### Fixed
+- 8G reported an in-sample AUROC of 1.000 as detection performance. The deception
+  probe was fit and scored on the same activations, and it is a supervised probe
+  rather than the refusal direction reused. The run now emits a cross-validated
+  AUROC, the README, report and dashboard state which detector carries which leg,
+  and a regression test fails if an in-sample score is ever quoted again.
+- `detect/plots.py` marked the ROC operating point with `argmin|fpr - target|`,
+  which put the red dot at TPR 0.50 while `detect.json` reported 0.76 at the same
+  5% FPR. It now uses the same at-or-below-target rule as `scorer.fit_threshold`.
+- CI had been red since August. The pinned ruff (0.5.5) enforced rules the
+  local toolchain (0.15.12) had dropped, a mock returned a one-shot iterator that
+  `next(model.parameters())` exhausted before `generate_batch` reached it, and the
+  layer resolver did not know GPT-2's `transformer.h`.
+
+### Added
+- `SECURITY.md`: what ships, what stays out, and how to report a problem.
+- Three README figures, regenerated from the committed result JSONs by
+  `scripts/make_readme_figures.py`.
+
 ## [0.8.1] Robustness fixes + honest VLM modality
 
 ### Fixed
@@ -20,7 +41,7 @@
 ## [0.8.0] Phase 8: Threat breadth
 
 ### Added
-- `refusal_stack/generalize/organisms/`: emergent-misalignment and trigger-backdoor organisms + deception probe, each detected by the reused refusal detector
+- `refusal_stack/generalize/organisms/`: emergent-misalignment and trigger-backdoor organisms, both caught by the reused refusal detector, plus a deception probe fit on the sandbagging contrast
 - `refusal_stack/interp/cot_refusal.py`: reasoning-model chain-of-thought refusal direction (DeepSeek-R1-Distill-Llama-8B)
 - `refusal_stack/attacks/crescendo.py`, `refusal_stack/agent/attacks/indirect_injection.py`: multi-turn crescendo + prompt-injection legs
 - `refusal_stack/expectations.py`: paper-grounded expectation ranges that range-check each Phase 7–8 leg as it lands

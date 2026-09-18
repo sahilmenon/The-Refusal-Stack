@@ -79,7 +79,7 @@ detector tells refusal-removal from ordinary fine-tuning by degree.
 | **Behaviour** | Does the detector catch a *different* covert fine-tune, not just refusal removal? | **Yes, with a caveat on which detector.** A sandbagging organism drops ARC-Easy accuracy 91.5% → 13% (honest control holds 94%), and a linear deception probe on the same layer-10 generation-time activations separates sandbagger from honest control at **cross-validated accuracy 1.00**. That probe is *trained on this contrast*, though, rather than the refusal direction reused. The legs that reuse the fitted detector **unchanged** are the backdoor (AUROC 0.95) and emergent-misalignment (0.77) organisms below. Read it as two claims: the activation site generalizes across covert fine-tunes, and the fitted direction transfers to some of them. ✓ |
 
 The lifecycle and all three generalization axes ran on real hardware, backed by
-**254 CPU unit tests**. The robustness (Phase 7) and threat-breadth (Phase 8) legs
+**255 CPU unit tests**. The robustness (Phase 7) and threat-breadth (Phase 8) legs
 below have all landed on real hardware, each range-checked by
 `make expectations` as it lands.
 

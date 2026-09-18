@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "refusal-stack"
-version = "0.8.1"
+version = "1.0.0"
 description = "Attack, locate, and re-harden refusal in an open-weight LLM."
 readme = "README.md"
 license = { file = "LICENSE" }
@@ -74,7 +74,7 @@ ignore = ["E501"]
 
 [tool.ruff.lint.per-file-ignores]
 # Optional-dependency tests guard their imports with pytest.importorskip, which
-# has to run before the import it protects. Ruff 0.5.5 (the pinned CI version)
+# has to run before the import it protects. Ruff 0.5.5 (the previously pinned CI version)
 # flags those as E402; later versions exempt them. Ignore the rule here so the
 # pinned and current toolchains agree.
 "tests/**" = ["E402"]
